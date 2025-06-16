@@ -21,6 +21,7 @@ from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_preco
     ZATCAPrecomputedInvoice,
 )
 from ksa_compliance.translation import ft
+from ksa_compliance.invoice import InvoiceMode
 
 IGNORED_INVOICES = set()
 
@@ -134,14 +135,18 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
         is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
             [strip(x.value) for x in customer.custom_additional_ids]
         )
-        if (
-            (settings.type_of_business_transactions == 'Standard Tax Invoices' and not is_customer_have_vat_number)
-            or (
-                settings.type_of_business_transactions == 'Let the system decide (both)'
-                and customer.customer_type != "Individual"
-                and not is_customer_have_vat_number
-            )
-        ):
+
+        check_vat_number_on_standard_invoice_mode = (
+            settings.invoice_mode == InvoiceMode.Standard
+            and not is_customer_have_vat_number
+        )
+
+        check_vat_number_on_auto_invoice_mode = (
+            settings.invoice_mode == InvoiceMode.Auto
+            and customer.customer_type != "Individual"
+            and not is_customer_have_vat_number
+        )
+        if check_vat_number_on_standard_invoice_mode or check_vat_number_on_auto_invoice_mode:
             frappe.msgprint(
                 ft(
                     'Company <b>$company</b> is configured to use Standard Tax Invoices, which require customers to '
