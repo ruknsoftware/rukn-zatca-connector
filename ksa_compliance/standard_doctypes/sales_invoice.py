@@ -21,6 +21,7 @@ from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_preco
     ZATCAPrecomputedInvoice,
 )
 from ksa_compliance.translation import ft
+from ksa_compliance.invoice import InvoiceMode
 
 IGNORED_INVOICES = set()
 
@@ -130,20 +131,31 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
 
     if is_phase_2_enabled_for_company:
         settings = ZATCABusinessSettings.for_company(self.company)
-        if settings.type_of_business_transactions == 'Standard Tax Invoices':
-            customer = frappe.get_doc('Customer', self.customer)
-            if not customer.custom_vat_registration_number and not any(
-                [strip(x.value) for x in customer.custom_additional_ids]
-            ):
-                frappe.msgprint(
-                    ft(
-                        'Company <b>$company</b> is configured to use Standard Tax Invoices, which require customers to '
-                        'define a VAT number or one of the other IDs. Please update customer <b>$customer</b>',
-                        company=self.company,
-                        customer=self.customer,
-                    )
+        customer = frappe.get_doc('Customer', self.customer)
+        is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
+            [strip(x.value) for x in customer.custom_additional_ids]
+        )
+
+        check_vat_number_on_standard_invoice_mode = (
+            settings.invoice_mode == InvoiceMode.Standard
+            and not is_customer_have_vat_number
+        )
+
+        check_vat_number_on_auto_invoice_mode = (
+            settings.invoice_mode == InvoiceMode.Auto
+            and customer.customer_type != "Individual"
+            and not is_customer_have_vat_number
+        )
+        if check_vat_number_on_standard_invoice_mode or check_vat_number_on_auto_invoice_mode:
+            frappe.msgprint(
+                ft(
+                    'Company <b>$company</b> is configured to use Standard Tax Invoices, which require customers to '
+                    'define a VAT number or one of the other IDs. Please update customer <b>$customer</b>',
+                    company=self.company,
+                    customer=self.customer,
                 )
-                valid = False
+            )
+            valid = False
 
     if not valid:
         message_log = frappe.get_message_log()
