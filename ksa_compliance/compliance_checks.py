@@ -263,6 +263,7 @@ def _make_invoice(company: str, customer: str, item: str, tax_category_id: str) 
     invoice.set_taxes()
     invoice.append('items', {'item_code': item, 'qty': 1.0})
     invoice.set_missing_values()
+    setattr(invoice, "is_perform_compliance_checks", True)
     invoice.save()
     return invoice
 
