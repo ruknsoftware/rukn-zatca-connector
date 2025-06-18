@@ -4,6 +4,7 @@ import frappe
 import frappe.utils.background_jobs
 from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+from erpnext.accounts.doctype.payment_entry.payment_entry import PaymentEntry
 from frappe import _
 from frappe.utils import strip
 from result import is_ok
@@ -11,6 +12,7 @@ from result import is_ok
 from ksa_compliance import logger
 from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import (
     SalesInvoiceAdditionalFields,
+    get_part_key
 )
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
 from ksa_compliance.ksa_compliance.doctype.zatca_egs.zatca_egs import ZATCAEGS
@@ -36,7 +38,7 @@ def clear_additional_fields_ignore_list() -> None:
     IGNORED_INVOICES.clear()
 
 
-def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoice, method):
+def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoice | PaymentEntry, method):
     if self.doctype == 'Sales Invoice' and not _should_enable_zatca_for_invoice(self.name):
         logger.info(f"Skipping additional fields for {self.name} because it's before start date")
         return
@@ -108,7 +110,7 @@ def _should_enable_zatca_for_invoice(invoice_id: str) -> bool:
     return posting_date >= start_date
 
 
-def prevent_cancellation_of_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
+def prevent_cancellation_of_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, method) -> None:
     is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
     if is_phase_2_enabled_for_company:
         frappe.throw(
@@ -117,11 +119,12 @@ def prevent_cancellation_of_sales_invoice(self: SalesInvoice | POSInvoice, metho
         )
 
 
-def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
+def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, method) -> None:
+    party_key = get_part_key(self.doctype)
     valid = True
     is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
     if ZATCAPhase1BusinessSettings.is_enabled_for_company(self.company) or is_phase_2_enabled_for_company:
-        if len(self.taxes) == 0:
+        if len(self.taxes) == 0 and self.doctype != "Payment Entry":
             frappe.msgprint(
                 msg=_('Please include tax rate in Sales Taxes and Charges Table'),
                 title=_('Validation Error'),
@@ -131,7 +134,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
 
     if is_phase_2_enabled_for_company:
         settings = ZATCABusinessSettings.for_company(self.company)
-        customer = frappe.get_doc('Customer', self.customer)
+        customer = frappe.get_doc('Customer', self.get(party_key))
         is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
             [strip(x.value) for x in customer.custom_additional_ids]
         )
@@ -152,7 +155,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                     'Company <b>$company</b> is configured to use Standard Tax Invoices, which require customers to '
                     'define a VAT number or one of the other IDs. Please update customer <b>$customer</b>',
                     company=self.company,
-                    customer=self.customer,
+                    customer=self.get(party_key),
                 )
             )
             valid = False
