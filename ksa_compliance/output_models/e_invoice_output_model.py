@@ -921,3 +921,111 @@ class ZATCASalesInvoice(Einvoice):
         applied_discount_amount = total_without_vat * (applied_discount_percent / 100)
         self.result['invoice']['allowance_total_amount'] = applied_discount_amount
         self.additional_fields_doc.fatoora_invoice_discount_amount = applied_discount_amount
+
+
+class ZATCAPaymentInvoice(Einvoice):
+    def __init__(
+            self,
+            sales_invoice_additional_fields_doc: 'sales_invoice_additional_fields.SalesInvoiceAdditionalFields',
+            invoice_type: InvoiceType = 'Simplified',
+    ):
+        super().__init__(sales_invoice_additional_fields_doc, invoice_type)
+
+        self.result['invoice']['net_total'] = self.net_total()
+
+        self.get_float_value(
+            field_name='base_paid_amount', source_doc=self.sales_invoice_doc, xml_name='grand_total',
+            parent='invoice'
+        )
+
+        # Allowance on invoice should be only the document level allowance without items allowances.
+
+
+        self.get_time_value(
+            field_name='creation', source_doc=self.sales_invoice_doc, xml_name='issue_time', parent='invoice'
+        )
+
+        self.get_text_value(
+            field_name='paid_to_account_currency', source_doc=self.sales_invoice_doc, xml_name='currency_code', parent='invoice'
+        )
+
+    def net_total(self) -> float:
+        tax_rate = self.get_taxes_and_charges_details().get("rate")
+        return round(self.sales_invoice_doc.base_paid_amount / (1 + (tax_rate / 100)))
+
+    def tax_amount(self):
+        tax_rate = self.get_taxes_and_charges_details().get("rate")
+        return round( self.sales_invoice_doc.base_paid_amount - (self.sales_invoice_doc.base_paid_amount / (1 + (tax_rate / 100))))
+
+    def get_company_default_taxes_and_charges_template(self):
+        return frappe.get_value(
+            doctype="Sales Taxes and Charges Template",
+            filters={
+                "company": self.business_settings_doc.company,
+                "is_default": 1
+            }
+        )
+
+    def get_taxes_and_charges_details(self):
+        item_tax_template = self.get_company_default_taxes_and_charges_template()
+        from erpnext.controllers.accounts_controller import get_taxes_and_charges
+        taxes = get_taxes_and_charges("Sales Taxes and Charges Template", item_tax_template)[0]
+        return taxes
+
+    def get_e_invoice_details(self, invoice_type: InvoiceType = 'Simplified'):
+        super().get_e_invoice_details(invoice_type)
+        if self.sales_invoice_doc.is_rounded_total_disabled():
+            self.result['invoice']['payable_amount'] = abs(self.sales_invoice_doc.base_paid_amount)
+            self.result['invoice']['rounding_adjustment'] = 0.0
+        else:
+            payable_amount = abs(self.sales_invoice_doc.rounded_total)
+            tax_inclusive_amount = abs(self.sales_invoice_doc.grand_total)
+            self.result['invoice']['payable_amount'] = payable_amount
+            if self.sales_invoice_doc.is_return:
+                self.result['invoice']['rounding_adjustment'] = payable_amount - tax_inclusive_amount
+            else:
+                self.result['invoice']['rounding_adjustment'] = self.sales_invoice_doc.rounding_adjustment
+
+        item_lines = []
+
+        item = frappe.get_doc("Item", "DEFFERED LICENSE FEE")
+        item_tax_template = self.get_company_default_taxes_and_charges_template()
+        tax_percent = abs(self.get_taxes_and_charges_details().get("rate") or 0.0)
+        # noinspection PyUnresolvedReferences
+        tax_amount = abs(self.tax_amount() or 0.0)
+
+        item_lines.append(
+            {
+                'idx': 1,
+                'qty': 1,
+                'uom': item.stock_uom,
+                'item_code': item.item_code,
+                'item_name': item.item_name,
+                'net_amount': abs(self.sales_invoice_doc.base_paid_amount),
+                'amount': abs(self.net_total()),
+                'rate': abs(self.net_total()),
+                'discount_percentage': abs(0.0),
+                'discount_amount': abs(0.0),
+                'item_tax_template': item_tax_template,
+                'tax_percent': tax_percent,
+                'tax_amount': tax_amount,
+            }
+        )
+
+        # Add tax amount and tax percent on each item line
+        item_lines = append_tax_details_into_item_lines(item_lines=item_lines, is_tax_included=False)
+
+        unique_tax_categories = append_tax_categories_to_item(item_lines, item_tax_template)
+        # Append unique Tax categories to invoice
+        self.result['invoice']['tax_categories'] = unique_tax_categories
+
+        # Add invoice total taxes and charges percentage field
+        self.result['invoice']['total_taxes_and_charges'] = self.tax_amount()
+        self.result['invoice']['base_total_taxes_and_charges'] =self.sales_invoice_doc.base_paid_amount
+        self.result['invoice']['total_taxes_and_charges_percent'] = self.get_taxes_and_charges_details().get("rate")
+        self.result['invoice']['tax_categories'][0]['total_discount'] = 0.0
+
+        self.result['invoice']['item_lines'] = item_lines
+        self.result['invoice']['allowance_total_amount'] = 0.0
+        self.result['invoice']['line_extension_amount'] = sum(it['amount'] for it in item_lines)
+        # --------------------------- END Getting Invoice's item lines ------------------------------
