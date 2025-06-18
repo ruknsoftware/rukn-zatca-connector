@@ -13,6 +13,7 @@ import frappe.utils.background_jobs
 import pyqrcode
 from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+from erpnext.accounts.doctype.payment_entry.payment_entry import PaymentEntry
 from erpnext.selling.doctype.customer.customer import Customer
 from frappe import _
 from frappe.contacts.doctype.address.address import Address
@@ -36,6 +37,7 @@ from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_preco
     ZATCAPrecomputedInvoice,
 )
 from ksa_compliance.output_models.e_invoice_output_model import Einvoice
+from ksa_compliance.output_models.e_invoice_output_model import ZATCASalesInvoice, ZATCAPaymentInvoice
 from ksa_compliance.translation import ft
 from ksa_compliance.zatca_api import ReportOrClearInvoiceError, ReportOrClearInvoiceResult, ZatcaSendMode
 from ksa_compliance.zatca_cli import convert_to_pdf_a3_b, check_pdfa3b_support_or_throw
@@ -87,7 +89,7 @@ class SalesInvoiceAdditionalFields(Document):
             'Clearance switched off',
         ]
         invoice_counter: DF.Int
-        invoice_doctype: DF.Literal['Sales Invoice', 'POS Invoice']
+        invoice_doctype: DF.Literal['Sales Invoice', 'POS Invoice', 'Payment Entry']
         invoice_hash: DF.Data | None
         invoice_line_allowance_reason: DF.Data | None
         invoice_line_allowance_reason_code: DF.Data | None
@@ -133,7 +135,7 @@ class SalesInvoiceAdditionalFields(Document):
 
     @staticmethod
     def create_for_invoice(
-        invoice_id: str, doctype: Literal['Sales Invoice', 'POS Invoice']
+        invoice_id: str, doctype: Literal['Sales Invoice', 'POS Invoice', 'Payment Entry'],
     ) -> 'SalesInvoiceAdditionalFields':
         doc = cast(SalesInvoiceAdditionalFields, frappe.new_doc('Sales Invoice Additional Fields'))
         # We do not expect people to create SIAF manually, so nobody has permission to create one
@@ -181,7 +183,7 @@ class SalesInvoiceAdditionalFields(Document):
         if not settings:
             frappe.throw(f'Missing ZATCA business settings for sales invoice: {self.sales_invoice}')
 
-        sales_invoice = cast(SalesInvoice | POSInvoice, frappe.get_doc(self.invoice_doctype, self.sales_invoice))
+        sales_invoice = cast(SalesInvoice | POSInvoice | PaymentEntry, frappe.get_doc(self.invoice_doctype, self.sales_invoice))
         self.uuid = str(uuid.uuid4())
         self.tax_currency = 'SAR'  # Review: Set as "SAR" as a default tax currency value
 
@@ -327,31 +329,37 @@ class SalesInvoiceAdditionalFields(Document):
 
         return Ok(f'Invoice sent to ZATCA. Integration status: {integration_status}')
 
-    def _get_invoice_type_code(self, invoice_doc: SalesInvoice | POSInvoice) -> str:
+    def _get_invoice_type_code(self, invoice_doc: SalesInvoice | POSInvoice | PaymentEntry) -> str:
         # POSInvoice doesn't have an is_debit_note field
         if invoice_doc.doctype == 'Sales Invoice' and invoice_doc.is_debit_note:
             return '383'
 
-        if invoice_doc.is_return:
-            return '381'
+        if invoice_doc.doctype != "Payment Entry":
+            if invoice_doc.is_return:
+                return '381'
 
         return '388'
 
-    def _get_payment_means_type_code(self, invoice: SalesInvoice | POSInvoice) -> Optional[str]:
+    def _get_payment_means_type_code(self, invoice: SalesInvoice | POSInvoice | PaymentEntry) -> Optional[str]:
         # An invoice can have multiple modes of payment, but we currently only support one. Therefore, we retrieve the
         # first one if any
-        if not invoice.payments:
-            return None
+        if invoice.doctype != "Payment Entry":
+            if not invoice.payments:
+                return None
 
-        mode_of_payment = invoice.payments[0].mode_of_payment
+            mode_of_payment = invoice.payments[0].mode_of_payment
+        else:
+            mode_of_payment = invoice.mode_of_payment
         return frappe.get_value('Mode of Payment', mode_of_payment, 'custom_zatca_payment_means_code')
 
-    def _set_buyer_details(self, sales_invoice: SalesInvoice | POSInvoice):
-        customer_doc = cast(Customer, frappe.get_doc('Customer', sales_invoice.customer))
+    def _set_buyer_details(self, sales_invoice: SalesInvoice | POSInvoice | PaymentEntry):
+        party_key = get_part_key(sales_invoice.doctype)
+        customer_doc = cast(Customer, frappe.get_doc('Customer', sales_invoice.get(party_key)))
 
         self.buyer_vat_registration_number = customer_doc.get('custom_vat_registration_number')
-        if sales_invoice.customer_address:
-            self._set_buyer_address(cast(Address, frappe.get_doc('Address', sales_invoice.customer_address)))
+        if sales_invoice.doctype != "Payment Entry":
+            if sales_invoice.customer_address:
+                self._set_buyer_address(cast(Address, frappe.get_doc('Address', sales_invoice.customer_address)))
 
         for item in customer_doc.get('custom_additional_ids'):
             if strip(item.value):
@@ -617,3 +625,7 @@ def download_zatca_pdf(id: str, print_format: str = 'ZATCA Phase 2 Print Format'
     frappe.response.filecontent = pdf_content
     frappe.response.type = 'download'
     frappe.response.display_content_as = 'attachment'
+
+
+def get_part_key(doctype):
+    return "customer" if doctype != "Payment Entry" else "party"
