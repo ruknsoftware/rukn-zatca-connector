@@ -225,15 +225,12 @@ class Einvoice:
             xml_name='allowance_charge_reason_code',
             parent='invoice',
         )
-
-        # Allowance on invoice should be only the document level allowance without items allowances.
         self.get_float_value(
             field_name='discount_amount',
             source_doc=self.sales_invoice_doc,
             xml_name='allowance_total_amount',
             parent='invoice',
         )
-        self.compute_invoice_discount_amount()
 
         # <----- end document level allowance ----->
 
@@ -495,21 +492,6 @@ class Einvoice:
     def get_customer_info(self, invoice_id):
         pass
 
-    def compute_invoice_discount_amount(self):
-        discount_amount = abs(self.sales_invoice_doc.discount_amount)
-        if self.sales_invoice_doc.apply_discount_on != 'Grand Total' or discount_amount == 0:
-            self.additional_fields_doc.fatoora_invoice_discount_amount = discount_amount
-            return
-
-        applied_discount_percent = self.sales_invoice_doc.additional_discount_percentage
-        total_without_vat = self.result['invoice']['line_extension_amount']
-        tax_amount = abs(self.sales_invoice_doc.taxes[0].tax_amount)
-        if applied_discount_percent == 0:
-            applied_discount_percent = (discount_amount / (total_without_vat + tax_amount)) * 100
-        applied_discount_amount = total_without_vat * (applied_discount_percent / 100)
-        self.result['invoice']['allowance_total_amount'] = applied_discount_amount
-        self.additional_fields_doc.fatoora_invoice_discount_amount = applied_discount_amount
-
     def get_business_settings_and_seller_details(self):
         # TODO: special validations handling
         has_branch_address = False
@@ -703,6 +685,7 @@ class Einvoice:
 
         # --------------------------- END Buyer Details fields ------------------------------
 
+
     def get_e_invoice_details(self, invoice_type: str):
         is_standard = invoice_type == 'Standard'
 
@@ -714,10 +697,6 @@ class Einvoice:
 
         self.get_date_value(
             field_name='posting_date', source_doc=self.sales_invoice_doc, xml_name='issue_date', parent='invoice'
-        )
-
-        self.get_time_value(
-            field_name='posting_time', source_doc=self.sales_invoice_doc, xml_name='issue_time', parent='invoice'
         )
 
         if is_standard:
@@ -740,9 +719,6 @@ class Einvoice:
             parent='invoice',
         )
 
-        self.get_text_value(
-            field_name='currency', source_doc=self.sales_invoice_doc, xml_name='currency_code', parent='invoice'
-        )
         # Default "SAR"
         self.get_text_value(
             field_name='tax_currency', source_doc=self.additional_fields_doc, xml_name='tax_currency', parent='invoice'
@@ -792,6 +768,43 @@ class Einvoice:
 
         self.get_float_value(field_name='total', source_doc=self.sales_invoice_doc, xml_name='total', parent='invoice')
 
+        # TODO: Tax Account Currency
+
+        self.get_float_value(
+            field_name='total_advance', source_doc=self.sales_invoice_doc, xml_name='prepaid_amount', parent='invoice'
+        )
+
+        self.get_float_value(
+            field_name='outstanding_amount',
+            source_doc=self.sales_invoice_doc,
+            xml_name='outstanding_amount',
+            parent='invoice',
+        )
+        self.get_float_value(
+            field_name='net_amount',
+            source_doc=self.sales_invoice_doc,
+            xml_name='VAT_category_taxable_amount',
+            parent='invoice',
+        )
+
+        self.get_text_value(
+            field_name='po_no', source_doc=self.sales_invoice_doc, xml_name='purchase_order_reference', parent='invoice'
+        )
+
+        # --------------------------- END Invoice Basic info ------------------------------
+        # --------------------------- Start Getting Invoice's item lines ------------------------------
+
+
+class ZATCASalesInvoice(Einvoice):
+    def __init__(
+        self,
+        sales_invoice_additional_fields_doc: 'sales_invoice_additional_fields.SalesInvoiceAdditionalFields',
+        invoice_type: InvoiceType = 'Simplified',
+    ):
+        super().__init__(sales_invoice_additional_fields_doc, invoice_type)
+
+        self.compute_invoice_discount_amount()
+
         self.get_float_value(
             field_name='net_total', source_doc=self.sales_invoice_doc, xml_name='net_total', parent='invoice'
         )
@@ -809,14 +822,21 @@ class Einvoice:
             xml_name='base_total_taxes_and_charges',
             parent='invoice',
         )
-        # TODO: Tax Account Currency
+
         self.get_float_value(
             field_name='grand_total', source_doc=self.sales_invoice_doc, xml_name='grand_total', parent='invoice'
         )
-        self.get_float_value(
-            field_name='total_advance', source_doc=self.sales_invoice_doc, xml_name='prepaid_amount', parent='invoice'
+
+        self.get_time_value(
+            field_name='posting_time', source_doc=self.sales_invoice_doc, xml_name='issue_time', parent='invoice'
         )
 
+        self.get_text_value(
+            field_name='currency', source_doc=self.sales_invoice_doc, xml_name='currency_code', parent='invoice'
+        )
+
+    def get_e_invoice_details(self, invoice_type: InvoiceType = 'Simplified'):
+        super().get_e_invoice_details(invoice_type)
         if self.sales_invoice_doc.is_rounded_total_disabled():
             self.result['invoice']['payable_amount'] = abs(self.sales_invoice_doc.grand_total)
             self.result['invoice']['rounding_adjustment'] = 0.0
@@ -841,25 +861,6 @@ class Einvoice:
             else:
                 self.result['invoice']['rounding_adjustment'] = self.sales_invoice_doc.rounding_adjustment
 
-        self.get_float_value(
-            field_name='outstanding_amount',
-            source_doc=self.sales_invoice_doc,
-            xml_name='outstanding_amount',
-            parent='invoice',
-        )
-        self.get_float_value(
-            field_name='net_amount',
-            source_doc=self.sales_invoice_doc,
-            xml_name='VAT_category_taxable_amount',
-            parent='invoice',
-        )
-
-        self.get_text_value(
-            field_name='po_no', source_doc=self.sales_invoice_doc, xml_name='purchase_order_reference', parent='invoice'
-        )
-
-        # --------------------------- END Invoice Basic info ------------------------------
-        # --------------------------- Start Getting Invoice's item lines ------------------------------
         item_lines = []
         for item in self.sales_invoice_doc.items:
             # Negative discount is used to adjust price up, but it's not really a discount in that case
@@ -901,6 +902,22 @@ class Einvoice:
         self.result['invoice']['total_taxes_and_charges_percent'] = sum(
             it.rate for it in self.sales_invoice_doc.get('taxes', [])
         )
+
         self.result['invoice']['item_lines'] = item_lines
         self.result['invoice']['line_extension_amount'] = sum(it['amount'] for it in item_lines)
         # --------------------------- END Getting Invoice's item lines ------------------------------
+
+    def compute_invoice_discount_amount(self):
+        discount_amount = abs(self.sales_invoice_doc.discount_amount)
+        if self.sales_invoice_doc.apply_discount_on != 'Grand Total' or discount_amount == 0:
+            self.additional_fields_doc.fatoora_invoice_discount_amount = discount_amount
+            return
+
+        applied_discount_percent = self.sales_invoice_doc.additional_discount_percentage
+        total_without_vat = self.result['invoice']['line_extension_amount']
+        tax_amount = abs(self.sales_invoice_doc.taxes[0].tax_amount)
+        if applied_discount_percent == 0:
+            applied_discount_percent = (discount_amount / (total_without_vat + tax_amount)) * 100
+        applied_discount_amount = total_without_vat * (applied_discount_percent / 100)
+        self.result['invoice']['allowance_total_amount'] = applied_discount_amount
+        self.additional_fields_doc.fatoora_invoice_discount_amount = applied_discount_amount
