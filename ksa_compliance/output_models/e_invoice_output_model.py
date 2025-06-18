@@ -685,7 +685,6 @@ class Einvoice:
 
         # --------------------------- END Buyer Details fields ------------------------------
 
-
     def get_e_invoice_details(self, invoice_type: str):
         is_standard = invoice_type == 'Standard'
 
