@@ -12,7 +12,7 @@ from result import is_ok
 from ksa_compliance import logger
 from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import (
     SalesInvoiceAdditionalFields,
-    get_part_key
+    get_customer_field_name
 )
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
 from ksa_compliance.ksa_compliance.doctype.zatca_egs.zatca_egs import ZATCAEGS
@@ -120,7 +120,7 @@ def prevent_cancellation_of_sales_invoice(self: SalesInvoice | POSInvoice | Paym
 
 
 def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, method) -> None:
-    party_key = get_part_key(self.doctype)
+    customer_field_name = get_customer_field_name(self.doctype)
     valid = True
     is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
     if ZATCAPhase1BusinessSettings.is_enabled_for_company(self.company) or is_phase_2_enabled_for_company:
@@ -134,7 +134,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, metho
 
     if is_phase_2_enabled_for_company:
         settings = ZATCABusinessSettings.for_company(self.company)
-        customer = frappe.get_doc('Customer', self.get(party_key))
+        customer = frappe.get_doc('Customer', self.get(customer_field_name))
         is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
             [strip(x.value) for x in customer.custom_additional_ids]
         )
@@ -155,7 +155,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, metho
                     'Company <b>$company</b> is configured to use Standard Tax Invoices, which require customers to '
                     'define a VAT number or one of the other IDs. Please update customer <b>$customer</b>',
                     company=self.company,
-                    customer=self.get(party_key),
+                    customer=self.get(customer_field_name),
                 )
             )
             valid = False

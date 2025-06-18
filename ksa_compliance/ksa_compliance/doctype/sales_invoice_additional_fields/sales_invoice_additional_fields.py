@@ -355,8 +355,8 @@ class SalesInvoiceAdditionalFields(Document):
         return frappe.get_value('Mode of Payment', mode_of_payment, 'custom_zatca_payment_means_code')
 
     def _set_buyer_details(self, sales_invoice: SalesInvoice | POSInvoice | PaymentEntry):
-        party_key = get_part_key(sales_invoice.doctype)
-        customer_doc = cast(Customer, frappe.get_doc('Customer', sales_invoice.get(party_key)))
+        customer_field_name = get_customer_field_name(sales_invoice.doctype)
+        customer_doc = cast(Customer, frappe.get_doc('Customer', sales_invoice.get(customer_field_name)))
 
         self.buyer_vat_registration_number = customer_doc.get('custom_vat_registration_number')
         if customer_doc.customer_primary_address:
@@ -628,5 +628,5 @@ def download_zatca_pdf(id: str, print_format: str = 'ZATCA Phase 2 Print Format'
     frappe.response.display_content_as = 'attachment'
 
 
-def get_part_key(doctype):
+def get_customer_field_name(doctype):
     return "customer" if doctype != "Payment Entry" else "party"
