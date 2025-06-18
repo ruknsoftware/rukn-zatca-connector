@@ -359,9 +359,8 @@ class SalesInvoiceAdditionalFields(Document):
         customer_doc = cast(Customer, frappe.get_doc('Customer', sales_invoice.get(party_key)))
 
         self.buyer_vat_registration_number = customer_doc.get('custom_vat_registration_number')
-        if sales_invoice.doctype != "Payment Entry":
-            if sales_invoice.customer_address:
-                self._set_buyer_address(cast(Address, frappe.get_doc('Address', sales_invoice.customer_address)))
+        if customer_doc.customer_primary_address:
+            self._set_buyer_address(cast(Address, frappe.get_doc('Address', customer_doc.customer_primary_address)))
 
         for item in customer_doc.get('custom_additional_ids'):
             if strip(item.value):
