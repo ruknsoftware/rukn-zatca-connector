@@ -986,7 +986,7 @@ class ZATCAPaymentInvoice(Einvoice):
 
         item_lines = []
 
-        item = frappe.get_doc("Item", "DEFFERED LICENSE FEE")
+        item = frappe.get_doc("Item", self.business_settings_doc.advance_payment_item)
         item_tax_template = self.get_company_default_taxes_and_charges_template()
         tax_percent = abs(self.get_taxes_and_charges_details().get("rate") or 0.0)
         # noinspection PyUnresolvedReferences

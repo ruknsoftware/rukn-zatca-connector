@@ -25,6 +25,7 @@
   "city",
   "postal_code",
   "district",
+  "advance_payment_item",
   "seller_id_tab",
   "seller_id_section",
   "seller_name",
@@ -240,7 +241,7 @@
    "reqd": 1
   },
   {
-   "description": "ID of the onboarded EGS unit on Fatoorah platform. (unique)\n<br>\nFormat: <pre style=\"display:inline;\">1-Solution Provider Name|2-Model or version|3-Serial</pre>\n<br>\nExample: <pre style=\"display:inline;\">1-ERPNext|2-15|3-1</pre>",
+   "description": "ID of the onboarded EGS unit on Fatoorah platform. (unique)\n<br>\nFormat: <pre style=\"display: inline;\">1-Solution Provider Name|2-Model or version|3-Serial</pre>\n<br>\nExample: <pre style=\"display: inline;\">1-ERPNext|2-15|3-1</pre>",
    "fieldname": "company_unit_serial",
    "fieldtype": "Data",
    "label": "Company Unit Serial",
@@ -329,7 +330,7 @@
    "label": "Validate Generated XML"
   },
   {
-   "description": "The path to the executable for ZATCA CLI, e.g.<br>\n<pre style=\"display:inline;\">/home/frappe/zatca-cli/bin/zatca-cli</pre>",
+   "description": "The path to the executable for ZATCA CLI, e.g.<br>\n<pre style=\"display: inline;\">/home/frappe/zatca-cli/bin/zatca-cli</pre>",
    "fieldname": "zatca_cli_path",
    "fieldtype": "Data",
    "label": "CLI Path",
@@ -371,7 +372,7 @@
    "label": "Download and Set Up ZATCA CLI"
   },
   {
-   "description": "<pre style=\"display:inline;\">JAVA_HOME</pre> path used for running the CLI. Leave blank to use the default system Java installation",
+   "description": "<pre style=\"display: inline;\">JAVA_HOME</pre> path used for running the CLI. Leave blank to use the default system Java installation",
    "fieldname": "java_home",
    "fieldtype": "Data",
    "label": "Java Home",
@@ -484,11 +485,17 @@
   {
    "fieldname": "section_break_muug",
    "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "advance_payment_item",
+   "fieldtype": "Link",
+   "label": "Advance Payment Item",
+   "options": "Item"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-12-17 16:51:13.936364",
+ "modified": "2025-06-19 19:14:37.610983",
  "modified_by": "Administrator",
  "module": "KSA Compliance",
  "name": "ZATCA Business Settings",
