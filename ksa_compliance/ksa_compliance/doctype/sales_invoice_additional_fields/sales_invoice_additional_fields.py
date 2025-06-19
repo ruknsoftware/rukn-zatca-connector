@@ -334,15 +334,15 @@ class SalesInvoiceAdditionalFields(Document):
     def _get_invoice_type_code(self, invoice_doc: SalesInvoice | POSInvoice | PaymentEntry) -> InvoiceTypeCode | str:
         # POSInvoice doesn't have an is_debit_note field
         if invoice_doc.doctype == 'Sales Invoice' and invoice_doc.is_debit_note:
-            return InvoiceTypeCode.INVOICE_DEBIT_NOTE
+            return InvoiceTypeCode.INVOICE_DEBIT_NOTE.value
 
         if invoice_doc.doctype != "Payment Entry":
             if invoice_doc.is_return:
-                return InvoiceTypeCode.INVOICE_RETURN
+                return InvoiceTypeCode.INVOICE_RETURN.value
         else:
-            return InvoiceTypeCode.ADVANCE_PAYMENT
+            return InvoiceTypeCode.ADVANCE_PAYMENT.value
 
-        return InvoiceTypeCode.EINVOICE
+        return InvoiceTypeCode.EINVOICE.value
 
     def _get_payment_means_type_code(self, invoice: SalesInvoice | POSInvoice | PaymentEntry) -> Optional[str]:
         # An invoice can have multiple modes of payment, but we currently only support one. Therefore, we retrieve the
