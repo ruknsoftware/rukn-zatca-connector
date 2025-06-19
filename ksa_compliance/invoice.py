@@ -16,3 +16,10 @@ class InvoiceMode(Enum):
 
 
 InvoiceType = Literal['Standard', 'Simplified']
+
+
+class InvoiceTypeCode(Enum):
+    INVOICE_RETURN = "381"
+    INVOICE_DEBIT_NOTE = "383"
+    ADVANCE_PAYMENT = '386'
+    EINVOICE = '388'

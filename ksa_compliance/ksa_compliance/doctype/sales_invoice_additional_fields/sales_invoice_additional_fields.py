@@ -29,7 +29,7 @@ from ksa_compliance import logger
 from ksa_compliance import zatca_api as api
 from ksa_compliance import zatca_cli as cli
 from ksa_compliance.generate_xml import generate_xml_file
-from ksa_compliance.invoice import InvoiceMode, InvoiceType
+from ksa_compliance.invoice import InvoiceMode, InvoiceType, InvoiceTypeCode
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
 from ksa_compliance.ksa_compliance.doctype.zatca_egs.zatca_egs import ZATCAEGS
 from ksa_compliance.ksa_compliance.doctype.zatca_integration_log.zatca_integration_log import ZATCAIntegrationLog
@@ -331,16 +331,18 @@ class SalesInvoiceAdditionalFields(Document):
 
         return Ok(f'Invoice sent to ZATCA. Integration status: {integration_status}')
 
-    def _get_invoice_type_code(self, invoice_doc: SalesInvoice | POSInvoice | PaymentEntry) -> str:
+    def _get_invoice_type_code(self, invoice_doc: SalesInvoice | POSInvoice | PaymentEntry) -> InvoiceTypeCode | str:
         # POSInvoice doesn't have an is_debit_note field
         if invoice_doc.doctype == 'Sales Invoice' and invoice_doc.is_debit_note:
-            return '383'
+            return InvoiceTypeCode.INVOICE_DEBIT_NOTE
 
         if invoice_doc.doctype != "Payment Entry":
             if invoice_doc.is_return:
-                return '381'
+                return InvoiceTypeCode.INVOICE_RETURN
+        else:
+            return InvoiceTypeCode.ADVANCE_PAYMENT
 
-        return '388'
+        return InvoiceTypeCode.EINVOICE
 
     def _get_payment_means_type_code(self, invoice: SalesInvoice | POSInvoice | PaymentEntry) -> Optional[str]:
         # An invoice can have multiple modes of payment, but we currently only support one. Therefore, we retrieve the
