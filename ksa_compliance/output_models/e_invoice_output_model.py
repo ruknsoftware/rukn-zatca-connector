@@ -953,8 +953,7 @@ class ZATCAPaymentInvoice(Einvoice):
         return round(self.sales_invoice_doc.base_paid_amount / (1 + (tax_rate / 100)))
 
     def tax_amount(self):
-        tax_rate = self.get_taxes_and_charges_details().get("rate")
-        return round( self.sales_invoice_doc.base_paid_amount - (self.sales_invoice_doc.base_paid_amount / (1 + (tax_rate / 100))))
+        return round( self.sales_invoice_doc.base_paid_amount - self.net_total())
 
     def get_company_default_taxes_and_charges_template(self):
         return frappe.get_value(
