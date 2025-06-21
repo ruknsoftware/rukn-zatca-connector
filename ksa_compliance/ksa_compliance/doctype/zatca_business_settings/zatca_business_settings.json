@@ -26,6 +26,7 @@
   "postal_code",
   "district",
   "advance_payment_item",
+  "advance_payment_account",
   "seller_id_tab",
   "seller_id_section",
   "seller_name",
@@ -491,11 +492,17 @@
    "fieldtype": "Link",
    "label": "Advance Payment Item",
    "options": "Item"
+  },
+  {
+   "fieldname": "advance_payment_account",
+   "fieldtype": "Link",
+   "label": "Advance Payment Account",
+   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-19 19:14:37.610983",
+ "modified": "2025-06-19 22:12:50.013970",
  "modified_by": "Administrator",
  "module": "KSA Compliance",
  "name": "ZATCA Business Settings",
