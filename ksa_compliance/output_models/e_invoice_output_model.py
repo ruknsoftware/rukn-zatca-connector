@@ -6,6 +6,7 @@ import frappe
 from frappe import _
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.setup.doctype.branch.branch import Branch
+from erpnext.accounts.general_ledger import make_gl_entries, process_gl_map
 from erpnext.accounts.utils import get_account_currency
 from frappe.model.document import Document
 from frappe.utils import get_date_str, get_time, strip, flt
@@ -950,6 +951,11 @@ class ZATCAPaymentInvoice(Einvoice):
             field_name='paid_to_account_currency', source_doc=self.sales_invoice_doc, xml_name='currency_code', parent='invoice'
         )
 
+        gl_entries = []
+        self.add_tax_gl_entries(gl_entries)
+        gl_entries = process_gl_map(gl_entries)
+        make_gl_entries(gl_entries)
+
     def net_total(self) -> float:
         tax_rate = self.get_taxes_and_charges_details().get("rate")
         return round(self.sales_invoice_doc.base_paid_amount / (1 + (tax_rate / 100)))
@@ -1031,62 +1037,65 @@ class ZATCAPaymentInvoice(Einvoice):
         # --------------------------- END Getting Invoice's item lines ------------------------------
 
     def add_tax_gl_entries(self, gl_entries):
-        for d in self.get("taxes"):
-            account_currency = get_account_currency(d.account_head)
-            if account_currency != self.company_currency:
-                frappe.throw(_("Currency for {0} must be {1}").format(d.account_head, self.company_currency))
+        taxes = self.get_taxes_and_charges_details()
+        taxes["cost_center"] = self.sales_invoice_doc.cost_center
+        taxes["tax_amount"] = taxes["base_tax_amount"] = self.tax_amount()
+        taxes["total"] = self.net_total()
+        account_currency = get_account_currency(taxes.account_head)
+        if account_currency != self.sales_invoice_doc.company_currency:
+            frappe.throw(
+                _("Currency for {0} must be {1}").format(taxes.account_head, self.sales_invoice_doc.company_currency))
 
-            if self.payment_type in ("Pay", "Internal Transfer"):
-                dr_or_cr = "debit" if d.add_deduct_tax == "Add" else "credit"
-                rev_dr_or_cr = "credit" if dr_or_cr == "debit" else "debit"
-                against = self.party or self.paid_from
-            elif self.payment_type == "Receive":
-                dr_or_cr = "credit" if d.add_deduct_tax == "Add" else "debit"
-                rev_dr_or_cr = "credit" if dr_or_cr == "debit" else "debit"
-                against = self.party or self.paid_to
+        if self.sales_invoice_doc.payment_type in ("Pay", "Internal Transfer"):
+            dr_or_cr = "debit" if taxes.add_deduct_tax == "Add" else "credit"
+            rev_dr_or_cr = "credit" if dr_or_cr == "debit" else "debit"
+            against = self.sales_invoice_doc.party or self.sales_invoice_doc.paid_from
+        elif self.sales_invoice_doc.payment_type == "Receive":
+            dr_or_cr = "credit" if taxes.add_deduct_tax == "Add" else "debit"
+            rev_dr_or_cr = "credit" if dr_or_cr == "debit" else "debit"
+            against = self.sales_invoice_doc.party or self.sales_invoice_doc.paid_to
 
-            payment_account = self.get_party_account_for_taxes()
-            tax_amount = d.tax_amount
-            base_tax_amount = d.base_tax_amount
+        tax_amount = taxes.tax_amount
+        base_tax_amount = taxes.base_tax_amount
 
-            gl_entries.append(
-                self.get_gl_dict(
-                    {
-                        "account": d.account_head,
-                        "against": against,
-                        dr_or_cr: tax_amount,
-                        dr_or_cr + "_in_account_currency": base_tax_amount
-                        if account_currency == self.company_currency
-                        else d.tax_amount,
-                        "cost_center": d.cost_center,
-                        "post_net_value": True,
-                    },
-                    account_currency,
-                    item=d,
-                )
+        gl_entries.append(
+            self.sales_invoice_doc.get_gl_dict(
+                {
+                    "account": taxes.account_head,
+                    "against": against,
+                    dr_or_cr: tax_amount,
+                    dr_or_cr + "_in_account_currency": base_tax_amount
+                    if account_currency == self.sales_invoice_doc.company_currency
+                    else taxes.tax_amount,
+                    "cost_center": taxes.cost_center,
+                    "post_net_value": True,
+                },
+                account_currency,
+                item=taxes,
             )
+        )
+        tax_gl_entry = gl_entries[0]
+        advance_payment_account = self.business_settings_doc.advance_payment_account
+        if get_account_currency(advance_payment_account) != self.sales_invoice_doc.company_currency:
+            if self.sales_invoice_doc.payment_type == "Receive":
+                exchange_rate = self.sales_invoice_doc.target_exchange_rate
+            elif self.sales_invoice_doc.payment_type in ["Pay", "Internal Transfer"]:
+                exchange_rate = self.sales_invoice_doc.source_exchange_rate
+            base_tax_amount = flt((tax_amount / exchange_rate), self.sales_invoice_doc.precision("paid_amount"))
 
-            if not d.included_in_paid_amount:
-                if get_account_currency(payment_account) != self.company_currency:
-                    if self.payment_type == "Receive":
-                        exchange_rate = self.target_exchange_rate
-                    elif self.payment_type in ["Pay", "Internal Transfer"]:
-                        exchange_rate = self.source_exchange_rate
-                    base_tax_amount = flt((tax_amount / exchange_rate), self.precision("paid_amount"))
-
-                gl_entries.append(
-                    self.get_gl_dict(
-                        {
-                            "account": payment_account,
-                            "against": against,
-                            rev_dr_or_cr: tax_amount,
-                            rev_dr_or_cr + "_in_account_currency": base_tax_amount
-                            if account_currency == self.company_currency
-                            else d.tax_amount,
-                            "cost_center": self.cost_center,
-                            "post_net_value": True,
-                        },
-                        account_currency,
-                        item=d,
-                    )
-                )
+        gl_entries.append(
+            self.sales_invoice_doc.get_gl_dict(
+                {
+                    "account": advance_payment_account,
+                    "against": against,
+                    rev_dr_or_cr: tax_amount,
+                    rev_dr_or_cr + "_in_account_currency": base_tax_amount
+                    if account_currency == self.sales_invoice_doc.company_currency
+                    else tax_gl_entry.tax_amount,
+                    "cost_center": self.sales_invoice_doc.cost_center,
+                    "post_net_value": True,
+                },
+                account_currency,
+                item=tax_gl_entry,
+            )
+        )
