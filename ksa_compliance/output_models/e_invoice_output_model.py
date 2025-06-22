@@ -1037,35 +1037,36 @@ class ZATCAPaymentInvoice(Einvoice):
         # --------------------------- END Getting Invoice's item lines ------------------------------
 
     def add_tax_gl_entries(self, gl_entries):
+        payment_entry = self.sales_invoice_doc
         taxes = self.get_taxes_and_charges_details()
-        taxes["cost_center"] = self.sales_invoice_doc.cost_center
+        taxes["cost_center"] = payment_entry.cost_center
         taxes["tax_amount"] = taxes["base_tax_amount"] = self.tax_amount()
         taxes["total"] = self.net_total()
         account_currency = get_account_currency(taxes.account_head)
-        if account_currency != self.sales_invoice_doc.company_currency:
+        if account_currency != payment_entry.company_currency:
             frappe.throw(
-                _("Currency for {0} must be {1}").format(taxes.account_head, self.sales_invoice_doc.company_currency))
+                _("Currency for {0} must be {1}").format(taxes.account_head, payment_entry.company_currency))
 
-        if self.sales_invoice_doc.payment_type in ("Pay", "Internal Transfer"):
+        if payment_entry.payment_type in ("Pay", "Internal Transfer"):
             dr_or_cr = "debit" if taxes.add_deduct_tax == "Add" else "credit"
             rev_dr_or_cr = "credit" if dr_or_cr == "debit" else "debit"
-            against = self.sales_invoice_doc.party or self.sales_invoice_doc.paid_from
-        elif self.sales_invoice_doc.payment_type == "Receive":
+            against = payment_entry.party or payment_entry.paid_from
+        elif payment_entry.payment_type == "Receive":
             dr_or_cr = "credit" if taxes.add_deduct_tax == "Add" else "debit"
             rev_dr_or_cr = "credit" if dr_or_cr == "debit" else "debit"
-            against = self.sales_invoice_doc.party or self.sales_invoice_doc.paid_to
+            against = payment_entry.party or payment_entry.paid_to
 
         tax_amount = taxes.tax_amount
         base_tax_amount = taxes.base_tax_amount
 
         gl_entries.append(
-            self.sales_invoice_doc.get_gl_dict(
+            payment_entry.get_gl_dict(
                 {
                     "account": taxes.account_head,
                     "against": against,
                     dr_or_cr: tax_amount,
                     dr_or_cr + "_in_account_currency": base_tax_amount
-                    if account_currency == self.sales_invoice_doc.company_currency
+                    if account_currency == payment_entry.company_currency
                     else taxes.tax_amount,
                     "cost_center": taxes.cost_center,
                     "post_net_value": True,
@@ -1076,23 +1077,23 @@ class ZATCAPaymentInvoice(Einvoice):
         )
         tax_gl_entry = gl_entries[0]
         advance_payment_account = self.business_settings_doc.advance_payment_account
-        if get_account_currency(advance_payment_account) != self.sales_invoice_doc.company_currency:
-            if self.sales_invoice_doc.payment_type == "Receive":
-                exchange_rate = self.sales_invoice_doc.target_exchange_rate
-            elif self.sales_invoice_doc.payment_type in ["Pay", "Internal Transfer"]:
-                exchange_rate = self.sales_invoice_doc.source_exchange_rate
-            base_tax_amount = flt((tax_amount / exchange_rate), self.sales_invoice_doc.precision("paid_amount"))
+        if get_account_currency(advance_payment_account) != payment_entry.company_currency:
+            if payment_entry.payment_type == "Receive":
+                exchange_rate = payment_entry.target_exchange_rate
+            elif payment_entry.payment_type in ["Pay", "Internal Transfer"]:
+                exchange_rate = payment_entry.source_exchange_rate
+            base_tax_amount = flt((tax_amount / exchange_rate), payment_entry.precision("paid_amount"))
 
         gl_entries.append(
-            self.sales_invoice_doc.get_gl_dict(
+            payment_entry.get_gl_dict(
                 {
                     "account": advance_payment_account,
                     "against": against,
                     rev_dr_or_cr: tax_amount,
                     rev_dr_or_cr + "_in_account_currency": base_tax_amount
-                    if account_currency == self.sales_invoice_doc.company_currency
+                    if account_currency == payment_entry.company_currency
                     else tax_gl_entry.tax_amount,
-                    "cost_center": self.sales_invoice_doc.cost_center,
+                    "cost_center": payment_entry.cost_center,
                     "post_net_value": True,
                 },
                 account_currency,
