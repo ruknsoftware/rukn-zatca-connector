@@ -81,6 +81,14 @@ class AdvancePaymentEntry(PaymentEntry):
         )
 
 
+def set_advance_payment_amounts(doc, method):
+    if not doc.is_advance_payment:
+        return
+    tax_rate = get_taxes_and_charges_details(doc).get("rate")
+    doc.net_total = round(doc.base_paid_amount / (1 + (tax_rate / 100)))
+    doc.tax_amount = round(doc.base_paid_amount - doc.net_total)
+
+
 def get_company_default_taxes_and_charges_template(payment_entry):
     settings = ZATCABusinessSettings.for_company(payment_entry.company)
     return frappe.get_value(
