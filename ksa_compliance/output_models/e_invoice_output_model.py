@@ -787,10 +787,6 @@ class Einvoice:
             parent='invoice',
         )
 
-        self.get_float_value(
-            field_name='net_total', source_doc=self.sales_invoice_doc, xml_name='net_total', parent='invoice'
-        )
-
         self.get_text_value(
             field_name='po_no', source_doc=self.sales_invoice_doc, xml_name='purchase_order_reference', parent='invoice'
         )
@@ -821,6 +817,10 @@ class ZATCASalesInvoice(Einvoice):
             source_doc=self.sales_invoice_doc,
             xml_name='base_total_taxes_and_charges',
             parent='invoice',
+        )
+
+        self.get_float_value(
+            field_name='net_total', source_doc=self.sales_invoice_doc, xml_name='net_total', parent='invoice'
         )
 
         self.get_float_value(
@@ -931,13 +931,11 @@ class ZATCAPaymentInvoice(Einvoice):
     ):
         super().__init__(sales_invoice_additional_fields_doc, invoice_type)
 
-        self.get_float_value(
-            field_name='base_paid_amount', source_doc=self.sales_invoice_doc, xml_name='grand_total',
-            parent='invoice'
-        )
+        self.result['invoice']['net_total'] = self.sales_invoice_doc.unallocated_amount
+        grand_total = self.sales_invoice_doc.unallocated_amount + self.sales_invoice_doc.base_total_taxes_and_charges
+        self.result['invoice']['grand_total'] = grand_total
 
         # Allowance on invoice should be only the document level allowance without items allowances.
-
 
         self.get_time_value(
             field_name='creation', source_doc=self.sales_invoice_doc, xml_name='issue_time', parent='invoice'
@@ -951,11 +949,11 @@ class ZATCAPaymentInvoice(Einvoice):
         super().get_e_invoice_details(invoice_type)
         payment_entry_doc = self.sales_invoice_doc
         if payment_entry_doc.is_rounded_total_disabled():
-            self.result['invoice']['payable_amount'] = abs(payment_entry_doc.base_paid_amount)
+            self.result['invoice']['payable_amount'] = abs(payment_entry_doc.unallocated_amount)
             self.result['invoice']['rounding_adjustment'] = 0.0
         else:
             payable_amount = abs(payment_entry_doc.rounded_total)
-            tax_inclusive_amount = abs(payment_entry_doc.grand_total)
+            tax_inclusive_amount = abs(payment_entry_doc.unallocated_amount)
             self.result['invoice']['payable_amount'] = payable_amount
             if payment_entry_doc.is_return:
                 self.result['invoice']['rounding_adjustment'] = payable_amount - tax_inclusive_amount
@@ -968,7 +966,7 @@ class ZATCAPaymentInvoice(Einvoice):
         item_tax_template = get_company_default_taxes_and_charges_template(payment_entry_doc)
         tax_percent = abs(get_taxes_and_charges_details(payment_entry_doc).get("rate") or 0.0)
         # noinspection PyUnresolvedReferences
-        tax_amount = abs(payment_entry_doc.tax_amount or 0.0)
+        tax_amount = abs(payment_entry_doc.base_total_taxes_and_charges or 0.0)
 
         item_lines.append(
             {
@@ -978,8 +976,8 @@ class ZATCAPaymentInvoice(Einvoice):
                 'item_code': item.item_code,
                 'item_name': item.item_name,
                 'net_amount': abs(payment_entry_doc.base_paid_amount),
-                'amount': abs(payment_entry_doc.net_total),
-                'rate': abs(payment_entry_doc.net_total),
+                'amount': abs(payment_entry_doc.unallocated_amount),
+                'rate': abs(payment_entry_doc.unallocated_amount),
                 'discount_percentage': abs(0.0),
                 'discount_amount': abs(0.0),
                 'item_tax_template': item_tax_template,
@@ -996,7 +994,7 @@ class ZATCAPaymentInvoice(Einvoice):
         self.result['invoice']['tax_categories'] = unique_tax_categories
 
         # Add invoice total taxes and charges percentage field
-        self.result['invoice']['total_taxes_and_charges'] = payment_entry_doc.tax_amount
+        self.result['invoice']['total_taxes_and_charges'] = payment_entry_doc.base_total_taxes_and_charges
         self.result['invoice']['base_total_taxes_and_charges'] =payment_entry_doc.base_paid_amount
         self.result['invoice']['total_taxes_and_charges_percent'] = get_taxes_and_charges_details(payment_entry_doc).get("rate")
         self.result['invoice']['tax_categories'][0]['total_discount'] = 0.0
