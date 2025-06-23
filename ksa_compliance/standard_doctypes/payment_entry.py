@@ -13,35 +13,24 @@ class AdvancePaymentEntry(PaymentEntry):
         return self.is_advance_payment and self.payment_type == "Receive" and self.party_type == "Customer"
 
     def add_bank_gl_entries(self, gl_entries):
-        if self.payment_type in ("Pay", "Internal Transfer"):
-            gl_entries.append(
-                self.get_gl_dict(
-                    {
-                        "account": self.paid_from,
-                        "account_currency": self.paid_from_account_currency,
-                        "against": self.party if self.payment_type == "Pay" else self.paid_to,
-                        "credit_in_account_currency": self.paid_amount,
-                        "credit": self.base_paid_amount,
-                        "cost_center": self.cost_center,
-                        "post_net_value": True,
-                    },
-                    item=self,
-                )
-            )
-        if self.payment_type in ("Receive", "Internal Transfer"):
+        if self.check_is_advance_payment_entry():
+            exchange_rate = self.get_exchange_rate()
+            base_unallocated_amount = self.unallocated_amount * exchange_rate
             gl_entries.append(
                 self.get_gl_dict(
                     {
                         "account": self.paid_to,
                         "account_currency": self.paid_to_account_currency,
-                        "against": self.party if self.payment_type == "Receive" else self.paid_from,
-                        "debit_in_account_currency": self.received_amount,
-                        "debit": self.base_received_amount,
+                        "against": self.party,
+                        "debit_in_account_currency": self.unallocated_amount,
+                        "debit": base_unallocated_amount,
                         "cost_center": self.cost_center,
                     },
                     item=self,
                 )
             )
+        else:
+            super().add_bank_gl_entries(gl_entries)
 
     def add_tax_gl_entries(self, gl_entries):
         if self.check_is_advance_payment_entry():
