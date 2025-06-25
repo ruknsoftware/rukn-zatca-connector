@@ -77,7 +77,7 @@ jinja = {
 # ------------
 
 # before_install = "ksa_compliance.install.before_install"
-# after_install = "ksa_compliance.install.after_install"
+after_install = "ksa_compliance.install.after_install"
 
 # Uninstallation
 # ------------
@@ -123,9 +123,9 @@ jinja = {
 # ---------------
 # Override standard doctype classes
 
-# override_doctype_class = {
-# "ToDo": "custom_app.overrides.CustomToDo"
-# }
+override_doctype_class = {
+    "Payment Entry": "ksa_compliance.standard_doctypes.payment_entry.AdvancePaymentEntry"
+}
 
 # Document Events
 # ---------------

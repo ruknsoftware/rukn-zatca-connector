@@ -83,7 +83,7 @@
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Invoice Doctype",
-   "options": "Sales Invoice\nPOS Invoice",
+   "options": "Sales Invoice\nPOS Invoice\nPayment Entry",
    "read_only": 1,
    "reqd": 1,
    "search_index": 1
@@ -91,7 +91,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2024-09-04 13:13:24.391032",
+ "modified": "2025-06-19 12:21:30.699673",
  "modified_by": "Administrator",
  "module": "KSA Compliance",
  "name": "ZATCA Integration Log",
