@@ -101,6 +101,7 @@ class Einvoice:
             'business_settings': {},
             'seller_details': {},
             'buyer_details': {},
+            'prepayment_invoices': [],
         }
 
         self.sales_invoice_doc = cast(
@@ -804,6 +805,7 @@ class ZATCASalesInvoice(Einvoice):
         super().__init__(sales_invoice_additional_fields_doc, invoice_type)
 
         self.compute_invoice_discount_amount()
+        self.prepayment_invoice()
 
         self.get_float_value(
             field_name='total_taxes_and_charges',
@@ -921,6 +923,40 @@ class ZATCASalesInvoice(Einvoice):
         applied_discount_amount = total_without_vat * (applied_discount_percent / 100)
         self.result['invoice']['allowance_total_amount'] = applied_discount_amount
         self.additional_fields_doc.fatoora_invoice_discount_amount = applied_discount_amount
+
+    def prepayment_invoice(self):
+        from frappe.utils import get_time
+
+        sales_invoice_doc = self.sales_invoice_doc
+        advance_idx = len(sales_invoice_doc.items)
+
+        for advance_payment in sales_invoice_doc.advances:
+            payment_entry_doc = frappe.get_doc('Payment Entry', advance_payment.reference_name)
+
+            if not (
+                    payment_entry_doc.is_advance_payment
+                    and payment_entry_doc.payment_type == "Receive"
+                    and payment_entry_doc.party_type == "Customer"
+            ):
+                continue
+            siaf = frappe.get_last_doc('Sales Invoice Additional Fields', {'sales_invoice': advance_payment.reference_name})
+            prepayment_invoice = {}
+            advance_idx = advance_idx + 1
+            prepayment_invoice["prepayment_invoice_idx"] = advance_idx
+            prepayment_invoice["reference_name"] = payment_entry_doc.name
+            prepayment_invoice["currency_code"] = payment_entry_doc.paid_to_account_currency
+            prepayment_invoice["qty"] = 1
+            prepayment_invoice["item_name"] = self.business_settings_doc.advance_payment_item
+            prepayment_invoice["issue_date"] = payment_entry_doc.posting_date
+            prepayment_invoice["issue_time"] = get_time(payment_entry_doc.creation)
+            prepayment_invoice["allocated_amount"] = advance_payment.allocated_amount
+            prepayment_invoice["tax_percent"] = (payment_entry_doc.base_total_taxes_and_charges/ payment_entry_doc.base_paid_amount) * 100
+            prepayment_invoice["tax_amount"] = (advance_payment.allocated_amount * payment_entry_doc.base_total_taxes_and_charges) / payment_entry_doc.base_paid_amount
+            prepayment_invoice["grand_total"] = advance_payment.allocated_amount + prepayment_invoice["tax_amount"]
+
+            prepayment_invoice["uuid"] = siaf.uuid
+
+            self.result['prepayment_invoices'].append(prepayment_invoice)
 
 
 class ZATCAPaymentInvoice(Einvoice):
