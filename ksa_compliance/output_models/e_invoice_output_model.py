@@ -7,7 +7,7 @@ from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.setup.doctype.branch.branch import Branch
 from frappe.model.document import Document
 from frappe.utils import get_date_str, get_time, strip, flt
-from ksa_compliance.invoice import InvoiceType
+from ksa_compliance.invoice import InvoiceType, InvoiceTypeCode
 from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields import sales_invoice_additional_fields
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
 from ksa_compliance.ksa_compliance.doctype.zatca_return_against_reference.zatca_return_against_reference import (
@@ -952,6 +952,7 @@ class ZATCASalesInvoice(Einvoice):
             prepayment_invoice["tax_amount"] = (advance_payment.allocated_amount * payment_entry_doc.base_total_taxes_and_charges) / payment_entry_doc.base_paid_amount
             prepayment_invoice["grand_total"] = advance_payment.allocated_amount + prepayment_invoice["tax_amount"]
 
+            prepayment_invoice["invoice_type_code"] = InvoiceTypeCode.ADVANCE_PAYMENT.value
             prepayment_invoice["uuid"] = siaf.uuid
 
             self.result['prepayment_invoices'].append(prepayment_invoice)

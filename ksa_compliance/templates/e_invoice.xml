@@ -255,7 +255,7 @@
                 <cbc:UUID>{{ prepayment.uuid }}</cbc:UUID>
                 <cbc:IssueDate>{{ prepayment.issue_date }}</cbc:IssueDate>
                 <cbc:IssueTime>{{ prepayment.issue_time }}</cbc:IssueTime>
-                <cbc:DocumentTypeCode>386</cbc:DocumentTypeCode>
+                <cbc:DocumentTypeCode>{{ prepayment.invoice_type_code }}</cbc:DocumentTypeCode>
             </cac:DocumentReference>
             <cac:TaxTotal>
                 <cbc:TaxAmount currencyID="{{ prepayment.currency_code }}">{{ prepayment.tax_amount }}</cbc:TaxAmount>
