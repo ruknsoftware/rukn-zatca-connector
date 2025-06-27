@@ -925,8 +925,6 @@ class ZATCASalesInvoice(Einvoice):
         self.additional_fields_doc.fatoora_invoice_discount_amount = applied_discount_amount
 
     def prepayment_invoice(self):
-        from frappe.utils import get_time
-
         sales_invoice_doc = self.sales_invoice_doc
         advance_idx = len(sales_invoice_doc.items)
 
