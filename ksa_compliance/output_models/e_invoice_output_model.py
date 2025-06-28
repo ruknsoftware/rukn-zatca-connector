@@ -948,8 +948,8 @@ class ZATCASalesInvoice(Einvoice):
             prepayment_invoice["issue_date"] = payment_entry_doc.posting_date
             prepayment_invoice["issue_time"] = get_time(payment_entry_doc.creation)
             prepayment_invoice["allocated_amount"] = advance_payment.allocated_amount
-            prepayment_invoice["tax_percent"] = (payment_entry_doc.base_total_taxes_and_charges/ payment_entry_doc.base_paid_amount) * 100
-            prepayment_invoice["tax_amount"] = (advance_payment.allocated_amount * payment_entry_doc.base_total_taxes_and_charges) / payment_entry_doc.base_paid_amount
+            prepayment_invoice["tax_percent"] = round( ((payment_entry_doc.base_total_taxes_and_charges/ payment_entry_doc.base_paid_amount) * 100), 2)
+            prepayment_invoice["tax_amount"] = round( ((advance_payment.allocated_amount * payment_entry_doc.base_total_taxes_and_charges) / payment_entry_doc.base_paid_amount), 2)
             prepayment_invoice["grand_total"] = advance_payment.allocated_amount + prepayment_invoice["tax_amount"]
 
             prepayment_invoice["invoice_type_code"] = InvoiceTypeCode.ADVANCE_PAYMENT.value
