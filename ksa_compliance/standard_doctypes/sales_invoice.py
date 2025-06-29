@@ -120,10 +120,11 @@ def _should_enable_zatca_for_invoice(invoice_id: str) -> bool:
 
 
 def prevent_cancellation_of_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, method) -> None:
+    is_advance_payment = self.doctype == 'Payment Entry' and self.is_advance_payment
     is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
-    if is_phase_2_enabled_for_company:
+    if is_phase_2_enabled_for_company or is_advance_payment:
         frappe.throw(
-            msg=_('You cannot cancel sales invoice according to ZATCA Regulations.'),
+            msg=_('You cannot cancel {0} according to ZATCA Regulations.', ).format(self.doctype),
             title=_('This Action Is Not Allowed'),
         )
 
