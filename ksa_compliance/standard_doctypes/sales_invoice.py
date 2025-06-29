@@ -9,10 +9,17 @@ from frappe import _
 from frappe.utils import strip
 from result import is_ok
 
+from frappe.utils import flt
+from erpnext.accounts.doctype.payment_entry.payment_entry import get_party_details
+from erpnext.setup.utils import get_exchange_rate
+from erpnext.accounts.doctype.sales_invoice.sales_invoice import get_bank_cash_account
+from erpnext.accounts.doctype.payment_entry.payment_entry import get_account_details
+
 from ksa_compliance import logger
 from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import (
     SalesInvoiceAdditionalFields,
-    get_customer_field_name
+    get_customer_field_name,
+    is_advance_payment_invoice
 )
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
 from ksa_compliance.ksa_compliance.doctype.zatca_egs.zatca_egs import ZATCAEGS
@@ -76,6 +83,8 @@ def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoi
             is_live_sync = egs_settings.is_live_sync
 
     si_additional_fields_doc.insert()
+    if is_advance_payment_invoice(self, settings):
+        create_payment_entry_for_advance_payment_invoice(self)
     if is_live_sync:
         # We're running in the context of invoice submission (on_submit hook). We only want to run our ZATCA logic if
         # the invoice submits successfully after on_submit is run successfully from all apps.
@@ -134,6 +143,14 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, metho
 
     if is_phase_2_enabled_for_company:
         settings = ZATCABusinessSettings.for_company(self.company)
+        if is_advance_payment_invoice(self, settings) and len(self.items) > 1:
+            frappe.msgprint(
+                msg=_('Advance payment invoices must include only the advance payment item'),
+                title=_('Validation Error'),
+                indicator='red',
+            )
+            valid = False
+
         customer = frappe.get_doc('Customer', self.get(customer_field_name))
         is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
             [strip(x.value) for x in customer.custom_additional_ids]
@@ -164,3 +181,88 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, metho
         message_log = frappe.get_message_log()
         error_messages = '\n'.join(log['message'] for log in message_log)
         raise frappe.ValidationError(error_messages)
+
+
+def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInvoice) -> None:
+    payment_entry = frappe.new_doc("Payment Entry")
+    payment_entry.payment_type = "Receive"
+    payment_entry.custom_order_type = self.custom_sales_invoice_type
+    payment_entry.posting_date = self.posting_date
+    payment_entry.company = self.company
+    payment_entry.party_type = "Customer"
+    payment_entry.party = self.customer
+    payment_entry.cost_center = self.cost_center
+    payment_entry.paid_amount = self.grand_total
+    payment_entry.mode_of_payment = "Cash"
+
+    party_details = get_party_details(
+        company=payment_entry.company,
+        party_type="Customer",
+        party=payment_entry.party,
+        date=payment_entry.posting_date,
+        cost_center=payment_entry.cost_center
+    )
+    payment_entry.paid_from = party_details.get("party_account")
+    payment_entry.paid_from_account_currency = party_details.get("party_account_currency")
+    payment_entry.paid_from_account_balance = party_details.get("account_balance")
+
+    payment_entry.party_balance = party_details.get("party_balance")
+    payment_entry.party_name = party_details.get("party_name")
+
+    if party_details.get("bank_account"):
+        payment_entry.bank_account = party_details.get("bank_account")
+
+    company_currency = frappe.db.get_value("Company", payment_entry.company, "default_currency")
+
+    if payment_entry.paid_from_account_currency:
+        ex_rate_src = get_exchange_rate(
+            transaction_date=payment_entry.posting_date,
+            from_currency=payment_entry.paid_from_account_currency,
+            to_currency=company_currency
+        )
+
+        precision = payment_entry.meta.get_field("source_exchange_rate").precision
+        payment_entry.source_exchange_rate = flt(ex_rate_src, precision)
+
+
+    payment_entry.paid_to = get_bank_cash_account(mode_of_payment=payment_entry.mode_of_payment, company=payment_entry.company).get("account")
+
+    if self.posting_date and payment_entry.paid_to:
+        account_details = get_account_details(
+            account=payment_entry.paid_to,
+            date=payment_entry.posting_date,
+            cost_center=payment_entry.cost_center
+        )
+        payment_entry.paid_to_account_currency = account_details.get("account_currency")
+        payment_entry.paid_to_account_balance = account_details.get("account_balance")
+
+        if account_details.get("account_type") == "Bank":
+            if not payment_entry.reference_no or not payment_entry.reference_date:
+                frappe.throw(
+                    _("Reference No and Reference Date are required for Bank accounts."),
+                    exc=frappe.MandatoryError
+                )
+
+        if payment_entry.paid_from_account_currency == payment_entry.paid_to_account_currency:
+            payment_entry.target_exchange_rate = payment_entry.source_exchange_rate
+            payment_entry.received_amount = payment_entry.paid_amount
+        else:
+            payment_entry.received_amount = flt(payment_entry.paid_amount * payment_entry.target_exchange_rate,
+                                       payment_entry.meta.get_field("received_amount").precision)
+
+        if payment_entry.paid_to_account_currency:
+            ex_rate = get_exchange_rate(
+                transaction_date=payment_entry.posting_date,
+                from_currency=payment_entry.paid_to_account_currency,
+                to_currency=company_currency
+            )
+            precision = payment_entry.meta.get_field("target_exchange_rate").precision
+            payment_entry.target_exchange_rate = flt(ex_rate, precision)
+
+    payment_entry.allocate_amount_to_references(
+        paid_amount=payment_entry.paid_amount,
+        paid_amount_change=True,
+        allocate_payment_amount=True,
+    )
+    payment_entry.save()
+    payment_entry.submit()
