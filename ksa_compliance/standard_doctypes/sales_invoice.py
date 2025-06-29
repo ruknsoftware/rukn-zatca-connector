@@ -195,6 +195,10 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
     payment_entry.paid_amount = self.grand_total
     payment_entry.mode_of_payment = "Cash"
 
+    payment_entry.is_advance_payment = True
+    payment_entry.invoice_doctype = self.doctype
+    payment_entry.advance_payment_invoice = self.name
+
     party_details = get_party_details(
         company=payment_entry.company,
         party_type="Customer",
