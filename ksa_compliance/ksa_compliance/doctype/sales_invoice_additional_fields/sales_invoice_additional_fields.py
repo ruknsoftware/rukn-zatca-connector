@@ -333,13 +333,13 @@ class SalesInvoiceAdditionalFields(Document):
 
     def _get_invoice_type_code(self, invoice_doc: SalesInvoice | POSInvoice | PaymentEntry) -> InvoiceTypeCode | str:
         # POSInvoice doesn't have an is_debit_note field
+        settings = ZATCABusinessSettings.for_invoice(self.sales_invoice, self.invoice_doctype)
         if invoice_doc.doctype == 'Sales Invoice' and invoice_doc.is_debit_note:
             return InvoiceTypeCode.INVOICE_DEBIT_NOTE.value
 
-        if invoice_doc.doctype != "Payment Entry":
-            if invoice_doc.is_return:
-                return InvoiceTypeCode.INVOICE_RETURN.value
-        else:
+        if invoice_doc.is_return:
+            return InvoiceTypeCode.INVOICE_RETURN.value
+        if is_advance_payment_invoice(invoice_doc, settings):
             return InvoiceTypeCode.ADVANCE_PAYMENT.value
 
         return InvoiceTypeCode.EINVOICE.value
@@ -632,3 +632,8 @@ def download_zatca_pdf(id: str, print_format: str = 'ZATCA Phase 2 Print Format'
 
 def get_customer_field_name(doctype):
     return "customer" if doctype != "Payment Entry" else "party"
+
+
+def is_advance_payment_invoice(self: SalesInvoice | POSInvoice, settings: ZATCABusinessSettings) -> bool:
+    items = [item.item_code for item in self.items]
+    return settings.advance_payment_item in items
