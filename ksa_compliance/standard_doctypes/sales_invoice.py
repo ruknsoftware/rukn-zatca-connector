@@ -144,7 +144,14 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, metho
 
     if is_phase_2_enabled_for_company:
         settings = ZATCABusinessSettings.for_company(self.company)
-        is_valid_advance_payment_invoice(self, settings, valid)
+        if not is_valid_advance_payment_invoice(self, settings):
+            frappe.msgprint(
+                msg=_('Advance payment invoices must include only the advance payment item'),
+                title=_('Validation Error'),
+                indicator='red',
+                raise_exception=True,
+            )
+            valid = False
 
         customer = frappe.get_doc('Customer', self.get(customer_field_name))
         is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
@@ -178,15 +185,10 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, metho
         raise frappe.ValidationError(error_messages)
 
 
-def is_valid_advance_payment_invoice(self: SalesInvoice | POSInvoice, settings, valid) -> None:
-    if is_advance_payment_invoice(self, settings) and len(self.items) > 1:
-        frappe.msgprint(
-            msg=_('Advance payment invoices must include only the advance payment item'),
-            title=_('Validation Error'),
-            indicator='red',
-            raise_exception=True,
-        )
-        valid = False
+def is_valid_advance_payment_invoice(self, settings) -> bool:
+    if not is_advance_payment_invoice(self, settings):
+        return True
+    return len(self.items) == 1
 
 
 def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInvoice) -> None:
