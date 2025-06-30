@@ -222,13 +222,11 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
     if party_details.get("bank_account"):
         payment_entry.bank_account = party_details.get("bank_account")
 
-    company_currency = frappe.db.get_value("Company", payment_entry.company, "default_currency")
-
     if payment_entry.paid_from_account_currency:
         ex_rate_src = get_exchange_rate(
             transaction_date=payment_entry.posting_date,
             from_currency=payment_entry.paid_from_account_currency,
-            to_currency=company_currency
+            to_currency=self.currency
         )
 
         precision = payment_entry.meta.get_field("source_exchange_rate").precision
@@ -264,7 +262,7 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
             ex_rate = get_exchange_rate(
                 transaction_date=payment_entry.posting_date,
                 from_currency=payment_entry.paid_to_account_currency,
-                to_currency=company_currency
+                to_currency=self.currency
             )
             precision = payment_entry.meta.get_field("target_exchange_rate").precision
             payment_entry.target_exchange_rate = flt(ex_rate, precision)
