@@ -37,7 +37,6 @@ doctype_js = {
     'Customer': 'public/js/customer.js',
     'Branch': 'public/js/branch.js',
     'Sales Invoice': 'public/js/sales_invoice.js',
-    'POS Invoice': 'public/js/pos_invoice.js',
 }
 
 # Svg Icons

@@ -48,16 +48,5 @@ def add_custom_fields():
 				read_only=True,
 			),
 		],
-		"POS Invoice": [
-			dict(
-				fieldname="mode_of_payment",
-				label="Mode Of Payment",
-				fieldtype="Link",
-				insert_after="due_date",
-				options="Mode of Payment",
-				module=ksa_compliance_module,
-				read_only=True,
-			),
-		]
 	}
 	create_custom_fields(custom_fields)
