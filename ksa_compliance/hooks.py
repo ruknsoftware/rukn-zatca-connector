@@ -124,7 +124,7 @@ after_install = "ksa_compliance.install.after_install"
 # Override standard doctype classes
 
 override_doctype_class = {
-    "Payment Entry": "ksa_compliance.standard_doctypes.payment_entry.AdvancePaymentEntry"
+"ToDo": "custom_app.overrides.CustomToDo"
 }
 
 # Document Events
