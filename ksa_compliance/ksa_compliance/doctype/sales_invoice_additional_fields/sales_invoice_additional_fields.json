@@ -614,7 +614,7 @@
    "fieldtype": "Select",
    "in_standard_filter": 1,
    "label": "Invoice Doctype",
-   "options": "Sales Invoice\nPOS Invoice\nPayment Entry",
+   "options": "Sales Invoice\nPOS Invoice",
    "read_only": 1,
    "reqd": 1,
    "search_index": 1
@@ -646,7 +646,7 @@
    "link_fieldname": "invoice_additional_fields_reference"
   }
  ],
- "modified": "2025-06-18 12:11:32.465510",
+ "modified": "2025-07-01 18:21:07.713299",
  "modified_by": "Administrator",
  "module": "KSA Compliance",
  "name": "Sales Invoice Additional Fields",
