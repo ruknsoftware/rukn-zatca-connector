@@ -13,8 +13,7 @@ from frappe.utils import flt
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_party_details
 from erpnext.setup.utils import get_exchange_rate
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import get_bank_cash_account
-from erpnext.accounts.doctype.payment_entry.payment_entry import get_account_details
-
+from erpnext.accounts.doctype.payment_entry.payment_entry import get_account_details, get_reference_as_per_payment_terms
 from ksa_compliance import logger
 from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import (
     SalesInvoiceAdditionalFields,
@@ -268,6 +267,12 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
             )
             precision = payment_entry.meta.get_field("target_exchange_rate").precision
             payment_entry.target_exchange_rate = flt(ex_rate, precision)
+
+
+    for reference in get_reference_as_per_payment_terms(
+            self.payment_schedule, self.doctype, self.name, self, self.grand_total, self.outstanding_amount, payment_entry.paid_from_account_currency
+    ):
+        payment_entry.append("references", reference)
 
     payment_entry.allocate_amount_to_references(
         paid_amount=payment_entry.paid_amount,
