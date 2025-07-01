@@ -7,7 +7,7 @@ from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.setup.doctype.branch.branch import Branch
 from frappe.model.document import Document
 from frappe.utils import get_date_str, get_time, strip, flt
-from ksa_compliance.invoice import InvoiceType
+from ksa_compliance.invoice import InvoiceType, InvoiceTypeCode
 from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields import sales_invoice_additional_fields
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
 from ksa_compliance.ksa_compliance.doctype.zatca_return_against_reference.zatca_return_against_reference import (
@@ -100,6 +100,7 @@ class Einvoice:
             'business_settings': {},
             'seller_details': {},
             'buyer_details': {},
+            'prepayment_invoices': [],
         }
 
         self.sales_invoice_doc = cast(
@@ -320,6 +321,7 @@ class Einvoice:
             xml_name='MultiplierFactorNumeric',
             parent='invoice',
         )
+        self.prepayment_invoice()
 
     # --------------------------- START helper functions ------------------------------
 
@@ -904,3 +906,40 @@ class Einvoice:
         self.result['invoice']['item_lines'] = item_lines
         self.result['invoice']['line_extension_amount'] = sum(it['amount'] for it in item_lines)
         # --------------------------- END Getting Invoice's item lines ------------------------------
+
+    def prepayment_invoice(self):
+        sales_invoice_doc = self.sales_invoice_doc
+        advance_idx = len(sales_invoice_doc.items)
+
+        for advance_payment in sales_invoice_doc.advances:
+            payment_entry_doc = frappe.get_doc('Payment Entry', advance_payment.reference_name)
+
+            if not (
+                    payment_entry_doc.is_advance_payment
+                    and payment_entry_doc.payment_type == "Receive"
+                    and payment_entry_doc.party_type == "Customer"
+            ):
+                continue
+            siaf = frappe.get_last_doc('Sales Invoice Additional Fields',
+                                       {'sales_invoice': advance_payment.reference_name})
+            prepayment_invoice = {}
+            advance_idx = advance_idx + 1
+            prepayment_invoice["prepayment_invoice_idx"] = advance_idx
+            prepayment_invoice["reference_name"] = payment_entry_doc.name
+            prepayment_invoice["currency_code"] = payment_entry_doc.paid_to_account_currency
+            prepayment_invoice["qty"] = 1
+            prepayment_invoice["item_name"] = self.business_settings_doc.advance_payment_item
+            prepayment_invoice["issue_date"] = payment_entry_doc.posting_date
+            prepayment_invoice["issue_time"] = get_time(payment_entry_doc.creation)
+            prepayment_invoice["allocated_amount"] = advance_payment.allocated_amount
+            prepayment_invoice["tax_percent"] = round(
+                ((payment_entry_doc.base_total_taxes_and_charges / payment_entry_doc.base_paid_amount) * 100), 2)
+            prepayment_invoice["tax_amount"] = round(((
+                                                                  advance_payment.allocated_amount * payment_entry_doc.base_total_taxes_and_charges) / payment_entry_doc.base_paid_amount),
+                                                     2)
+            prepayment_invoice["grand_total"] = advance_payment.allocated_amount + prepayment_invoice["tax_amount"]
+
+            prepayment_invoice["invoice_type_code"] = InvoiceTypeCode.ADVANCE_PAYMENT.value
+            prepayment_invoice["uuid"] = siaf.uuid
+
+            self.result['prepayment_invoices'].append(prepayment_invoice)
