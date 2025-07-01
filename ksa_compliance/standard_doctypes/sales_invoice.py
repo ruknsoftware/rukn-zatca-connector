@@ -82,7 +82,7 @@ def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoi
             is_live_sync = egs_settings.is_live_sync
 
     si_additional_fields_doc.insert()
-    if is_advance_payment_invoice(self, settings):
+    if is_advance_payment_invoice(self, settings) and not self.is_return:
         create_payment_entry_for_advance_payment_invoice(self)
     if is_live_sync:
         # We're running in the context of invoice submission (on_submit hook). We only want to run our ZATCA logic if
