@@ -35,7 +35,7 @@ from ksa_compliance.ksa_compliance.doctype.zatca_integration_log.zatca_integrati
 from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_precomputed_invoice import (
     ZATCAPrecomputedInvoice,
 )
-from ksa_compliance.output_models.e_invoice_output_model import ZATCASalesInvoice
+from ksa_compliance.output_models.e_invoice_output_model import Einvoice
 from ksa_compliance.translation import ft
 from ksa_compliance.zatca_api import ReportOrClearInvoiceError, ReportOrClearInvoiceResult, ZatcaSendMode
 from ksa_compliance.zatca_cli import convert_to_pdf_a3_b, check_pdfa3b_support_or_throw
@@ -209,7 +209,7 @@ class SalesInvoiceAdditionalFields(Document):
 
         self.invoice_counter = pre_invoice_counter + 1
         self.previous_invoice_hash = pre_invoice_hash
-        einvoice = ZATCASalesInvoice(sales_invoice_additional_fields_doc=self, invoice_type=invoice_type)
+        einvoice = Einvoice(sales_invoice_additional_fields_doc=self, invoice_type=invoice_type)
 
         cert_path = settings.compliance_cert_path if self.is_compliance_mode else settings.cert_path
         invoice_xml = generate_xml_file(einvoice.result)
