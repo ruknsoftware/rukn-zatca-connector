@@ -124,7 +124,7 @@ after_install = "ksa_compliance.install.after_install"
 # Override standard doctype classes
 
 override_doctype_class = {
-    "Payment Entry": "ksa_compliance.standard_doctypes.payment_entry.AdvancePaymentEntry"
+"ToDo": "custom_app.overrides.CustomToDo"
 }
 
 # Document Events
@@ -147,8 +147,6 @@ doc_events = {
     },
 
     'Payment Entry': {
-        'on_submit': 'ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype',
-        'validate': 'ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice',
         'before_cancel': 'ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice',
     },
 

@@ -17,7 +17,6 @@ from erpnext.accounts.doctype.payment_entry.payment_entry import get_account_det
 from ksa_compliance import logger
 from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import (
     SalesInvoiceAdditionalFields,
-    get_customer_field_name,
     is_advance_payment_invoice
 )
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
@@ -44,7 +43,7 @@ def clear_additional_fields_ignore_list() -> None:
     IGNORED_INVOICES.clear()
 
 
-def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoice | PaymentEntry, method):
+def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoice, method):
     if self.doctype == 'Sales Invoice' and not _should_enable_zatca_for_invoice(self.name):
         logger.info(f"Skipping additional fields for {self.name} because it's before start date")
         return
@@ -128,12 +127,11 @@ def prevent_cancellation_of_sales_invoice(self: SalesInvoice | POSInvoice | Paym
         )
 
 
-def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, method) -> None:
-    customer_field_name = get_customer_field_name(self.doctype)
+def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
     valid = True
     is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
     if ZATCAPhase1BusinessSettings.is_enabled_for_company(self.company) or is_phase_2_enabled_for_company:
-        if len(self.taxes) == 0 and self.doctype != "Payment Entry":
+        if len(self.taxes) == 0:
             frappe.msgprint(
                 msg=_('Please include tax rate in Sales Taxes and Charges Table'),
                 title=_('Validation Error'),
@@ -152,7 +150,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, metho
             )
             valid = False
 
-        customer = frappe.get_doc('Customer', self.get(customer_field_name))
+        customer = frappe.get_doc('Customer', self.get("customer"))
         is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
             [strip(x.value) for x in customer.custom_additional_ids]
         )
@@ -173,7 +171,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, metho
                     'Company <b>$company</b> is configured to use Standard Tax Invoices, which require customers to '
                     'define a VAT number or one of the other IDs. Please update customer <b>$customer</b>',
                     company=self.company,
-                    customer=self.get(customer_field_name),
+                    customer=self.get("customer"),
                 )
             )
             valid = False

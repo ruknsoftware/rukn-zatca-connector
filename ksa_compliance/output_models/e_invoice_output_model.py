@@ -16,7 +16,6 @@ from ksa_compliance.ksa_compliance.doctype.zatca_return_against_reference.zatca_
 from ksa_compliance.standard_doctypes.tax_category import map_tax_category
 from ksa_compliance.throw import fthrow
 from ksa_compliance.translation import ft
-from ksa_compliance.standard_doctypes.payment_entry import get_company_default_taxes_and_charges_template, get_taxes_and_charges_details
 
 
 def append_tax_details_into_item_lines(item_lines: list, is_tax_included: bool) -> list:
@@ -227,12 +226,15 @@ class Einvoice:
             xml_name='allowance_charge_reason_code',
             parent='invoice',
         )
+
+        # Allowance on invoice should be only the document level allowance without items allowances.
         self.get_float_value(
             field_name='discount_amount',
             source_doc=self.sales_invoice_doc,
             xml_name='allowance_total_amount',
             parent='invoice',
         )
+        self.compute_invoice_discount_amount()
 
         # <----- end document level allowance ----->
 
@@ -319,6 +321,7 @@ class Einvoice:
             xml_name='MultiplierFactorNumeric',
             parent='invoice',
         )
+        self.prepayment_invoice()
 
     # --------------------------- START helper functions ------------------------------
 
@@ -493,6 +496,21 @@ class Einvoice:
 
     def get_customer_info(self, invoice_id):
         pass
+
+    def compute_invoice_discount_amount(self):
+        discount_amount = abs(self.sales_invoice_doc.discount_amount)
+        if self.sales_invoice_doc.apply_discount_on != 'Grand Total' or discount_amount == 0:
+            self.additional_fields_doc.fatoora_invoice_discount_amount = discount_amount
+            return
+
+        applied_discount_percent = self.sales_invoice_doc.additional_discount_percentage
+        total_without_vat = self.result['invoice']['line_extension_amount']
+        tax_amount = abs(self.sales_invoice_doc.taxes[0].tax_amount)
+        if applied_discount_percent == 0:
+            applied_discount_percent = (discount_amount / (total_without_vat + tax_amount)) * 100
+        applied_discount_amount = total_without_vat * (applied_discount_percent / 100)
+        self.result['invoice']['allowance_total_amount'] = applied_discount_amount
+        self.additional_fields_doc.fatoora_invoice_discount_amount = applied_discount_amount
 
     def get_business_settings_and_seller_details(self):
         # TODO: special validations handling
@@ -700,6 +718,10 @@ class Einvoice:
             field_name='posting_date', source_doc=self.sales_invoice_doc, xml_name='issue_date', parent='invoice'
         )
 
+        self.get_time_value(
+            field_name='posting_time', source_doc=self.sales_invoice_doc, xml_name='issue_time', parent='invoice'
+        )
+
         if is_standard:
             # TODO: Review this with business and finalize
             self.get_date_value(
@@ -720,6 +742,9 @@ class Einvoice:
             parent='invoice',
         )
 
+        self.get_text_value(
+            field_name='currency', source_doc=self.sales_invoice_doc, xml_name='currency_code', parent='invoice'
+        )
         # Default "SAR"
         self.get_text_value(
             field_name='tax_currency', source_doc=self.additional_fields_doc, xml_name='tax_currency', parent='invoice'
@@ -769,43 +794,9 @@ class Einvoice:
 
         self.get_float_value(field_name='total', source_doc=self.sales_invoice_doc, xml_name='total', parent='invoice')
 
-        # TODO: Tax Account Currency
-
         self.get_float_value(
-            field_name='total_advance', source_doc=self.sales_invoice_doc, xml_name='prepaid_amount', parent='invoice'
+            field_name='net_total', source_doc=self.sales_invoice_doc, xml_name='net_total', parent='invoice'
         )
-
-        self.get_float_value(
-            field_name='outstanding_amount',
-            source_doc=self.sales_invoice_doc,
-            xml_name='outstanding_amount',
-            parent='invoice',
-        )
-        self.get_float_value(
-            field_name='net_amount',
-            source_doc=self.sales_invoice_doc,
-            xml_name='VAT_category_taxable_amount',
-            parent='invoice',
-        )
-
-        self.get_text_value(
-            field_name='po_no', source_doc=self.sales_invoice_doc, xml_name='purchase_order_reference', parent='invoice'
-        )
-
-        # --------------------------- END Invoice Basic info ------------------------------
-        # --------------------------- Start Getting Invoice's item lines ------------------------------
-
-
-class ZATCASalesInvoice(Einvoice):
-    def __init__(
-        self,
-        sales_invoice_additional_fields_doc: 'sales_invoice_additional_fields.SalesInvoiceAdditionalFields',
-        invoice_type: InvoiceType = 'Simplified',
-    ):
-        super().__init__(sales_invoice_additional_fields_doc, invoice_type)
-
-        self.compute_invoice_discount_amount()
-        self.prepayment_invoice()
 
         self.get_float_value(
             field_name='total_taxes_and_charges',
@@ -820,25 +811,14 @@ class ZATCASalesInvoice(Einvoice):
             xml_name='base_total_taxes_and_charges',
             parent='invoice',
         )
-
-        self.get_float_value(
-            field_name='net_total', source_doc=self.sales_invoice_doc, xml_name='net_total', parent='invoice'
-        )
-
+        # TODO: Tax Account Currency
         self.get_float_value(
             field_name='grand_total', source_doc=self.sales_invoice_doc, xml_name='grand_total', parent='invoice'
         )
-
-        self.get_time_value(
-            field_name='posting_time', source_doc=self.sales_invoice_doc, xml_name='issue_time', parent='invoice'
+        self.get_float_value(
+            field_name='total_advance', source_doc=self.sales_invoice_doc, xml_name='prepaid_amount', parent='invoice'
         )
 
-        self.get_text_value(
-            field_name='currency', source_doc=self.sales_invoice_doc, xml_name='currency_code', parent='invoice'
-        )
-
-    def get_e_invoice_details(self, invoice_type: InvoiceType = 'Simplified'):
-        super().get_e_invoice_details(invoice_type)
         if self.sales_invoice_doc.is_rounded_total_disabled():
             self.result['invoice']['payable_amount'] = abs(self.sales_invoice_doc.grand_total)
             self.result['invoice']['rounding_adjustment'] = 0.0
@@ -863,6 +843,25 @@ class ZATCASalesInvoice(Einvoice):
             else:
                 self.result['invoice']['rounding_adjustment'] = self.sales_invoice_doc.rounding_adjustment
 
+        self.get_float_value(
+            field_name='outstanding_amount',
+            source_doc=self.sales_invoice_doc,
+            xml_name='outstanding_amount',
+            parent='invoice',
+        )
+        self.get_float_value(
+            field_name='net_amount',
+            source_doc=self.sales_invoice_doc,
+            xml_name='VAT_category_taxable_amount',
+            parent='invoice',
+        )
+
+        self.get_text_value(
+            field_name='po_no', source_doc=self.sales_invoice_doc, xml_name='purchase_order_reference', parent='invoice'
+        )
+
+        # --------------------------- END Invoice Basic info ------------------------------
+        # --------------------------- Start Getting Invoice's item lines ------------------------------
         item_lines = []
         for item in self.sales_invoice_doc.items:
             # Negative discount is used to adjust price up, but it's not really a discount in that case
@@ -904,25 +903,9 @@ class ZATCASalesInvoice(Einvoice):
         self.result['invoice']['total_taxes_and_charges_percent'] = sum(
             it.rate for it in self.sales_invoice_doc.get('taxes', [])
         )
-
         self.result['invoice']['item_lines'] = item_lines
         self.result['invoice']['line_extension_amount'] = sum(it['amount'] for it in item_lines)
         # --------------------------- END Getting Invoice's item lines ------------------------------
-
-    def compute_invoice_discount_amount(self):
-        discount_amount = abs(self.sales_invoice_doc.discount_amount)
-        if self.sales_invoice_doc.apply_discount_on != 'Grand Total' or discount_amount == 0:
-            self.additional_fields_doc.fatoora_invoice_discount_amount = discount_amount
-            return
-
-        applied_discount_percent = self.sales_invoice_doc.additional_discount_percentage
-        total_without_vat = self.result['invoice']['line_extension_amount']
-        tax_amount = abs(self.sales_invoice_doc.taxes[0].tax_amount)
-        if applied_discount_percent == 0:
-            applied_discount_percent = (discount_amount / (total_without_vat + tax_amount)) * 100
-        applied_discount_amount = total_without_vat * (applied_discount_percent / 100)
-        self.result['invoice']['allowance_total_amount'] = applied_discount_amount
-        self.additional_fields_doc.fatoora_invoice_discount_amount = applied_discount_amount
 
     def prepayment_invoice(self):
         sales_invoice_doc = self.sales_invoice_doc
@@ -930,6 +913,7 @@ class ZATCASalesInvoice(Einvoice):
 
         for advance_payment in sales_invoice_doc.advances:
             payment_entry_doc = frappe.get_doc('Payment Entry', advance_payment.reference_name)
+            advance_payment_invoice = frappe.get_doc('Sales Invoice', payment_entry_doc.advance_payment_invoice)
 
             if not (
                     payment_entry_doc.is_advance_payment
@@ -937,104 +921,33 @@ class ZATCASalesInvoice(Einvoice):
                     and payment_entry_doc.party_type == "Customer"
             ):
                 continue
-            siaf = frappe.get_last_doc('Sales Invoice Additional Fields', {'sales_invoice': advance_payment.reference_name})
+            siaf = frappe.get_last_doc('Sales Invoice Additional Fields',
+                                       {'sales_invoice': advance_payment_invoice.name})
             prepayment_invoice = {}
             advance_idx = advance_idx + 1
             prepayment_invoice["prepayment_invoice_idx"] = advance_idx
-            prepayment_invoice["reference_name"] = payment_entry_doc.name
-            prepayment_invoice["currency_code"] = payment_entry_doc.paid_to_account_currency
+            prepayment_invoice["reference_name"] = advance_payment_invoice.name
+            prepayment_invoice["currency_code"] = advance_payment_invoice.currency
             prepayment_invoice["qty"] = 1
-            prepayment_invoice["item_name"] = self.business_settings_doc.advance_payment_item
-            prepayment_invoice["issue_date"] = payment_entry_doc.posting_date
-            prepayment_invoice["issue_time"] = get_time(payment_entry_doc.creation)
+
+            prepayment_invoice["issue_date"] = get_date_str(advance_payment_invoice.posting_date)
+            prepayment_invoice["issue_time"] = get_time(advance_payment_invoice.posting_time).strftime('%H:%M:%S')
+
             prepayment_invoice["allocated_amount"] = advance_payment.allocated_amount
-            prepayment_invoice["tax_percent"] = round( ((payment_entry_doc.base_total_taxes_and_charges/ payment_entry_doc.base_paid_amount) * 100), 2)
-            prepayment_invoice["tax_amount"] = round( ((advance_payment.allocated_amount * payment_entry_doc.base_total_taxes_and_charges) / payment_entry_doc.base_paid_amount), 2)
-            prepayment_invoice["grand_total"] = advance_payment.allocated_amount + prepayment_invoice["tax_amount"]
+
+            item = advance_payment_invoice.items[0]
+            prepayment_invoice["item_name"] = item.item_name
+
+            tax_amount = abs(item.tax_amount or 0.0)
+            tax_percent = abs(item.tax_rate or 0.0)
+
+
+            prepayment_invoice["tax_percent"] = tax_percent
+
+            prepayment_invoice["tax_amount"] = round(((advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges) / advance_payment_invoice.grand_total),2)
+            prepayment_invoice["grand_total"] = advance_payment.allocated_amount
 
             prepayment_invoice["invoice_type_code"] = InvoiceTypeCode.ADVANCE_PAYMENT.value
             prepayment_invoice["uuid"] = siaf.uuid
 
             self.result['prepayment_invoices'].append(prepayment_invoice)
-
-
-class ZATCAPaymentInvoice(Einvoice):
-    def __init__(
-            self,
-            sales_invoice_additional_fields_doc: 'sales_invoice_additional_fields.SalesInvoiceAdditionalFields',
-            invoice_type: InvoiceType = 'Simplified',
-    ):
-        super().__init__(sales_invoice_additional_fields_doc, invoice_type)
-
-        self.result['invoice']['net_total'] = self.sales_invoice_doc.unallocated_amount
-        grand_total = self.sales_invoice_doc.unallocated_amount + self.sales_invoice_doc.base_total_taxes_and_charges
-        self.result['invoice']['grand_total'] = grand_total
-
-        # Allowance on invoice should be only the document level allowance without items allowances.
-
-        self.get_time_value(
-            field_name='creation', source_doc=self.sales_invoice_doc, xml_name='issue_time', parent='invoice'
-        )
-
-        self.get_text_value(
-            field_name='paid_to_account_currency', source_doc=self.sales_invoice_doc, xml_name='currency_code', parent='invoice'
-        )
-
-    def get_e_invoice_details(self, invoice_type: InvoiceType = 'Simplified'):
-        super().get_e_invoice_details(invoice_type)
-        payment_entry_doc = self.sales_invoice_doc
-        if payment_entry_doc.is_rounded_total_disabled():
-            self.result['invoice']['payable_amount'] = abs(payment_entry_doc.unallocated_amount)
-            self.result['invoice']['rounding_adjustment'] = 0.0
-        else:
-            payable_amount = abs(payment_entry_doc.rounded_total)
-            tax_inclusive_amount = abs(payment_entry_doc.unallocated_amount)
-            self.result['invoice']['payable_amount'] = payable_amount
-            if payment_entry_doc.is_return:
-                self.result['invoice']['rounding_adjustment'] = payable_amount - tax_inclusive_amount
-            else:
-                self.result['invoice']['rounding_adjustment'] = payment_entry_doc.rounding_adjustment
-
-        item_lines = []
-
-        item = frappe.get_doc("Item", self.business_settings_doc.advance_payment_item)
-        item_tax_template = get_company_default_taxes_and_charges_template(payment_entry_doc)
-        tax_percent = abs(get_taxes_and_charges_details(payment_entry_doc).get("rate") or 0.0)
-        # noinspection PyUnresolvedReferences
-        tax_amount = abs(payment_entry_doc.base_total_taxes_and_charges or 0.0)
-
-        item_lines.append(
-            {
-                'idx': 1,
-                'qty': 1,
-                'uom': item.stock_uom,
-                'item_code': item.item_code,
-                'item_name': item.item_name,
-                'net_amount': abs(payment_entry_doc.base_paid_amount),
-                'amount': abs(payment_entry_doc.unallocated_amount),
-                'rate': abs(payment_entry_doc.unallocated_amount),
-                'discount_percentage': abs(0.0),
-                'discount_amount': abs(0.0),
-                'item_tax_template': item_tax_template,
-                'tax_percent': tax_percent,
-                'tax_amount': tax_amount,
-            }
-        )
-
-        # Add tax amount and tax percent on each item line
-        item_lines = append_tax_details_into_item_lines(item_lines=item_lines, is_tax_included=False)
-
-        unique_tax_categories = append_tax_categories_to_item(item_lines, item_tax_template)
-        # Append unique Tax categories to invoice
-        self.result['invoice']['tax_categories'] = unique_tax_categories
-
-        # Add invoice total taxes and charges percentage field
-        self.result['invoice']['total_taxes_and_charges'] = payment_entry_doc.base_total_taxes_and_charges
-        self.result['invoice']['base_total_taxes_and_charges'] =payment_entry_doc.base_paid_amount
-        self.result['invoice']['total_taxes_and_charges_percent'] = get_taxes_and_charges_details(payment_entry_doc).get("rate")
-        self.result['invoice']['tax_categories'][0]['total_discount'] = 0.0
-
-        self.result['invoice']['item_lines'] = item_lines
-        self.result['invoice']['allowance_total_amount'] = 0.0
-        self.result['invoice']['line_extension_amount'] = sum(it['amount'] for it in item_lines)
-        # --------------------------- END Getting Invoice's item lines ------------------------------
