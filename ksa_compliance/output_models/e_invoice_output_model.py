@@ -913,6 +913,7 @@ class Einvoice:
 
         for advance_payment in sales_invoice_doc.advances:
             payment_entry_doc = frappe.get_doc('Payment Entry', advance_payment.reference_name)
+            advance_payment_invoice = frappe.get_doc('Sales Invoice', payment_entry_doc.advance_payment_invoice)
 
             if not (
                     payment_entry_doc.is_advance_payment
@@ -921,23 +922,30 @@ class Einvoice:
             ):
                 continue
             siaf = frappe.get_last_doc('Sales Invoice Additional Fields',
-                                       {'sales_invoice': advance_payment.reference_name})
+                                       {'sales_invoice': advance_payment_invoice.name})
             prepayment_invoice = {}
             advance_idx = advance_idx + 1
             prepayment_invoice["prepayment_invoice_idx"] = advance_idx
-            prepayment_invoice["reference_name"] = payment_entry_doc.name
-            prepayment_invoice["currency_code"] = payment_entry_doc.paid_to_account_currency
+            prepayment_invoice["reference_name"] = advance_payment_invoice.name
+            prepayment_invoice["currency_code"] = advance_payment_invoice.currency
             prepayment_invoice["qty"] = 1
-            prepayment_invoice["item_name"] = self.business_settings_doc.advance_payment_item
-            prepayment_invoice["issue_date"] = payment_entry_doc.posting_date
-            prepayment_invoice["issue_time"] = get_time(payment_entry_doc.creation)
+
+            prepayment_invoice["issue_date"] = get_date_str(advance_payment_invoice.posting_date)
+            prepayment_invoice["issue_time"] = get_time(advance_payment_invoice.posting_time).strftime('%H:%M:%S')
+
             prepayment_invoice["allocated_amount"] = advance_payment.allocated_amount
-            prepayment_invoice["tax_percent"] = round(
-                ((payment_entry_doc.base_total_taxes_and_charges / payment_entry_doc.base_paid_amount) * 100), 2)
-            prepayment_invoice["tax_amount"] = round(((
-                                                                  advance_payment.allocated_amount * payment_entry_doc.base_total_taxes_and_charges) / payment_entry_doc.base_paid_amount),
-                                                     2)
-            prepayment_invoice["grand_total"] = advance_payment.allocated_amount + prepayment_invoice["tax_amount"]
+
+            item = advance_payment_invoice.items[0]
+            prepayment_invoice["item_name"] = item.item_name
+
+            tax_amount = abs(item.tax_amount or 0.0)
+            tax_percent = abs(item.tax_rate or 0.0)
+
+
+            prepayment_invoice["tax_percent"] = tax_percent
+
+            prepayment_invoice["tax_amount"] = round(((advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges) / advance_payment_invoice.grand_total),2)
+            prepayment_invoice["grand_total"] = advance_payment.allocated_amount
 
             prepayment_invoice["invoice_type_code"] = InvoiceTypeCode.ADVANCE_PAYMENT.value
             prepayment_invoice["uuid"] = siaf.uuid
