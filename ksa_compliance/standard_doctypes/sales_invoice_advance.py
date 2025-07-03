@@ -30,8 +30,7 @@ def set_advance_payment_invoice_settling_gl_entries(advance_payment):
     item = advance_payment_invoice.items[0]
     gl_entries = advance_payment_invoice.get_gl_entries()
     income_account = item.income_account
-    tax_amount = round(((advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges) / advance_payment_invoice.grand_total),
-                       2)
+    tax_amount = calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice)
     advance_gl_entries = []
     for gl_entry in gl_entries:
         if gl_entry.account == income_account:
@@ -55,3 +54,7 @@ def set_advance_payment_invoice_settling_gl_entries(advance_payment):
             advance_gl_entry['credit_in_account_currency'] = 0.0
         advance_gl_entries.append(advance_gl_entry)
     advance_payment_invoice.make_gl_entries(advance_gl_entries)
+
+
+def calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice):
+    return round(((advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges) / advance_payment_invoice.grand_total),2)

@@ -16,7 +16,7 @@ from ksa_compliance.ksa_compliance.doctype.zatca_return_against_reference.zatca_
 from ksa_compliance.standard_doctypes.tax_category import map_tax_category
 from ksa_compliance.throw import fthrow
 from ksa_compliance.translation import ft
-from ksa_compliance.standard_doctypes.sales_invoice_advance import get_invoice_advance_payments
+from ksa_compliance.standard_doctypes.sales_invoice_advance import get_invoice_advance_payments, calculate_advance_payment_tax_amount
 
 
 def append_tax_details_into_item_lines(item_lines: list, is_tax_included: bool) -> list:
@@ -934,7 +934,7 @@ class Einvoice:
 
             prepayment_invoice["tax_percent"] = abs(item.tax_rate or 0.0)
 
-            prepayment_invoice["tax_amount"] = round(((advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges) / advance_payment_invoice.grand_total),2)
+            prepayment_invoice["tax_amount"] = calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice)
             prepayment_invoice["grand_total"] = advance_payment.allocated_amount
 
             prepayment_invoice["invoice_type_code"] = InvoiceTypeCode.ADVANCE_PAYMENT.value
