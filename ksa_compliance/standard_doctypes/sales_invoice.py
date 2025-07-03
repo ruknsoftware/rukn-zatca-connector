@@ -29,6 +29,7 @@ from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_preco
 )
 from ksa_compliance.translation import ft
 from ksa_compliance.invoice import InvoiceMode
+from ksa_compliance.standard_doctypes.sales_invoice_advance import get_invoice_advance_payments, set_advance_payment_invoice_settling_gl_entries
 
 IGNORED_INVOICES = set()
 
@@ -83,6 +84,10 @@ def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoi
     si_additional_fields_doc.insert()
     if is_advance_payment_invoice(self, settings) and not self.is_return:
         create_payment_entry_for_advance_payment_invoice(self)
+
+    advance_payments = get_invoice_advance_payments(self)
+    for advance_payment in advance_payments:
+        set_advance_payment_invoice_settling_gl_entries(advance_payment)
     if is_live_sync:
         # We're running in the context of invoice submission (on_submit hook). We only want to run our ZATCA logic if
         # the invoice submits successfully after on_submit is run successfully from all apps.

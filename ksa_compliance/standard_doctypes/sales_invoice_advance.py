@@ -22,3 +22,36 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
             & (sales_invoice_advance.parent == self.name)
         )
     ).run(as_dict=True)
+
+
+
+def set_advance_payment_invoice_settling_gl_entries(advance_payment):
+    advance_payment_invoice = frappe.get_doc("Sales Invoice", advance_payment.advance_payment_invoice)
+    item = advance_payment_invoice.items[0]
+    gl_entries = advance_payment_invoice.get_gl_entries()
+    income_account = item.income_account
+    tax_amount = round(((advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges) / advance_payment_invoice.grand_total),
+                       2)
+    advance_gl_entries = []
+    for gl_entry in gl_entries:
+        if gl_entry.account == income_account:
+            amount = advance_payment.allocated_amount - tax_amount
+        elif gl_entry.account == advance_payment_invoice.debit_to:
+            amount = advance_payment.allocated_amount
+        else:
+            amount = tax_amount
+
+        advance_gl_entry = gl_entry.copy()
+
+        if advance_gl_entry.debit != 0.0:
+            advance_gl_entry['debit'] = 0.0
+            advance_gl_entry['debit_in_account_currency'] = 0.0
+            advance_gl_entry['credit'] = amount
+            advance_gl_entry['credit_in_account_currency'] = amount
+        else:
+            advance_gl_entry['debit'] = amount
+            advance_gl_entry['debit_in_account_currency'] = amount
+            advance_gl_entry['credit'] = 0.0
+            advance_gl_entry['credit_in_account_currency'] = 0.0
+        advance_gl_entries.append(advance_gl_entry)
+    advance_payment_invoice.make_gl_entries(advance_gl_entries)
