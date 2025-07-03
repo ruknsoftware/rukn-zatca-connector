@@ -266,12 +266,6 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
             precision = payment_entry.meta.get_field("target_exchange_rate").precision
             payment_entry.target_exchange_rate = flt(ex_rate, precision)
 
-
-    for reference in get_reference_as_per_payment_terms(
-            self.payment_schedule, self.doctype, self.name, self, self.grand_total, self.outstanding_amount, payment_entry.paid_from_account_currency
-    ):
-        payment_entry.append("references", reference)
-
     payment_entry.allocate_amount_to_references(
         paid_amount=payment_entry.paid_amount,
         paid_amount_change=True,
