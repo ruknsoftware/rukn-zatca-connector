@@ -491,7 +491,8 @@
    "fieldname": "advance_payment_item",
    "fieldtype": "Link",
    "label": "Advance Payment Item",
-   "options": "Item"
+   "options": "Item",
+   "read_only_depends_on": "eval: doc.advance_payment_item && !doc.__unsaved"
   },
   {
    "fieldname": "advance_payment_account",
@@ -502,7 +503,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-06-19 22:12:50.013970",
+ "modified": "2025-07-06 19:01:05.181147",
  "modified_by": "Administrator",
  "module": "KSA Compliance",
  "name": "ZATCA Business Settings",
