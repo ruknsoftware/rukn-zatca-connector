@@ -12,6 +12,7 @@ from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.setup.doctype.branch.branch import Branch
 from frappe.utils.data import get_time, getdate
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
+from ksa_compliance.standard_doctypes.sales_invoice_advance import get_prepayment_info
 
 
 def get_zatca_phase_1_qr_for_invoice(invoice_name: str) -> str:
@@ -112,6 +113,7 @@ def get_phase_2_print_format_details(sales_invoice: SalesInvoice | POSInvoice) -
     seller_other_id, seller_other_id_name = get_seller_other_id(sales_invoice, settings)
     buyer_other_id, buyer_other_id_name = get_buyer_other_id(sales_invoice.customer)
     siaf = frappe.get_last_doc('Sales Invoice Additional Fields', {'sales_invoice': sales_invoice.name})
+    prepayment_info = get_prepayment_info(sales_invoice)
     return {
         'settings': settings,
         'address': {
@@ -125,6 +127,7 @@ def get_phase_2_print_format_details(sales_invoice: SalesInvoice | POSInvoice) -
         'buyer_other_id': buyer_other_id,
         'buyer_other_id_name': buyer_other_id_name,
         'siaf': siaf,
+        'prepayment_info': prepayment_info,
     }
 
 

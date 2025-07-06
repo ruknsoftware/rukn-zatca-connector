@@ -293,3 +293,8 @@ National ID,الرقم القومي
 GCC ID, هوية مجلس التعاون الخليجي
 Iqama, الإقامة
 Passport ID, جواز السفر
+Prepayment VAT Rate,ﻣﻌﺪل ﺿﺮﻳﺒﺔ اﻟﻘﻴﻤﺔ اﻟﻤﻀﺎﻓﺔ اﻟﻤﺪﻓﻮﻋﺔ مقدما
+Prepayment Subtotal (Exclusive of VAT),اﻟﻤﺠﻤﻮع اﻟﻔﺮﻋﻲ ﻟﻠﺪﻓﻊ اﻟﻤﺴﺒﻖ (ﻏﻴﺮ ﺷﺎﻣﻞ ﻟﻠﻀﺮﻳﺒﺔ اﻟﻘﻴﻤﺔ اﻟﻤﻀﺎﻓﺔ)
+Prepayment VAT Amount,ﻣﺒﻠﻎ اﻟﻘﻴﻤﺔ اﻟﻤﻀﺎﻓﺔ اﻟﻤﺪﻓﻮﻋﺔ ﻣﻘﺪﻣﺎ
+Total Prepayment Amount,اﺟﻤﺎﻟﻰ ﻣﺒﻠﻎ اﻟﺪﻓﻊ اﻟﻤﺴﺒﻖ
+Advance Payment Reference,اﻟﺮﻗﻢ اﻟﺘﺴﻠﺴﻠﻲ
