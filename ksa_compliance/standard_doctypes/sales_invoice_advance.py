@@ -58,3 +58,15 @@ def set_advance_payment_invoice_settling_gl_entries(advance_payment):
 
 def calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice):
     return round(((advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges) / advance_payment_invoice.grand_total),2)
+
+
+def get_prepayment_info(self: SalesInvoice | POSInvoice):
+    advance_payments = get_invoice_advance_payments(self)
+    for idx, advance_payment in enumerate(advance_payments, start=1):
+        advance_payment_invoice = frappe.get_doc('Sales Invoice', advance_payment.advance_payment_invoice)
+        item = advance_payment_invoice.items[0]
+        advance_payment["tax_percent"] = abs(item.tax_rate or 0.0)
+        advance_payment["tax_amount"] = calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice)
+        advance_payment["amount"] = round(advance_payment.allocated_amount - advance_payment["tax_amount"], 2)
+        advance_payment["idx"] = idx
+    return advance_payments
