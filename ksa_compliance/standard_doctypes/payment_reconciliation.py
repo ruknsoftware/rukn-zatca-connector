@@ -1,4 +1,7 @@
 import frappe
+from frappe import qb
+from frappe.query_builder import Criterion
+from frappe.query_builder.custom import ConstantColumn
 from erpnext.accounts.utils import get_outstanding_invoices
 from erpnext.accounts.doctype.payment_reconciliation.payment_reconciliation import PaymentReconciliation
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
@@ -52,3 +55,30 @@ class CustomPaymentReconciliation(PaymentReconciliation):
             filtered_non_reconciled_invoices = filtered_non_reconciled_invoices[: self.invoice_limit]
 
         self.add_invoice_entries(filtered_non_reconciled_invoices)
+
+    def get_return_invoices(self):
+        voucher_type = "Sales Invoice" if self.party_type == "Customer" else "Purchase Invoice"
+        doc = qb.DocType(voucher_type)
+
+        conditions = []
+        conditions.append(doc.docstatus == 1)
+        conditions.append(doc[frappe.scrub(self.party_type)] == self.party)
+        conditions.append(doc.is_return == 1)
+        conditions.append(doc.outstanding_amount != 0)
+
+        if self.payment_name:
+            conditions.append(doc.name.like(f"%{self.payment_name}%"))
+
+        self.return_invoices_query = (
+            qb.from_(doc)
+            .select(
+                ConstantColumn(voucher_type).as_("voucher_type"),
+                doc.name.as_("voucher_no"),
+                doc.return_against,
+            )
+            .where(Criterion.all(conditions))
+        )
+        if self.payment_limit:
+            self.return_invoices_query = self.return_invoices_query.limit(self.payment_limit)
+
+        self.return_invoices = self.return_invoices_query.run(as_dict=True)
