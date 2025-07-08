@@ -155,6 +155,24 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
             )
             valid = False
 
+        if self.is_return:
+            if self.doctype == 'Sales Invoice':
+                if is_advance_payment_invoice(self, settings):
+                    frappe.msgprint(
+                        msg=_('Cant Return Advance Payment Invoice'),
+                        title=_('Validation Error'),
+                        indicator='red',
+                    )
+                    valid = False
+            advance_payments = get_invoice_advance_payments(self)
+            if advance_payments:
+                frappe.msgprint(
+                    msg=_('Cant Return Invoice Having Advance Payment'),
+                    title=_('Validation Error'),
+                    indicator='red',
+                )
+                valid = False
+
         customer = frappe.get_doc('Customer', self.get("customer"))
         is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
             [strip(x.value) for x in customer.custom_additional_ids]
