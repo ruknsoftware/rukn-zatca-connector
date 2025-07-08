@@ -9,3 +9,35 @@ class CustomPaymentReconciliation(PaymentReconciliation):
             pe = frappe.qb.DocType("Payment Entry")
             conditions.append(pe.is_advance_payment == 0)
         return conditions
+
+    def get_invoice_entries(self):
+        # Fetch JVs, Sales and Purchase Invoices for 'invoices' to reconcile against
+
+        self.build_qb_filter_conditions(get_invoices=True)
+
+        non_reconciled_invoices = get_outstanding_invoices(
+            self.party_type,
+            self.party,
+            self.receivable_payable_account,
+            common_filter=self.common_filter_conditions,
+            posting_date=self.ple_posting_date_filter,
+            min_outstanding=self.minimum_invoice_amount if self.minimum_invoice_amount else None,
+            max_outstanding=self.maximum_invoice_amount if self.maximum_invoice_amount else None,
+            accounting_dimensions=self.accounting_dimension_filter_conditions,
+            limit=self.invoice_limit,
+            voucher_no=self.invoice_name,
+        )
+
+        cr_dr_notes = (
+            [x.voucher_no for x in self.return_invoices]
+            if self.party_type in ["Customer", "Supplier"]
+            else []
+        )
+        # Filter out cr/dr notes from outstanding invoices list
+        # Happens when non-standalone cr/dr notes are linked with another invoice through journal entry
+        non_reconciled_invoices = [x for x in non_reconciled_invoices if x.voucher_no not in cr_dr_notes]
+
+        if self.invoice_limit:
+            non_reconciled_invoices = non_reconciled_invoices[: self.invoice_limit]
+
+        self.add_invoice_entries(non_reconciled_invoices)
