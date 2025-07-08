@@ -1,5 +1,8 @@
 import frappe
+from erpnext.accounts.utils import get_outstanding_invoices
 from erpnext.accounts.doctype.payment_reconciliation.payment_reconciliation import PaymentReconciliation
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
+from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import is_advance_payment_invoice
 
 
 class CustomPaymentReconciliation(PaymentReconciliation):
@@ -35,9 +38,17 @@ class CustomPaymentReconciliation(PaymentReconciliation):
         )
         # Filter out cr/dr notes from outstanding invoices list
         # Happens when non-standalone cr/dr notes are linked with another invoice through journal entry
-        non_reconciled_invoices = [x for x in non_reconciled_invoices if x.voucher_no not in cr_dr_notes]
+        settings = ZATCABusinessSettings.for_company(self.company)
+        filtered_non_reconciled_invoices = []
+        for invoice in non_reconciled_invoices:
+            if invoice.voucher_no in cr_dr_notes:
+                continue
+            invoice_doc = frappe.get_doc(invoice.voucher_type, invoice.voucher_no)
+            if is_advance_payment_invoice(invoice_doc, settings) and not invoice_doc.is_return:
+                continue
+            filtered_non_reconciled_invoices.append(invoice)
 
         if self.invoice_limit:
-            non_reconciled_invoices = non_reconciled_invoices[: self.invoice_limit]
+            filtered_non_reconciled_invoices = filtered_non_reconciled_invoices[: self.invoice_limit]
 
-        self.add_invoice_entries(non_reconciled_invoices)
+        self.add_invoice_entries(filtered_non_reconciled_invoices)
