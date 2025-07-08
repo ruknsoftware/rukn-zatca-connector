@@ -47,7 +47,7 @@ class CustomPaymentReconciliation(PaymentReconciliation):
             if invoice.voucher_no in cr_dr_notes:
                 continue
             invoice_doc = frappe.get_doc(invoice.voucher_type, invoice.voucher_no)
-            if is_advance_payment_invoice(invoice_doc, settings) and not invoice_doc.is_return:
+            if is_advance_payment_invoice(invoice_doc, settings):
                 continue
             filtered_non_reconciled_invoices.append(invoice)
 
