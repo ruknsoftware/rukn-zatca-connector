@@ -47,6 +47,26 @@ def add_custom_fields():
 				module=ksa_compliance_module,
 				read_only=True,
 			),
+			dict(
+				fieldname="advance_payment_invoices",
+				label="Advance Payment Invoices",
+				fieldtype="Table",
+				insert_after="advances",
+				options="Sales Invoice Advance Payment",
+				module=ksa_compliance_module,
+				read_only=True,
+			),
+		],
+		"POS Invoice": [
+			dict(
+				fieldname="advance_payment_invoices",
+				label="Advance Payment Invoices",
+				fieldtype="Table",
+				insert_after="advances",
+				options="Sales Invoice Advance Payment",
+				module=ksa_compliance_module,
+				read_only=True,
+			),
 		],
 	}
 	create_custom_fields(custom_fields)
