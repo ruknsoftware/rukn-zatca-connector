@@ -6,6 +6,24 @@ from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
 def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
     sales_invoice_advance = frappe.qb.DocType("Sales Invoice Advance")
     payment_entry = frappe.qb.DocType("Payment Entry")
+    advance_payments = []
+    if hasattr(self, "__unsaved"):
+        for sales_invoice_advance in self.advances:
+            payment_entry = frappe.get_doc(sales_invoice_advance.reference_type, sales_invoice_advance.reference_name)
+            if (
+                payment_entry.is_advance_payment == True
+                and payment_entry.party_type == "Customer"
+                and payment_entry.payment_type == "Receive"
+            ):
+                advance_payments.append(frappe._dict(
+                    allocated_amount=sales_invoice_advance.allocated_amount,
+                    reference_name=sales_invoice_advance.reference_name,
+                    remarks=sales_invoice_advance.remarks,
+                    reference_row=sales_invoice_advance.reference_row,
+                    advance_amount=sales_invoice_advance.advance_amount,
+                    advance_payment_invoice=payment_entry.advance_payment_invoice,
+                ))
+        return advance_payments
 
     return (
         frappe.qb.from_(sales_invoice_advance)
@@ -14,6 +32,10 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
             sales_invoice_advance.allocated_amount,
             sales_invoice_advance.reference_name,
             sales_invoice_advance.allocated_amount,
+            sales_invoice_advance.remarks,
+            sales_invoice_advance.reference_row,
+            sales_invoice_advance.advance_amount,
+
             payment_entry.advance_payment_invoice,
         ).where(
             (payment_entry.is_advance_payment == True)

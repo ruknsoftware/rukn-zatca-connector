@@ -29,7 +29,11 @@ from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_preco
 )
 from ksa_compliance.translation import ft
 from ksa_compliance.invoice import InvoiceMode
-from ksa_compliance.standard_doctypes.sales_invoice_advance import get_invoice_advance_payments, set_advance_payment_invoice_settling_gl_entries
+from ksa_compliance.standard_doctypes.sales_invoice_advance import (
+    get_invoice_advance_payments,
+    set_advance_payment_invoice_settling_gl_entries,
+    calculate_advance_payment_tax_amount
+)
 
 IGNORED_INVOICES = set()
 
@@ -154,6 +158,49 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                 raise_exception=True,
             )
             valid = False
+        advance_payments = get_invoice_advance_payments(self)
+        if self.is_return:
+            if self.doctype == 'Sales Invoice':
+                if is_advance_payment_invoice(self, settings):
+                    frappe.msgprint(
+                        msg=_('Cant Return Advance Payment Invoice'),
+                        title=_('Validation Error'),
+                        indicator='red',
+                    )
+                    valid = False
+            return_against = frappe.get_doc(self.doctype, self.return_against)
+            return_against_advance_payments = get_invoice_advance_payments(return_against)
+            if advance_payments or return_against_advance_payments:
+                frappe.msgprint(
+                    msg=_('Cant Return Invoice Having Advance Payment'),
+                    title=_('Validation Error'),
+                    indicator='red',
+                )
+                valid = False
+        self.advance_payment_invoices = []
+        if advance_payments:
+            if self.doctype == 'POS Invoice':
+                frappe.msgprint(
+                    msg=_('Cant Add Advance Payments Invoices Entries On POS Invoice'),
+                    title=_('Validation Error'),
+                    indicator='red',
+                    raise_exception=True,
+                )
+                valid = False
+            else:
+                for advance_payment in advance_payments:
+                    advance_payment_invoice = advance_payment.copy()
+                    advance_payment_invoice.reference_type = "Sales Invoice"
+                    advance_payment_invoice.reference_name = advance_payment.advance_payment_invoice
+
+                    advance_payment_invoice_doc = frappe.get_doc("Sales Invoice", advance_payment.advance_payment_invoice)
+                    item = advance_payment_invoice_doc.items[0]
+                    tax_percent = abs(item.tax_rate or 0.0)
+                    tax_amount = calculate_advance_payment_tax_amount(advance_payment_invoice, advance_payment_invoice_doc)
+                    advance_payment_invoice.tax_percent = tax_percent
+                    advance_payment_invoice.tax_amount = tax_amount
+
+                    self.append('advance_payment_invoices', advance_payment_invoice)
 
         customer = frappe.get_doc('Customer', self.get("customer"))
         is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
