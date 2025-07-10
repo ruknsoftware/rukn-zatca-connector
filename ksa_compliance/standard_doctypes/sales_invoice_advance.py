@@ -14,6 +14,12 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
             sales_invoice_advance.allocated_amount,
             sales_invoice_advance.reference_name,
             sales_invoice_advance.allocated_amount,
+            sales_invoice_advance.remarks,
+            sales_invoice_advance.reference_row,
+            sales_invoice_advance.advance_amount,
+            sales_invoice_advance.exchange_gain_loss,
+            sales_invoice_advance.ref_exchange_rate,
+
             payment_entry.advance_payment_invoice,
         ).where(
             (payment_entry.is_advance_payment == True)
