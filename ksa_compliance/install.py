@@ -21,7 +21,7 @@ def add_custom_fields():
 				fieldname="invoice_doctype",
 				label="Invoice Doctype",
 				fieldtype="Select",
-				options="Sales Invoice\nPOS Invoice",
+				options="Sales Invoice",
 				insert_after="mode_of_payment",
 				module=ksa_compliance_module,
 				hidden=True,
