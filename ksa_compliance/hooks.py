@@ -158,6 +158,9 @@ doc_events = {
     'Branch': {
         'validate': 'ksa_compliance.standard_doctypes.branch.validate_branch',
     },
+    'Unreconcile Payment': {
+        'validate': 'ksa_compliance.standard_doctypes.unreconcile_payment.prevent_un_reconcile_advance_payments',
+    },
 }
 
 # Scheduled Tasks
