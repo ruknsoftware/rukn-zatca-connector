@@ -37,6 +37,7 @@ doctype_js = {
     'Customer': 'public/js/customer.js',
     'Branch': 'public/js/branch.js',
     'Sales Invoice': 'public/js/sales_invoice.js',
+    'Payment Entry': 'public/js/payment_entry.js',
 }
 
 # Svg Icons
@@ -157,6 +158,9 @@ doc_events = {
     },
     'Branch': {
         'validate': 'ksa_compliance.standard_doctypes.branch.validate_branch',
+    },
+    'Unreconcile Payment': {
+        'validate': 'ksa_compliance.standard_doctypes.unreconcile_payment.prevent_un_reconcile_advance_payments',
     },
 }
 
