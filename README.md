@@ -1,7 +1,7 @@
 KSA Compliance
 --------------
 
-A free and open-source Frappe application for KSA Compliance (ZATCA Integration), offering support for both Phase 1 and Phase 2.
+A comprehensive Frappe application developed by Rukn Software for KSA Compliance (ZATCA Integration), providing advanced features and full support for both Phase 1 and Phase 2 requirements. Our enhanced version includes extensive improvements and new capabilities to meet complex business needs.
 
 ### Main Features
 
@@ -25,15 +25,22 @@ A free and open-source Frappe application for KSA Compliance (ZATCA Integration)
 18. Embedded compliance checks log
 19. System XML validation
 20. Support ZATCA Sandbox
+21. Advanced Payment Entry System:
+    * Dedicated advance payment configuration
+    * Automated payment entry generation
+    * Comprehensive settlement calculations
+    * ZATCA-compliant reconciliation controls
+22. Return Invoice Management
+23. POS Invoice Integration
 
 ### How to Install
 
 -   **Frappe Cloud:**\
-    One-click installing available if you are hosting on Frappe Cloud
+    Comming Soon !!
 -   **Self Hosting:**
 
 ```
-bench get-app --branch master https://github.com/lavaloon-eg/ksa_compliance.git
+bench get-app --branch master https://github.com/ruknsoftware/ksa_compliance.git
 ```
 
 ```
@@ -41,46 +48,42 @@ bench setup requirements
 ```
 
 ```
-bench  --site [your.site.name] install-app ksa_compliance
+bench  --site [your.site.name] install-app ksa_compliance
 ```
 
 ```
-bench  --site [your.site.name] migrate
+bench  --site [your.site.name] migrate
 ```
 
 ```
 bench restart
 ```
 
-
 ### Support
 
-### Frappe Cloud:
-
-- If you are hosting on FC premium support is available
-
-### Self Hosting:
-
-- If you need premium support please email: Info@lavaloon.com
-
-### Community Support:
-
-- Available in GitHub discussions <https://github.com/lavaloon-eg/ksa_compliance/discussions>
+For support and assistance:
+- Create issues in our repository: https://github.com/ruknsoftware/ksa_compliance/issues
+- Email us at: alaa@rukn-software.com
 
 ### New Features and Bug report:
 
-- Please Create Github Issue <https://github.com/lavaloon-eg/ksa_compliance/issues> after checking the existing issues
-  - Please include bench information (i.e. output of `bench version`)
-  - For invoice rejections, please attach or paste the generated invoice XML (from `Sales Invoice Additional Fields`), any validation warnings/errors, and screenshots of the `Sales Invoice` document
-- For paid features, you can email us: <info@lavaloon.com>
+Please create issues in our repository with the following information:
+- Bench information (output of `bench version`)
+- For invoice rejections:
+  - Generated invoice XML (from `Sales Invoice Additional Fields`)
+  - Any validation warnings/errors
+  - Screenshots of the `Sales Invoice` document
 
-### **Contributing**
+### Contributing
 
-Will using this the same guidelines from ERPNext
+We follow the same guidelines as ERPNext:
 
-1. [**Issue Guidelines**](https://github.com/frappe/erpnext/wiki/Issue-Guidelines "https://github.com/frappe/erpnext/wiki/issue-guidelines")
-2. [**Pull Request Requirements**](https://github.com/frappe/erpnext/wiki/Contribution-Guidelines "https://github.com/frappe/erpnext/wiki/contribution-guidelines")
+1. [**Issue Guidelines**](https://github.com/frappe/erpnext/wiki/Issue-Guidelines)
+2. [**Pull Request Requirements**](https://github.com/frappe/erpnext/wiki/Contribution-Guidelines)
 
-### License
+### License and Attribution
 
-Copyright (c) 2024 LavaLoon, The KSA Compliance App code is licensed as AGPL
+This application is licensed under AGPL and builds upon the foundational work of the original KSA Compliance app. Rukn Software has significantly enhanced the application with new features, improvements, and enterprise-grade capabilities.
+
+Copyright (c) 2025 Rukn Software
+Original foundation Copyright (c) 2024 LavaLoon

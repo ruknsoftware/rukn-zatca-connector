@@ -8,6 +8,40 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.48.5
+
+### Advanced Payment Entry System
+* Implemented dedicated Advance Payment Item configuration:
+  * Added special item type for advance payments
+  * Enforced item configuration lock after initial setup
+  * Integrated with ZATCA Business Settings
+
+* Enhanced Sales Invoice Processing:
+  * Added support for advance payment identification and handling
+  * Implemented automatic Payment Entry generation with correct payment type and mode
+  * Added new child table 'Advance Payment Invoices' for tracking
+  * Integrated mode of payment tracking for advance invoices
+
+* Payment Entry Enhancements:
+  * Added advance payment flags and validation
+  * Implemented safeguards against unauthorized unreconciliation
+  * Added invoice type tracking and validation
+  * Enhanced payment entry workflow for advance scenarios
+
+* Advanced Payment Settlement:
+  * Implemented comprehensive settlement calculation system:
+    * Automated tax amount calculation based on allocation
+    * Proper handling of base amounts and tax percentages
+    * Integration with XML e-invoice generation
+  * Added validation for return invoice scenarios
+  * Implemented GL Entry tracking and validation
+
+* Payment Reconciliation Controls:
+  * Implemented strict controls for advance payment reconciliation
+  * Added validation rules for advance invoices
+  * Restricted reconciliation operations for return invoices
+  * Enhanced error handling and user feedback
+
 ## 0.47.0
 
 * Support displaying `Return Against Additional References` in `ZATCA Phase 2 print format`.
