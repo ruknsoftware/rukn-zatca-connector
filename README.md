@@ -40,7 +40,7 @@ A comprehensive Frappe application developed by Rukn Software for KSA Compliance
 -   **Self Hosting:**
 
 ```
-bench get-app --branch master https://github.com/ruknsoftware/ksa_compliance.git
+bench get-app --branch master https://github.com/ruknsoftware/rukn-zatca-connector.git
 ```
 
 ```
@@ -62,7 +62,7 @@ bench restart
 ### Support
 
 For support and assistance:
-- Create issues in our repository: https://github.com/ruknsoftware/ksa_compliance/issues
+- Create issues in our repository: https://github.com/ruknsoftware/rukn-zatca-connector/issues
 - Email us at: alaa@rukn-software.com
 
 ### New Features and Bug report:
