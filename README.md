@@ -83,7 +83,7 @@ We follow the same guidelines as ERPNext:
 
 ### License and Attribution
 
-This application is licensed under AGPL and builds upon the foundational work of the original KSA Compliance app. Rukn Software has significantly enhanced the application with new features, improvements, and enterprise-grade capabilities.
+This application is licensed under AGPL and builds upon the foundational work of the original [KSA Compliance app](https://github.com/lavaloon-eg/ksa_compliance). Rukn Software has significantly enhanced the application with new features, improvements, and enterprise-grade capabilities.
 
 Copyright (c) 2025 Rukn Software
 Original foundation Copyright (c) 2024 LavaLoon
