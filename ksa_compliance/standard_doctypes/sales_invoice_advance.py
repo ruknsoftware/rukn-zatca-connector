@@ -6,6 +6,7 @@ from frappe import qb
 from frappe.query_builder.custom import ConstantColumn
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
 
 
 def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
@@ -102,6 +103,9 @@ def get_prepayment_info(self: SalesInvoice | POSInvoice):
 @frappe.whitelist()
 def get_customer_advance_payments(self):
     self = json.loads(self)
+    settings = ZATCABusinessSettings.for_company(self.get("company"))
+    if not settings.auto_apply_advance_payments:
+        return []
     payment_entry = qb.DocType("Payment Entry")
     advance_payment_entries = (
         qb.from_(payment_entry)
