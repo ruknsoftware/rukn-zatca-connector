@@ -22,7 +22,7 @@ frappe.require("/assets/ksa_compliance/js/update_invoice_mode_of_payment.js").th
         customer: function(frm) {
             if (frm.doc.customer) {
                 frappe.call({
-                    method: "ksa_compliance.standard_doctypes.sales_invoice_advance.get_customer_advance_payments",
+                    method: "ksa_compliance.standard_doctypes.sales_invoice_advance.get_invoice_applicable_advance_payments",
                     args: {self: frm.doc,},
                     callback: function (response) {
                         frm.clear_table("advances");
