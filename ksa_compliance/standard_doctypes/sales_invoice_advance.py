@@ -1,6 +1,12 @@
+import json
+
 import frappe
+from frappe.utils import flt
+from frappe import qb
+from frappe.query_builder.custom import ConstantColumn
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
 
 
 def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
@@ -92,3 +98,54 @@ def get_prepayment_info(self: SalesInvoice | POSInvoice):
         advance_payment["amount"] = round(advance_payment.allocated_amount - advance_payment["tax_amount"], 2)
         advance_payment["idx"] = idx
     return advance_payments
+
+
+@frappe.whitelist()
+def get_invoice_applicable_advance_payments(self):
+    self = json.loads(self)
+    settings = ZATCABusinessSettings.for_company(self.get("company"))
+    if not settings.auto_apply_advance_payments:
+        return []
+    payment_entry = qb.DocType("Payment Entry")
+    advance_payment_entries = (
+        qb.from_(payment_entry)
+        .select(
+            ConstantColumn("Payment Entry").as_("reference_type"),
+            payment_entry.name.as_("reference_name"),
+            payment_entry.posting_date,
+            payment_entry.remarks,
+            payment_entry.unallocated_amount.as_("amount"),
+            payment_entry.source_exchange_rate.as_("exchange_rate"),
+            payment_entry.paid_from_account_currency.as_("currency"),
+        )
+        .where(
+            (payment_entry.paid_from == self.get("debit_to"))
+            & (payment_entry.party_type == "Customer")
+            & (payment_entry.party == self.get("customer"))
+            & (payment_entry.payment_type == "Receive")
+            & (payment_entry.docstatus == 1)
+            & (payment_entry.unallocated_amount.gt(0))
+            & (payment_entry.is_advance_payment == True)
+        )
+        .orderby(payment_entry.posting_date)
+    ).run(as_dict=1)
+    advances = []
+    advance_allocated = 0
+    for advance_payment in advance_payment_entries:
+        amount = self.get("grand_total")
+        allocated_amount = min(amount - advance_allocated, advance_payment.amount)
+        advance_allocated += flt(allocated_amount)
+
+        advance_row = {
+            "doctype": self.get("doctype") + " Advance",
+            "reference_type": advance_payment.reference_type,
+            "reference_name": advance_payment.reference_name,
+            "reference_row": advance_payment.reference_row,
+            "remarks": advance_payment.remarks,
+            "advance_amount": flt(advance_payment.amount),
+            "allocated_amount": allocated_amount,
+            "ref_exchange_rate": flt(advance_payment.exchange_rate),  # exchange_rate of advance entry
+        }
+
+        advances.append(advance_row)
+    return advances
