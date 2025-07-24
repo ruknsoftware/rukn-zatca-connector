@@ -13,7 +13,8 @@ dependencies = [
     "pyqrcode~=1.2.1",
     "pathvalidate~=3.2.1",
     # frappe already requires a specific version of this, so we don't specify a version to avoid conflicts
-    "semantic-version"
+    "semantic-version",
+    "pypdf~=3.17.0",
 ]
 
 [build-system]
