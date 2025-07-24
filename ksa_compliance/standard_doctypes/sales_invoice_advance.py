@@ -132,7 +132,7 @@ def get_invoice_applicable_advance_payments(self):
     advances = []
     advance_allocated = 0
     for advance_payment in advance_payment_entries:
-        amount = self.get("rounded_total") or self.get("grand_total")
+        amount = self.get("grand_total")
         allocated_amount = min(amount - advance_allocated, advance_payment.amount)
         advance_allocated += flt(allocated_amount)
 
