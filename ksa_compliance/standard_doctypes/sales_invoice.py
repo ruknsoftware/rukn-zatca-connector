@@ -243,7 +243,6 @@ def is_valid_advance_payment_invoice(self, settings) -> bool:
 def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInvoice) -> None:
     payment_entry = frappe.new_doc("Payment Entry")
     payment_entry.payment_type = "Receive"
-    payment_entry.custom_order_type = self.custom_sales_invoice_type
     payment_entry.posting_date = self.posting_date
     payment_entry.company = self.company
     payment_entry.party_type = "Customer"
