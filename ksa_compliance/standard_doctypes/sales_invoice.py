@@ -156,6 +156,8 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                 raise_exception=True,
             )
             valid = False
+        else:
+            self.advances = []
         advance_payments = get_invoice_advance_payments(self)
         if self.is_return:
             if self.doctype == 'Sales Invoice':

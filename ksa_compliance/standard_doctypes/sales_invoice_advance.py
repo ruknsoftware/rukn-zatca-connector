@@ -1,5 +1,5 @@
 import json
-
+from typing import cast
 import frappe
 from frappe.utils import flt
 from frappe import qb
@@ -8,6 +8,7 @@ from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
 from erpnext.accounts.party import get_party_account
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
+from ksa_compliance.utils.advance_payment_invoice import is_advance_payment_invoice
 
 
 def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
@@ -104,9 +105,12 @@ def get_prepayment_info(self: SalesInvoice | POSInvoice):
 @frappe.whitelist()
 def get_invoice_applicable_advance_payments(self):
     self = json.loads(self)
+    self = cast(SalesInvoice, frappe.get_doc(self))
     company = self.get("company")
     settings = ZATCABusinessSettings.for_company(company)
     if not settings.auto_apply_advance_payments:
+        return []
+    if is_advance_payment_invoice(self, settings):
         return []
     customer = self.get("customer")
     party_account = get_party_account(party_type="Customer", party=customer, company=company)
