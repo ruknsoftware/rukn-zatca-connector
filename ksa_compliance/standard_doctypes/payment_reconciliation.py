@@ -5,7 +5,7 @@ from frappe.query_builder.custom import ConstantColumn
 from erpnext.accounts.utils import get_outstanding_invoices
 from erpnext.accounts.doctype.payment_reconciliation.payment_reconciliation import PaymentReconciliation
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
-from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import is_advance_payment_invoice
+from ksa_compliance.utils.advance_payment_invoice import is_advance_payment_invoice
 
 
 class CustomPaymentReconciliation(PaymentReconciliation):

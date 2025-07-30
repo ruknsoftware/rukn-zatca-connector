@@ -15,10 +15,8 @@ from erpnext.setup.utils import get_exchange_rate
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import get_bank_cash_account
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_account_details, get_reference_as_per_payment_terms
 from ksa_compliance import logger
-from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import (
-    SalesInvoiceAdditionalFields,
-    is_advance_payment_invoice
-)
+from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import SalesInvoiceAdditionalFields
+from ksa_compliance.utils.advance_payment_invoice import is_advance_payment_invoice
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
 from ksa_compliance.ksa_compliance.doctype.zatca_egs.zatca_egs import ZATCAEGS
 from ksa_compliance.ksa_compliance.doctype.zatca_phase_1_business_settings.zatca_phase_1_business_settings import (
@@ -150,9 +148,18 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
 
     if is_phase_2_enabled_for_company:
         settings = ZATCABusinessSettings.for_company(self.company)
-        if not is_valid_advance_payment_invoice(self, settings):
+        valid_advance_payment_invoice = is_valid_advance_payment_invoice(self, settings)
+        if not valid_advance_payment_invoice:
             frappe.msgprint(
                 msg=_('Advance payment invoices must include only the advance payment item'),
+                title=_('Validation Error'),
+                indicator='red',
+                raise_exception=True,
+            )
+            valid = False
+        elif valid_advance_payment_invoice and self.advances:
+            frappe.msgprint(
+                msg=_('Advance payment invoices can not include Advance Payments'),
                 title=_('Validation Error'),
                 indicator='red',
                 raise_exception=True,

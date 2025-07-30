@@ -39,7 +39,7 @@ from ksa_compliance.output_models.e_invoice_output_model import Einvoice
 from ksa_compliance.translation import ft
 from ksa_compliance.zatca_api import ReportOrClearInvoiceError, ReportOrClearInvoiceResult, ZatcaSendMode
 from ksa_compliance.zatca_cli import convert_to_pdf_a3_b, check_pdfa3b_support_or_throw
-
+from ksa_compliance.utils.advance_payment_invoice import is_advance_payment_invoice
 # These are the possible statuses resulting from a submission to ZATCA. Note that this is a subset of
 # [SalesInvoiceAdditionalFields.integration_status]
 ZatcaIntegrationStatus = Literal['Resend', 'Accepted with warnings', 'Accepted', 'Rejected', 'Clearance switched off']
@@ -621,8 +621,3 @@ def download_zatca_pdf(id: str, print_format: str = 'ZATCA Phase 2 Print Format'
     frappe.response.filecontent = pdf_content
     frappe.response.type = 'download'
     frappe.response.display_content_as = 'attachment'
-
-
-def is_advance_payment_invoice(self: SalesInvoice | POSInvoice, settings: ZATCABusinessSettings) -> bool:
-    items = [item.item_code for item in self.items]
-    return settings.advance_payment_item in items
