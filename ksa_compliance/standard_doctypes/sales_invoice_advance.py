@@ -104,8 +104,9 @@ def get_prepayment_info(self: SalesInvoice | POSInvoice):
 
 @frappe.whitelist()
 def get_invoice_applicable_advance_payments(self):
-    self = json.loads(self)
-    self = cast(SalesInvoice, frappe.get_doc(self))
+    if isinstance(self, str):
+        self = json.loads(self)
+        self = cast(SalesInvoice, frappe.get_doc(self))
     company = self.get("company")
     settings = ZATCABusinessSettings.for_company(company)
     if not settings.auto_apply_advance_payments:

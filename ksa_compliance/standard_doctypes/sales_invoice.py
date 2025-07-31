@@ -30,7 +30,8 @@ from ksa_compliance.invoice import InvoiceMode
 from ksa_compliance.standard_doctypes.sales_invoice_advance import (
     get_invoice_advance_payments,
     set_advance_payment_invoice_settling_gl_entries,
-    calculate_advance_payment_tax_amount
+    calculate_advance_payment_tax_amount,
+    get_invoice_applicable_advance_payments
 )
 
 IGNORED_INVOICES = set()
@@ -166,6 +167,8 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                 raise_exception=True,
             )
             valid = False
+        self.advances = []
+        self.extend("advances", get_invoice_applicable_advance_payments(self))
         advance_payments = get_invoice_advance_payments(self)
         if self.is_return:
             if self.doctype == 'Sales Invoice':
