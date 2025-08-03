@@ -129,6 +129,13 @@ def prevent_cancellation_of_sales_invoice(self: SalesInvoice | POSInvoice | Paym
     is_advance_payment = self.doctype == 'Payment Entry' and self.is_advance_payment
     is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
     if is_phase_2_enabled_for_company or is_advance_payment:
+        if self.doctype == 'Payment Entry':
+            frappe.throw(
+                msg=_('You cannot cancel {0} according to ZATCA Advance Invoice {1}.', ).format(
+                    self.name, frappe.utils.get_link_to_form(self.invoice_doctype, self.advance_payment_invoice)
+                ),
+                title=_('This Action Is Not Allowed'),
+            )
         frappe.throw(
             msg=_('You cannot cancel {0} according to ZATCA Regulations.', ).format(self.doctype),
             title=_('This Action Is Not Allowed'),
