@@ -5,7 +5,7 @@ from frappe.query_builder.custom import ConstantColumn
 from erpnext.accounts.utils import get_outstanding_invoices
 from erpnext.accounts.doctype.payment_reconciliation.payment_reconciliation import PaymentReconciliation
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
-from ksa_compliance.utils.advance_payment_invoice import is_advance_payment_invoice
+from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
 
 
 class CustomPaymentReconciliation(PaymentReconciliation):
@@ -47,7 +47,7 @@ class CustomPaymentReconciliation(PaymentReconciliation):
             if invoice.voucher_no in cr_dr_notes:
                 continue
             invoice_doc = frappe.get_doc(invoice.voucher_type, invoice.voucher_no)
-            if is_advance_payment_invoice(invoice_doc, settings):
+            if invoice_has_advance_item(invoice_doc, settings):
                 continue
             filtered_non_reconciled_invoices.append(invoice)
 
