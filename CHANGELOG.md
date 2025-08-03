@@ -8,6 +8,14 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.49.0
+* Install pypdf for version 14
+* Add Auto Apply Advance Payments functionality for Sales Invoice
+  * Automatically retrieves and applies customer advance payments to sales invoices
+  * Filters advance payments by customer, payment type, and unallocated amounts
+  * Calculates optimal allocation amounts based on invoice grand total
+  * Integrates with ZATCA Business Settings for configuration control
+
 ## 0.48.5
 
 ### Advanced Payment Entry System
