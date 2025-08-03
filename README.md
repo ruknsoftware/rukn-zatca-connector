@@ -30,6 +30,7 @@ A comprehensive Frappe application developed by Rukn Software for KSA Compliance
     * Automated payment entry generation
     * Comprehensive settlement calculations
     * ZATCA-compliant reconciliation controls
+    * Auto reconcile configuration
 22. Return Invoice Management
 23. POS Invoice Integration
 
