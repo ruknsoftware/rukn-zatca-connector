@@ -16,7 +16,7 @@ from erpnext.accounts.doctype.sales_invoice.sales_invoice import get_bank_cash_a
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_account_details, get_reference_as_per_payment_terms
 from ksa_compliance import logger
 from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import SalesInvoiceAdditionalFields
-from ksa_compliance.utils.advance_payment_invoice import is_advance_payment_invoice
+from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
 from ksa_compliance.ksa_compliance.doctype.zatca_egs.zatca_egs import ZATCAEGS
 from ksa_compliance.ksa_compliance.doctype.zatca_phase_1_business_settings.zatca_phase_1_business_settings import (
@@ -85,7 +85,7 @@ def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoi
             is_live_sync = egs_settings.is_live_sync
 
     si_additional_fields_doc.insert()
-    if is_advance_payment_invoice(self, settings) and not self.is_return:
+    if invoice_has_advance_item(self, settings) and not self.is_return:
         create_payment_entry_for_advance_payment_invoice(self)
 
     advance_payments = get_invoice_advance_payments(self)
@@ -149,7 +149,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
 
     if is_phase_2_enabled_for_company:
         settings = ZATCABusinessSettings.for_company(self.company)
-        is_advance_invoice = is_advance_payment_invoice(self, settings)
+        is_advance_invoice = invoice_has_advance_item(self, settings)
         valid_advance_payment_invoice = is_valid_advance_invoice(is_advance_invoice, self)
         if not valid_advance_payment_invoice:
             frappe.msgprint(
@@ -176,7 +176,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
         advance_payments = get_invoice_advance_payments(self)
         if self.is_return:
             if self.doctype == 'Sales Invoice':
-                if is_advance_payment_invoice(self, settings):
+                if invoice_has_advance_item(self, settings):
                     frappe.msgprint(
                         msg=_('Cant Return Advance Payment Invoice'),
                         title=_('Validation Error'),
