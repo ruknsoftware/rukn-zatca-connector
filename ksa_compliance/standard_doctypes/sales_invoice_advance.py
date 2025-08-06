@@ -144,7 +144,7 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
         amount = self.get("grand_total")
         allocated_amount = min(amount - advance_allocated, advance_payment.amount)
         if allocated_amount == 0 and is_validate:
-            break
+            continue
         advance_allocated += flt(allocated_amount)
 
         advance_row = {
