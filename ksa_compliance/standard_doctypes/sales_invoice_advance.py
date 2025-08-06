@@ -103,7 +103,7 @@ def get_prepayment_info(self: SalesInvoice | POSInvoice):
 
 
 @frappe.whitelist()
-def get_invoice_applicable_advance_payments(self):
+def get_invoice_applicable_advance_payments(self, is_validate=False):
     if isinstance(self, str):
         self = json.loads(self)
         self = cast(SalesInvoice, frappe.get_doc(self))
@@ -143,6 +143,8 @@ def get_invoice_applicable_advance_payments(self):
     for advance_payment in advance_payment_entries:
         amount = self.get("grand_total")
         allocated_amount = min(amount - advance_allocated, advance_payment.amount)
+        if allocated_amount == 0 and is_validate:
+            break
         advance_allocated += flt(allocated_amount)
 
         advance_row = {
