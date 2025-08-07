@@ -10,10 +10,12 @@ from frappe.utils import strip
 from result import is_ok
 
 from frappe.utils import flt
+from erpnext.accounts.doctype.account.account import get_account_currency
+from erpnext.accounts.utils import get_balance_on
 from erpnext.accounts.doctype.payment_entry.payment_entry import get_party_details
 from erpnext.setup.utils import get_exchange_rate
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import get_bank_cash_account
-from erpnext.accounts.doctype.payment_entry.payment_entry import get_account_details, get_reference_as_per_payment_terms
+from erpnext.accounts.doctype.payment_entry.payment_entry import get_account_details, set_grand_total_and_outstanding_amount
 from ksa_compliance import logger
 from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import SalesInvoiceAdditionalFields
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
@@ -85,8 +87,19 @@ def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoi
             is_live_sync = egs_settings.is_live_sync
 
     si_additional_fields_doc.insert()
-    if invoice_has_advance_item(self, settings) and not self.is_return:
+    is_advance_invoice = invoice_has_advance_item(self, settings)
+    if is_advance_invoice:
         create_payment_entry_for_advance_payment_invoice(self)
+    if is_advance_invoice and self.is_return:
+        advance_payment = frappe._dict(
+            allocated_amount=abs(self.grand_total),
+            reference_name=self.name,
+            # remarks=sales_invoice_advance.remarks,
+            # reference_row=sales_invoice_advance.reference_row,
+            # advance_amount=sales_invoice_advance.advance_amount,
+            advance_payment_invoice=self.return_against,
+        )
+        set_advance_payment_invoice_settling_gl_entries(advance_payment)
 
     advance_payments = get_invoice_advance_payments(self)
     for advance_payment in advance_payments:
@@ -182,14 +195,6 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                 self.extend("advances", applicable_advance_payments)
         advance_payments = get_invoice_advance_payments(self)
         if self.is_return:
-            if self.doctype == 'Sales Invoice':
-                if invoice_has_advance_item(self, settings):
-                    frappe.msgprint(
-                        msg=_('Cant Return Advance Payment Invoice'),
-                        title=_('Validation Error'),
-                        indicator='red',
-                    )
-                    valid = False
             return_against = frappe.get_doc(self.doctype, self.return_against)
             return_against_advance_payments = get_invoice_advance_payments(return_against)
             if advance_payments or return_against_advance_payments:
@@ -263,19 +268,27 @@ def is_valid_advance_invoice(is_advance_invoice, self) -> bool:
 
 
 def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInvoice) -> None:
+    payment_type = "Receive"
+    advance_payment_invoice = self.name
+    paid_amount = self.grand_total
+    if self.is_return:
+        payment_type = "Pay"
+        advance_payment_invoice = self.return_against
+        paid_amount = abs(self.outstanding_amount)
+
     payment_entry = frappe.new_doc("Payment Entry")
-    payment_entry.payment_type = "Receive"
+    payment_entry.payment_type = payment_type
     payment_entry.posting_date = self.posting_date
     payment_entry.company = self.company
     payment_entry.party_type = "Customer"
     payment_entry.party = self.customer
     payment_entry.cost_center = self.cost_center
-    payment_entry.paid_amount = self.grand_total
+    payment_entry.paid_amount = paid_amount
     payment_entry.mode_of_payment = self.mode_of_payment
 
     payment_entry.is_advance_payment = True
     payment_entry.invoice_doctype = self.doctype
-    payment_entry.advance_payment_invoice = self.name
+    payment_entry.advance_payment_invoice = advance_payment_invoice
 
     party_details = get_party_details(
         company=payment_entry.company,
@@ -284,12 +297,43 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
         date=payment_entry.posting_date,
         cost_center=payment_entry.cost_center
     )
-    payment_entry.paid_from = party_details.get("party_account")
-    payment_entry.paid_from_account_currency = party_details.get("party_account_currency")
-    payment_entry.paid_from_account_balance = party_details.get("account_balance")
+
+    bank = get_bank_cash_account(mode_of_payment=payment_entry.mode_of_payment, company=payment_entry.company).get(
+        "account")
+    bank_account_currency = get_account_currency(bank)
+    if payment_type == "Receive":
+        payment_entry.paid_from = party_details.get("party_account")
+        payment_entry.paid_from_account_currency = party_details.get("party_account_currency")
+        payment_entry.paid_from_account_balance = party_details.get("account_balance")
+
+        payment_entry.paid_to = bank
+    else:
+        payment_entry.paid_from = bank
+        payment_entry.paid_from_account_currency = bank_account_currency
+        payment_entry.paid_from_account_balance = get_balance_on(bank, self.posting_date, cost_center=payment_entry.cost_center)
+        payment_entry.paid_to = party_details.get("party_account")
+
+        grand_total, outstanding_amount = set_grand_total_and_outstanding_amount(
+            self.outstanding_amount, self.doctype, party_details.get("party_account_currency"), self
+        )
+        payment_entry.append(
+            "references",
+            {
+                "reference_doctype": self.doctype,
+                "reference_name": self.name,
+                "bill_no": self.get("bill_no"),
+                "due_date": self.get("due_date"),
+                "total_amount": grand_total,
+                "outstanding_amount": outstanding_amount,
+                "allocated_amount": outstanding_amount,
+            },
+        )
 
     payment_entry.party_balance = party_details.get("party_balance")
     payment_entry.party_name = party_details.get("party_name")
+
+    payment_entry.paid_from_account_type = frappe.db.get_value("Account", payment_entry.paid_from, "account_type")
+    payment_entry.paid_to_account_type = frappe.db.get_value("Account", payment_entry.paid_to, "account_type")
 
     if party_details.get("bank_account"):
         payment_entry.bank_account = party_details.get("bank_account")
@@ -300,12 +344,8 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
             from_currency=payment_entry.paid_from_account_currency,
             to_currency=self.currency
         )
-
         precision = payment_entry.meta.get_field("source_exchange_rate").precision
         payment_entry.source_exchange_rate = flt(ex_rate_src, precision)
-
-
-    payment_entry.paid_to = get_bank_cash_account(mode_of_payment=payment_entry.mode_of_payment, company=payment_entry.company).get("account")
 
     if self.posting_date and payment_entry.paid_to:
         account_details = get_account_details(
@@ -339,6 +379,9 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
             precision = payment_entry.meta.get_field("target_exchange_rate").precision
             payment_entry.target_exchange_rate = flt(ex_rate, precision)
 
+    payment_entry.setup_party_account_field()
+    payment_entry.set_missing_values()
+    payment_entry.set_missing_ref_details()
     payment_entry.allocate_amount_to_references(
         paid_amount=payment_entry.paid_amount,
         paid_amount_change=True,
