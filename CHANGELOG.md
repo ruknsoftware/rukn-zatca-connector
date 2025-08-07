@@ -8,7 +8,7 @@ to a section with the version name.
 
 ## Unreleased Changes
 
-## 0.49.0
+## 0.49.1
 * Install pypdf for version 14
 * Add Auto Apply Advance Payments functionality for Sales Invoice
   * Automatically retrieves and applies customer advance payments to sales invoices
