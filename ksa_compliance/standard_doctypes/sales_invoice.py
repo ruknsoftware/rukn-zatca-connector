@@ -90,16 +90,13 @@ def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoi
     is_advance_invoice = invoice_has_advance_item(self, settings)
     if is_advance_invoice:
         create_payment_entry_for_advance_payment_invoice(self)
-    if is_advance_invoice and self.is_return:
-        advance_payment = frappe._dict(
-            allocated_amount=abs(self.grand_total),
-            reference_name=self.name,
-            # remarks=sales_invoice_advance.remarks,
-            # reference_row=sales_invoice_advance.reference_row,
-            # advance_amount=sales_invoice_advance.advance_amount,
-            advance_payment_invoice=self.return_against,
-        )
-        set_advance_payment_invoice_settling_gl_entries(advance_payment)
+        if self.is_return:
+            advance_payment = frappe._dict(
+                allocated_amount=abs(self.grand_total),
+                reference_name=self.name,
+                advance_payment_invoice=self.return_against,
+            )
+            set_advance_payment_invoice_settling_gl_entries(advance_payment)
 
     advance_payments = get_invoice_advance_payments(self)
     for advance_payment in advance_payments:
