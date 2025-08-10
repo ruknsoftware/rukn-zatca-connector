@@ -192,6 +192,12 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
                 target_doc.warehouse = default_warehouse_for_sales_return
         elif doctype == "Sales Invoice" or doctype == "POS Invoice":
 
+            # OUR UPDATE
+            # CALCULATE ITEM ADVANCE RATE DEPENDING ON OUTSTANDING AMOUNT
+            target_doc.rate = round(source_parent.outstanding_amount - (
+                    (source_parent.outstanding_amount * source_doc.tax_rate) / source_parent.grand_total), 2)
+            # END OF UPDATE
+
             returned_qty_map = get_returned_qty_map_for_row(
                 source_parent.name, source_parent.customer, source_doc.name, doctype
             )
