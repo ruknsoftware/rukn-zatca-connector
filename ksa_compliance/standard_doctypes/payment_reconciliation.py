@@ -17,6 +17,7 @@ class CustomPaymentReconciliation(PaymentReconciliation):
         return conditions
 
     def get_invoice_entries(self):
+        frappe_version = frappe.__version__
         # Fetch JVs, Sales and Purchase Invoices for 'invoices' to reconcile against
 
         self.build_qb_filter_conditions(get_invoices=True)
@@ -24,7 +25,7 @@ class CustomPaymentReconciliation(PaymentReconciliation):
         non_reconciled_invoices = get_outstanding_invoices(
             self.party_type,
             self.party,
-            self.receivable_payable_account,
+            self.receivable_payable_account if frappe_version.startswith("14") else [self.receivable_payable_account],
             common_filter=self.common_filter_conditions,
             posting_date=self.ple_posting_date_filter,
             min_outstanding=self.minimum_invoice_amount if self.minimum_invoice_amount else None,
