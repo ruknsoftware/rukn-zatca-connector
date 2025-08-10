@@ -35,6 +35,7 @@ from ksa_compliance.standard_doctypes.sales_invoice_advance import (
     calculate_advance_payment_tax_amount,
     get_invoice_applicable_advance_payments
 )
+from ksa_compliance.standard_doctypes.payment_entry import set_advance_payment_entry_settling_gl_entries
 
 IGNORED_INVOICES = set()
 
@@ -89,7 +90,7 @@ def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoi
     si_additional_fields_doc.insert()
     is_advance_invoice = invoice_has_advance_item(self, settings)
     if is_advance_invoice:
-        create_payment_entry_for_advance_payment_invoice(self)
+        payment_entry = create_payment_entry_for_advance_payment_invoice(self)
         if self.is_return:
             advance_payment = frappe._dict(
                 allocated_amount=abs(self.grand_total),
@@ -97,6 +98,7 @@ def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoi
                 advance_payment_invoice=self.return_against,
             )
             set_advance_payment_invoice_settling_gl_entries(advance_payment)
+            set_advance_payment_entry_settling_gl_entries(payment_entry)
 
     advance_payments = get_invoice_advance_payments(self)
     for advance_payment in advance_payments:
@@ -264,7 +266,7 @@ def is_valid_advance_invoice(is_advance_invoice, self) -> bool:
     return len(self.items) == 1
 
 
-def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInvoice) -> None:
+def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInvoice) -> PaymentEntry:
     payment_type = "Receive"
     advance_payment_invoice = self.name
     paid_amount = self.grand_total
@@ -386,3 +388,4 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
     )
     payment_entry.save()
     payment_entry.submit()
+    return payment_entry
