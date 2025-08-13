@@ -8,6 +8,16 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.49.6
+* Auto Apply Advance Payments functionality for Sales Invoice
+  * Skip Adding Advances when Allocated Amount is ZERO on Submit the Invoice
+* Payment Reconciliation
+  * Handle the Deference between version 14 AND 15 on getting Outstanding Invoices
+  * HANDLE CHANGING ON LOGIC ON GETTING PAYMENT ENTRIES BETWEEN VERSION 14 AND 15
+* Payment Entry
+  * FIX Cancellation non Advance Payments
+  * Prevent Settling Advance Invoices from Payment Entry References
+
 ## 0.49.5
 * Install pypdf for version 14
 * Add Auto Apply Advance Payments functionality for Sales Invoice
