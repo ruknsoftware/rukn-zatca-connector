@@ -11,6 +11,9 @@ from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_ite
 class CustomPaymentReconciliation(PaymentReconciliation):
 
     def get_payment_entries(self):
+        """
+            HANDLE CHANGING ON LOGIC ON GETTING PAYMENT ENTRIES BETWEEN VERSION 14 AND 15
+        """
         frappe_version = frappe.__version__
         if self.party_type == "Customer" and frappe_version.startswith("15"):
             return self.get_non_advance_payment_entries()
