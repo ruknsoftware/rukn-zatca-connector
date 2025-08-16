@@ -7,6 +7,12 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.49.7
+* Allow Return Advance Payment Invoice
+  * Return Outstanding Amount for Invoice 
+  * Make "Pay" Payment Entry For Return Invoice
+  * Settling GL Entries For Advance Invoice
+  * Settling GL Entries For Advance Pyment Entry
 
 ## 0.49.6
 * Auto Apply Advance Payments functionality for Sales Invoice
