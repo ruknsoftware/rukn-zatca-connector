@@ -9,6 +9,36 @@ from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_ite
 
 
 class CustomPaymentReconciliation(PaymentReconciliation):
+
+    def get_payment_entries(self):
+        """
+            HANDLE CHANGING ON LOGIC ON GETTING PAYMENT ENTRIES BETWEEN VERSION 14 AND 15
+        """
+        frappe_version = frappe.__version__
+        if self.party_type == "Customer" and frappe_version.startswith("15"):
+            return self.get_non_advance_payment_entries()
+        return super().get_payment_entries()
+
+    def get_non_advance_payment_entries(self):
+        payment_entries = super().get_payment_entries()
+        if not payment_entries:
+            return []
+        payment_entry_names = [payment_entry.reference_name for payment_entry in payment_entries]
+        payment_entry = frappe.qb.DocType("Payment Entry")
+        advance_payment_entries = (
+            frappe.qb.from_(payment_entry)
+            .select(payment_entry.name)
+            .where(
+                (payment_entry.is_advance_payment == 1)
+                & (payment_entry.name.isin(payment_entry_names))
+            )
+        ).run(pluck=True)
+        if not advance_payment_entries:
+            return payment_entries
+        return [
+            pe for pe in payment_entries if pe.reference_name not in advance_payment_entries
+        ]
+
     def get_payment_entry_conditions(self):
         conditions = super().get_payment_entry_conditions()
         if self.party_type == "Customer":

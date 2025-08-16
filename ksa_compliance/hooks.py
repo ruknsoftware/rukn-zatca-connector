@@ -148,6 +148,7 @@ doc_events = {
     },
 
     'Payment Entry': {
+        'validate': 'ksa_compliance.standard_doctypes.payment_entry.prevent_settling_advance_invoice_from_payment_entry_references',
         'before_cancel': 'ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice',
     },
 
