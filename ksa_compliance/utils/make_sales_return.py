@@ -218,14 +218,18 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
             if default_warehouse_for_sales_return:
                 target_doc.warehouse = default_warehouse_for_sales_return
 
-        if not source_doc.use_serial_batch_fields and source_doc.serial_and_batch_bundle:
+        # OUR UPDATE
+        # CHECK IF use_serial_batch_fields AND serial_and_batch_bundle IS ON Sales Invoice Item ON ERPNEXT VERSION
+        use_serial_batch_fields = getattr(source_doc, "use_serial_batch_fields", 0)
+        serial_and_batch_bundle = getattr(source_doc, "serial_and_batch_bundle", 0)
+        if not use_serial_batch_fields and serial_and_batch_bundle:
             target_doc.serial_no = None
             target_doc.batch_no = None
 
         if (
                 (source_doc.serial_no or source_doc.batch_no)
-                and not source_doc.serial_and_batch_bundle
-                and not source_doc.use_serial_batch_fields
+                and not serial_and_batch_bundle
+                and not use_serial_batch_fields
         ):
             target_doc.set("use_serial_batch_fields", 1)
 
