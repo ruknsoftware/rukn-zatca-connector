@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.49.8
+* Fix Return Advance Payment Invoice on version 14 because of unexistance of serial and batch fields
+
 ## 0.49.7
 * Allow Return Advance Payment Invoice
   * Return Outstanding Amount for Invoice 
