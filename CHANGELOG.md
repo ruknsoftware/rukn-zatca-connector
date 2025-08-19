@@ -7,6 +7,11 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.49.9
+* Fix Calculate Advance Item Rate on return Advance Payment Invoice 
+* Add Condtion Invoice Not Return on Prevent Settling Advance Invoice on Pyment Entry Refernaces 
+* Fix Calculation Amounts For Payment Entry referances type of "PAY"
+
 ## 0.49.8
 * Fix Return Advance Payment Invoice on version 14 because of unexistance of serial and batch fields
 

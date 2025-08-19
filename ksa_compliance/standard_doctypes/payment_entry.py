@@ -19,12 +19,15 @@ def prevent_settling_advance_invoice_from_payment_entry_references(doc, method):
     if not settings or not invoice_names:
         return
     sales_invoice_item = frappe.qb.DocType("Sales Invoice Item")
+    sales_invoice = frappe.qb.DocType("Sales Invoice")
     advance_invoices = (
         frappe.qb.from_(sales_invoice_item)
+        .join(sales_invoice).on(sales_invoice_item.parent == sales_invoice.name)
         .select(sales_invoice_item.parent)
         .where(
-            sales_invoice_item.parent.isin(invoice_names)
-            & sales_invoice_item.item_code == settings.advance_payment_item
+            (sales_invoice_item.parent.isin(invoice_names))
+            & (sales_invoice_item.item_code == settings.advance_payment_item)
+            & (sales_invoice.is_return == False)
         )
     ).run(as_dict=True)
     if advance_invoices:
