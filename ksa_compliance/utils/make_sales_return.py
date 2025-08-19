@@ -194,8 +194,10 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
 
             # OUR UPDATE
             # CALCULATE ITEM ADVANCE RATE DEPENDING ON OUTSTANDING AMOUNT
-            target_doc.rate = round(source_parent.outstanding_amount - (
-                    (source_parent.outstanding_amount * source_doc.tax_rate) / source_parent.grand_total), 2)
+            target_doc.rate = round(
+                source_parent.outstanding_amount / (1 + source_doc.tax_rate / 100),
+                2
+            )
             # END OF UPDATE
 
             returned_qty_map = get_returned_qty_map_for_row(
