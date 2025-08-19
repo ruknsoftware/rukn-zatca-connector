@@ -278,11 +278,9 @@ def is_valid_advance_invoice(is_advance_invoice, self) -> bool:
 def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInvoice) -> PaymentEntry:
     payment_type = "Receive"
     advance_payment_invoice = self.name
-    paid_amount = self.grand_total
     if self.is_return:
         payment_type = "Pay"
         advance_payment_invoice = self.return_against
-        paid_amount = abs(self.outstanding_amount)
 
     payment_entry = frappe.new_doc("Payment Entry")
     payment_entry.payment_type = payment_type
@@ -291,7 +289,7 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
     payment_entry.party_type = "Customer"
     payment_entry.party = self.customer
     payment_entry.cost_center = self.cost_center
-    payment_entry.paid_amount = paid_amount
+    payment_entry.paid_amount = abs(self.grand_total)
     payment_entry.mode_of_payment = self.mode_of_payment
 
     payment_entry.is_advance_payment = True
@@ -322,7 +320,7 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
         payment_entry.paid_to = party_details.get("party_account")
 
         grand_total, outstanding_amount = set_grand_total_and_outstanding_amount(
-            self.outstanding_amount, self.doctype, party_details.get("party_account_currency"), self
+            None, self.doctype, party_details.get("party_account_currency"), self
         )
         payment_entry.append(
             "references",
