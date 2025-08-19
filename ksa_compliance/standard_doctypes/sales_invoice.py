@@ -320,7 +320,7 @@ def create_payment_entry_for_advance_payment_invoice(self: SalesInvoice | POSInv
         payment_entry.paid_to = party_details.get("party_account")
 
         grand_total, outstanding_amount = set_grand_total_and_outstanding_amount(
-            None, self.doctype, party_details.get("party_account_currency"), self
+            self.grand_total, self.doctype, party_details.get("party_account_currency"), self
         )
         payment_entry.append(
             "references",

@@ -63,7 +63,10 @@ def set_advance_payment_entry_settling_gl_entries(payment_entry):
 
     if advance_payment_entry_doc.payment_type in ("Receive", "Pay") and not advance_payment_entry_doc.get("party_account_field"):
         advance_payment_entry_doc.setup_party_account_field()
-    advance_payment_entry_doc.set_transaction_currency_and_rate()
+
+    frappe_version = frappe.__version__
+    if frappe_version.startswith("15"):
+        advance_payment_entry_doc.set_transaction_currency_and_rate()
 
     payment_entry_gls = []
 
