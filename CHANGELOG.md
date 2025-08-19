@@ -7,6 +7,10 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.50.0
+* Fix Cannot pay to Customer without any negative outstanding invoice
+* Handle Transaction Currency and Rate fileds on version 15
+
 ## 0.49.9
 * Fix Calculate Advance Item Rate on return Advance Payment Invoice 
 * Add Condtion Invoice Not Return on Prevent Settling Advance Invoice on Pyment Entry Refernaces 
