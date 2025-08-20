@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.50.1
+* Set Update Outstanding for Self Read Only On Return Advance Payment Invoice
+
 ## 0.50.0
 * Fix Cannot pay to Customer without any negative outstanding invoice
 * Handle Transaction Currency and Rate fileds on version 15
