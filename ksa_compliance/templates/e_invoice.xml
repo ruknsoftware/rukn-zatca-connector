@@ -202,6 +202,9 @@
         {% if invoice.rounding_adjustment %}
         <cbc:PayableRoundingAmount currencyID="{{ invoice.currency_code }}">{{ rounded(invoice.rounding_adjustment, 2) }}</cbc:PayableRoundingAmount>
         {% endif %}
+        {% if prepaid_amount %}
+        <cbc:PrepaidAmount currencyID="SAR">{{ rounded(prepaid_amount, 2) }}</cbc:PrepaidAmount>
+        {% endif %}
         <cbc:PayableAmount currencyID="{{ invoice.currency_code }}">{{ rounded(invoice.payable_amount, 2) }}</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>
     {% for item in invoice.item_lines %}
@@ -248,8 +251,8 @@
         {% for prepayment in prepayment_invoices %}
             <cac:InvoiceLine>
             <cbc:ID>{{ prepayment.prepayment_invoice_idx }}</cbc:ID>
-            <cbc:InvoicedQuantity unitCode="PCE">{{ prepayment.qty }}</cbc:InvoicedQuantity>
-            <cbc:LineExtensionAmount currencyID="{{ prepayment.currency_code }}">{{ prepayment.allocated_amount }}</cbc:LineExtensionAmount>
+            <cbc:InvoicedQuantity unitCode="PCE">0.000000</cbc:InvoicedQuantity>
+            <cbc:LineExtensionAmount currencyID="{{ prepayment.currency_code }}">0.00</cbc:LineExtensionAmount>
             <cac:DocumentReference>
                 <cbc:ID>{{ prepayment.reference_name }}</cbc:ID>
                 <cbc:UUID>{{ prepayment.uuid }}</cbc:UUID>
@@ -258,11 +261,11 @@
                 <cbc:DocumentTypeCode>{{ prepayment.invoice_type_code }}</cbc:DocumentTypeCode>
             </cac:DocumentReference>
             <cac:TaxTotal>
-                <cbc:TaxAmount currencyID="{{ prepayment.currency_code }}">{{ prepayment.tax_amount }}</cbc:TaxAmount>
-                <cbc:RoundingAmount currencyID="{{ prepayment.currency_code }}">{{ prepayment.grand_total }}</cbc:RoundingAmount>
+                <cbc:TaxAmount currencyID="{{ prepayment.currency_code }}">0.00</cbc:TaxAmount>
+                <cbc:RoundingAmount currencyID="{{ prepayment.currency_code }}">0.00</cbc:RoundingAmount>
                 <cac:TaxSubtotal>
-                    <cbc:TaxableAmount currencyID="{{ prepayment.currency_code }}">{{ prepayment.allocated_amount }}</cbc:TaxableAmount>
-                    <cbc:TaxAmount currencyID="{{ prepayment.currency_code }}">{{ prepayment.tax_amount }}</cbc:TaxAmount>
+                    <cbc:TaxableAmount currencyID="{{ prepayment.currency_code }}">{{ rounded(prepayment.taxable_amount, 2) }}</cbc:TaxableAmount>
+                    <cbc:TaxAmount currencyID="{{ prepayment.currency_code }}">{{ rounded(prepayment.tax_amount, 2) }}</cbc:TaxAmount>
                     <cac:TaxCategory>
                         <cbc:ID>S</cbc:ID>
                         <cbc:Percent>{{ prepayment.tax_percent }}</cbc:Percent>
@@ -283,7 +286,7 @@
                 </cac:ClassifiedTaxCategory>
             </cac:Item>
             <cac:Price>
-                <cbc:PriceAmount currencyID="{{ prepayment.currency_code }}">{{ prepayment.allocated_amount }}</cbc:PriceAmount>
+                <cbc:PriceAmount currencyID="{{ prepayment.currency_code }}">0.00</cbc:PriceAmount>
             </cac:Price>
         </cac:InvoiceLine>
 
