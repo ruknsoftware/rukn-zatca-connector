@@ -7,6 +7,10 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.50.2
+* Calculate Prepaid Amount on Generate EInvoice xml
+* Set Amounts is ZERO on Prepayment Invoice Lines
+
 ## 0.50.1
 * Set Update Outstanding for Self Read Only On Return Advance Payment Invoice
 
