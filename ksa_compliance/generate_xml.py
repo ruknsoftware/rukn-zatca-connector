@@ -1,3 +1,4 @@
+import frappe
 from frappe import get_jenv
 
 
@@ -16,6 +17,7 @@ def generate_xml_file(data: dict):
                 'buyer_details': data.get('buyer_details'),
                 'business_settings': data.get('business_settings'),
                 "prepayment_invoices": data.get('prepayment_invoices'),
+                "prepaid_amount": data.get('prepaid_amount'),
             }
         )
     finally:
