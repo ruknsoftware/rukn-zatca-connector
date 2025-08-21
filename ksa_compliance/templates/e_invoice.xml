@@ -202,6 +202,9 @@
         {% if invoice.rounding_adjustment %}
         <cbc:PayableRoundingAmount currencyID="{{ invoice.currency_code }}">{{ rounded(invoice.rounding_adjustment, 2) }}</cbc:PayableRoundingAmount>
         {% endif %}
+        {% if prepaid_amount %}
+        <cbc:PrepaidAmount currencyID="SAR">{{ rounded(prepaid_amount, 2) }}</cbc:PrepaidAmount>
+        {% endif %}
         <cbc:PayableAmount currencyID="{{ invoice.currency_code }}">{{ rounded(invoice.payable_amount, 2) }}</cbc:PayableAmount>
     </cac:LegalMonetaryTotal>
     {% for item in invoice.item_lines %}
