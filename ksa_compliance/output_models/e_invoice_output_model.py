@@ -102,6 +102,7 @@ class Einvoice:
             'seller_details': {},
             'buyer_details': {},
             'prepayment_invoices': [],
+            'prepaid_amount': 0,
         }
 
         self.sales_invoice_doc = cast(
@@ -323,6 +324,14 @@ class Einvoice:
             parent='invoice',
         )
         self.prepayment_invoice()
+
+        # After prepayment invoices are collected, recompute payable amount per BR-CO-16 to avoid double subtraction
+        prepaid_amount_total = float(self.result.get('prepaid_amount', 0.0) or 0.0)
+        if self.sales_invoice_doc.is_rounded_total_disabled():
+            base_payable = abs(self.sales_invoice_doc.grand_total)
+        else:
+            base_payable = abs(self.sales_invoice_doc.rounded_total)
+        self.result['invoice']['payable_amount'] = max(0.0, float(base_payable) - prepaid_amount_total)
 
     # --------------------------- START helper functions ------------------------------
 
@@ -821,10 +830,12 @@ class Einvoice:
         )
 
         if self.sales_invoice_doc.is_rounded_total_disabled():
-            self.result['invoice']['payable_amount'] = abs(self.sales_invoice_doc.grand_total)
+            base_payable = abs(self.sales_invoice_doc.grand_total)
+            prepaid_amount = (self.result.get('prepaid_amount', 0.0) or 0.0)
+            self.result['invoice']['payable_amount'] = max(0.0, base_payable - prepaid_amount)
             self.result['invoice']['rounding_adjustment'] = 0.0
         else:
-            # Tax inclusive amount + rounding adjustment = payable amount
+            # Tax inclusive amount + rounding adjustment = payable amount (before prepayments)
             # However, ZATCA doesn't accept negative values for tax inclusive amount or payable amount, so we put their
             # absolute values.
             # For return invoices, we can have a positive rounding adjustment (if it were negative in the original invoice)
@@ -836,11 +847,13 @@ class Einvoice:
             # Return invoice (XML): abs(-100.25) + 0.25 = 100.25
             # So the calculation would be wrong if we just used the value of rounding adjustment. We need to recalculate
             # it or adjust its sign to produce the right result in the return case
-            payable_amount = abs(self.sales_invoice_doc.rounded_total)
+            payable_before_prepay = abs(self.sales_invoice_doc.rounded_total)
             tax_inclusive_amount = abs(self.sales_invoice_doc.grand_total)
-            self.result['invoice']['payable_amount'] = payable_amount
+            prepaid_amount = (self.result.get('prepaid_amount', 0.0) or 0.0)
+            # Apply BR-CO-16 by subtracting pre-paid amount
+            self.result['invoice']['payable_amount'] = max(0.0, payable_before_prepay - prepaid_amount)
             if self.sales_invoice_doc.is_return:
-                self.result['invoice']['rounding_adjustment'] = payable_amount - tax_inclusive_amount
+                self.result['invoice']['rounding_adjustment'] = payable_before_prepay - tax_inclusive_amount
             else:
                 self.result['invoice']['rounding_adjustment'] = self.sales_invoice_doc.rounding_adjustment
 
@@ -927,14 +940,21 @@ class Einvoice:
             prepayment_invoice["issue_date"] = get_date_str(advance_payment_invoice.posting_date)
             prepayment_invoice["issue_time"] = get_time(advance_payment_invoice.posting_time).strftime('%H:%M:%S')
 
-            prepayment_invoice["allocated_amount"] = advance_payment.allocated_amount
+            allocated_amount = advance_payment.allocated_amount
+            prepayment_invoice["allocated_amount"] = allocated_amount
 
             item = advance_payment_invoice.items[0]
             prepayment_invoice["item_name"] = item.item_name
 
             prepayment_invoice["tax_percent"] = abs(item.tax_rate or 0.0)
 
-            prepayment_invoice["tax_amount"] = calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice)
+            tax_amount = calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice)
+            prepayment_invoice["tax_amount"] = tax_amount
+
+            taxable_amount = round(allocated_amount - tax_amount, 2)
+            prepayment_invoice["taxable_amount"] = taxable_amount
+
+            self.result['prepaid_amount'] += round( (taxable_amount + tax_amount), 2)
             prepayment_invoice["grand_total"] = advance_payment.allocated_amount
 
             prepayment_invoice["invoice_type_code"] = InvoiceTypeCode.ADVANCE_PAYMENT.value
