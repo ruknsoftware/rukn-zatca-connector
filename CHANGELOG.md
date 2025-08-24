@@ -7,7 +7,7 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
-##
+## 0.50.3
 * FIX Settling Zero Amount On Advance Payment Invoice
 
 ## 0.50.2
