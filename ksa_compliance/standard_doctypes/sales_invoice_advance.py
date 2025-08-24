@@ -70,6 +70,8 @@ def set_advance_payment_invoice_settling_gl_entries(advance_payment):
         else:
             amount = tax_amount
 
+        if amount == 0:
+            continue
         advance_gl_entry = gl_entry.copy()
 
         if advance_gl_entry.debit != 0.0:
