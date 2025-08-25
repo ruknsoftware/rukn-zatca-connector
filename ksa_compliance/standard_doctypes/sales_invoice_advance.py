@@ -114,7 +114,7 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
         self = cast(SalesInvoice, frappe.get_doc(self))
     company = self.get("company")
     settings = ZATCABusinessSettings.for_company(company)
-    if not settings.auto_apply_advance_payments:
+    if not settings or not settings.auto_apply_advance_payments:
         return []
     if invoice_has_advance_item(self, settings):
         return []
