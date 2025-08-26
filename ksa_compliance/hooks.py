@@ -4,7 +4,7 @@ app_publisher = 'LavaLoon'
 app_description = 'KSA Compliance app for E-invoice'
 app_email = 'info@lavaloon.com'
 app_license = 'Copyright (c) 2023 LavaLoon'
-required_apps = ["erpnext", "payments"]
+required_apps = ["erpnext"]
 # Includes in <head>
 # ------------------
 
