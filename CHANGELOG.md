@@ -7,6 +7,34 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.50.3
+* FIX Settling Zero Amount On Advance Payment Invoice
+
+## 0.50.2
+* Calculate Prepaid Amount on Generate EInvoice xml
+* Set Amounts is ZERO on Prepayment Invoice Lines
+
+## 0.50.1
+* Set Update Outstanding for Self Read Only On Return Advance Payment Invoice
+
+## 0.50.0
+* Fix Cannot pay to Customer without any negative outstanding invoice
+* Handle Transaction Currency and Rate fileds on version 15
+
+## 0.49.9
+* Fix Calculate Advance Item Rate on return Advance Payment Invoice 
+* Add Condtion Invoice Not Return on Prevent Settling Advance Invoice on Pyment Entry Refernaces 
+* Fix Calculation Amounts For Payment Entry referances type of "PAY"
+
+## 0.49.8
+* Fix Return Advance Payment Invoice on version 14 because of unexistance of serial and batch fields
+
+## 0.49.7
+* Allow Return Advance Payment Invoice
+  * Return Outstanding Amount for Invoice 
+  * Make "Pay" Payment Entry For Return Invoice
+  * Settling GL Entries For Advance Invoice
+  * Settling GL Entries For Advance Pyment Entry
 
 ## 0.49.6
 * Auto Apply Advance Payments functionality for Sales Invoice

@@ -62,6 +62,9 @@ def set_advance_payment_invoice_settling_gl_entries(advance_payment):
     income_account = item.income_account
     tax_amount = calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice)
     advance_gl_entries = []
+    tax_accounts = []
+    for tax in advance_payment_invoice.get("taxes"):
+        tax_accounts.append(tax.account_head)
     for gl_entry in gl_entries:
         if gl_entry.account == income_account:
             amount = advance_payment.allocated_amount - tax_amount
@@ -70,6 +73,8 @@ def set_advance_payment_invoice_settling_gl_entries(advance_payment):
         else:
             amount = tax_amount
 
+        if (amount == tax_amount) and advance_payment.allocated_amount < 0.04 and gl_entry.account in tax_accounts:
+            continue
         advance_gl_entry = gl_entry.copy()
 
         if advance_gl_entry.debit != 0.0:

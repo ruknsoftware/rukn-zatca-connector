@@ -18,6 +18,13 @@ frappe.require("/assets/ksa_compliance/js/update_invoice_mode_of_payment.js").th
         },
         refresh:function (frm){
             update_sales_invoice_mode_of_payment(frm);
+            if (frm.doc.is_return){
+                is_advance_invoice(frm).then(is_advance => {
+                    frm.set_df_property("update_outstanding_for_self", "read_only", is_advance ? 1 : 0);
+                    frm.set_value("update_outstanding_for_self", 1);
+                    frm.refresh_field("update_outstanding_for_self");
+                });
+            }
         },
         customer: function(frm) {
             if (frm.doc.customer) {
