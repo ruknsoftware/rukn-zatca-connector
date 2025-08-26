@@ -4,8 +4,7 @@ app_publisher = 'LavaLoon'
 app_description = 'KSA Compliance app for E-invoice'
 app_email = 'info@lavaloon.com'
 app_license = 'Copyright (c) 2023 LavaLoon'
-# required_apps = []
-
+required_apps = ["erpnext", "payments"]
 # Includes in <head>
 # ------------------
 
@@ -162,7 +161,9 @@ doc_events = {
     },
     'Unreconcile Payment': {
         'validate': 'ksa_compliance.standard_doctypes.unreconcile_payment.prevent_un_reconcile_advance_payments',
-    },
+    },'Mode of Payment': {
+        "before_validate": "ksa_compliance.utils.mode_of_payment.set_zatca_code_on_default_mop"
+    }
 }
 
 # Scheduled Tasks
