@@ -190,6 +190,9 @@ scheduler_events = {'hourly_long': ['ksa_compliance.background_jobs.sync_e_invoi
 # -------
 
 # before_tests = "ksa_compliance.install.before_tests"
+before_tests = [
+    "ksa_compliance.utils.test_setup.custom_erpnext_setup"
+]
 
 # Overriding Methods
 # ------------------------------
