@@ -336,7 +336,16 @@ def write_binary_temp_file(content: bytes, name: str) -> str:
 
 
 def get_temp_path(name: str) -> str:
-    return tempfile.mktemp(suffix="-" + name)
+    tmp = tempfile.NamedTemporaryFile(prefix="ksacli-", suffix="-" + name, delete=False)
+    try:
+        tmp.flush()
+        tmp.close()
+        return tmp.name
+    except Exception as e:
+        logger.info(f"Failed Make Temp File: {str(e)}")
+        if not tmp.closed:
+            tmp.close()
+        raise e
 
 
 def convert_to_pdf_a3_b(
