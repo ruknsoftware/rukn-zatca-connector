@@ -79,7 +79,8 @@ def add_property_setters():
         "doctype_or_field": "DocType",
         "doctype": "Mode of Payment",
         "property": "field_order",
-        "value": '["mode_of_payment", "enabled", "type", "accounts", "custom_zatca_payment_means_code"]'
+        "value": '["mode_of_payment", "enabled", "type", "accounts", "custom_zatca_payment_means_code"]',
+        "moduel" : "KSA Compliance"
     })
 
 
@@ -96,6 +97,7 @@ def after_migrate():
             "doctype": doctype,
             "fieldname": fieldname,
             "property": "reqd", 
-            "value": "1"       
+            "value": "1",
+            "module": "KSA Compliance"
         })
         
