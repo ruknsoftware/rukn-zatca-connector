@@ -234,7 +234,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                 valid = False
             if abs(self.grand_total) > return_against.outstanding_amount:
                 frappe.msgprint(
-                    msg=_(
+                    _(
                         "Cant Return exceeds the outstanding amount {0} of Advance Invoice".format(
                             return_against.outstanding_amount
                         )
