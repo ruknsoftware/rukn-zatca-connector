@@ -1,9 +1,39 @@
+exclude: 'node_modules|.git'
+default_stages: [pre-commit]
+fail_fast: true
+
 repos:
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  # Ruff version.
-  rev: v0.7.3
-  hooks:
-    # Run the linter.
-    - id: ruff
-    # Run the formatter.
-    - id: ruff-format
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        files: "ksa_compliance.*"
+      - id: end-of-file-fixer
+        files: "ksa_compliance.*"
+        exclude: ".*json$|.*txt$"
+      - id: check-yaml
+
+  - repo: https://github.com/PyCQA/isort
+    rev: 6.0.1
+    hooks:
+      - id: isort
+        exclude: ".*setup.py$"
+
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
+    hooks:
+      - id: black
+        exclude: ".*setup.py$"
+        additional_dependencies: []
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.3.0
+    hooks:
+      - id: flake8
+        additional_dependencies: [flake8-isort]
+        exclude: ".*setup.py$"
+
+ci:
+    autoupdate_schedule: weekly
+    skip: []
+    submodules: false
