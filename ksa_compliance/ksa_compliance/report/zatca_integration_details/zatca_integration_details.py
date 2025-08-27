@@ -16,10 +16,7 @@ def execute(filters=None):
     dt = datetime.strptime(filters["to_date_filter"], "%Y-%m-%d")
     if dt < df:
         frappe.throw(
-            msg="""To date must be after From date.
-                        error_code='InvalidDateRange',
-                        code=400
-                        """
+            msg=_("To date must be after From date. error_code='InvalidDateRange', code=400")
         )
     try:
         data = get_zatca_integration_details_data(filters=filters)
@@ -28,7 +25,7 @@ def execute(filters=None):
         report_summary = [
             {
                 "value": records_count,
-                "label": "Number of records",
+                "label": _("Number of records"),
                 "datatype": "Number",
             },
         ]
@@ -54,7 +51,7 @@ def execute(filters=None):
             elif label == "Accepted with warnings":
                 colors.append("yellow")
         chart = get_pie_chart_data(
-            title="Zatca Integration Status",
+            title=_("Zatca Integration Status"),
             labels=labels,
             values=values,
             height=250,
