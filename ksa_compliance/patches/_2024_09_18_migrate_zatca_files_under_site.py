@@ -1,18 +1,20 @@
 import os
 import shutil
 from dataclasses import dataclass
-from typing import cast, List
+from typing import List, cast
 
 import frappe
 
-from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
+    ZATCABusinessSettings,
+)
 from ksa_compliance.zatca_files import (
-    get_zatca_tool_path,
-    get_sandbox_private_key_path,
-    get_csr_path,
     get_cert_path,
     get_compliance_cert_path,
+    get_csr_path,
     get_private_key_path,
+    get_sandbox_private_key_path,
+    get_zatca_tool_path,
 )
 
 
@@ -82,9 +84,9 @@ class Migration:
 
     def describe(self) -> str:
         if not self.operations:
-            return 'No files to migrate'
+            return "No files to migrate"
 
-        return '\n'.join([op.describe() for op in self.operations])
+        return "\n".join([op.describe() for op in self.operations])
 
     def apply(self, verbose=False) -> None:
         for op in self.operations:
@@ -96,18 +98,20 @@ def execute(dry_run=False, verbose=False):
     Migrates ZATCA files (certs, keys, csrs) and tools (CLI and JRE) from under sites and sites/zatca to
     sites/{site}/zatca-files and sites/{site}/zatca-tools
     """
-    if os.path.isdir('zatca'):
+    if os.path.isdir("zatca"):
         migration = Migration()
-        migration.add(DirectoryCopy('zatca', get_zatca_tool_path('.')))
+        migration.add(DirectoryCopy("zatca", get_zatca_tool_path(".")))
         if dry_run:
             print(migration.describe())
         else:
             migration.apply(verbose)
 
-    records = cast(list[dict], frappe.get_all('ZATCA Business Settings'))
+    records = cast(list[dict], frappe.get_all("ZATCA Business Settings"))
     for record in records:
-        settings = cast(ZATCABusinessSettings, frappe.get_doc('ZATCA Business Settings', record['name']))
-        print(f'Analyzing {settings.name}')
+        settings = cast(
+            ZATCABusinessSettings, frappe.get_doc("ZATCA Business Settings", record["name"])
+        )
+        print(f"Analyzing {settings.name}")
         migration = prepare_migration(settings)
         if dry_run:
             print(migration.describe())
@@ -118,15 +122,19 @@ def execute(dry_run=False, verbose=False):
             # 'sites' directory, so instead of '/home/frappe/frappe-bench/sites/zatca/{path} we get '{path}'
             # We then get that relative to the new tools directory, and convert to an absolute path again
             if settings.zatca_cli_path:
-                new_cli_path = os.path.abspath(get_zatca_tool_path(os.path.relpath(settings.zatca_cli_path, 'zatca')))
+                new_cli_path = os.path.abspath(
+                    get_zatca_tool_path(os.path.relpath(settings.zatca_cli_path, "zatca"))
+                )
                 if os.path.isfile(new_cli_path):
-                    print(f'Updating CLI path from {settings.zatca_cli_path} to {new_cli_path}')
+                    print(f"Updating CLI path from {settings.zatca_cli_path} to {new_cli_path}")
                     settings.zatca_cli_path = new_cli_path
 
             if settings.java_home:
-                new_java_home = os.path.abspath(get_zatca_tool_path(os.path.relpath(settings.java_home, 'zatca')))
+                new_java_home = os.path.abspath(
+                    get_zatca_tool_path(os.path.relpath(settings.java_home, "zatca"))
+                )
                 if os.path.isdir(new_java_home):
-                    print(f'Updating Java home from {settings.java_home} to {new_java_home}')
+                    print(f"Updating Java home from {settings.java_home} to {new_java_home}")
                     settings.java_home = new_java_home
 
             settings.save()
@@ -141,11 +149,11 @@ def prepare_migration(settings: ZATCABusinessSettings) -> Migration:
     new_prefix = settings.file_prefix
 
     file_map = {
-        old_prefix + '.csr': get_csr_path(new_prefix),
-        old_prefix + '.privkey': get_private_key_path(new_prefix),
-        old_prefix + '-compliance.pem': get_compliance_cert_path(new_prefix),
-        old_prefix + '.pem': get_cert_path(new_prefix),
-        'sandbox_private_key.pem': get_sandbox_private_key_path(),
+        old_prefix + ".csr": get_csr_path(new_prefix),
+        old_prefix + ".privkey": get_private_key_path(new_prefix),
+        old_prefix + "-compliance.pem": get_compliance_cert_path(new_prefix),
+        old_prefix + ".pem": get_cert_path(new_prefix),
+        "sandbox_private_key.pem": get_sandbox_private_key_path(),
     }
 
     for src, dest in file_map.items():
