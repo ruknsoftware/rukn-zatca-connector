@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+
 from ksa_compliance.standard_doctypes.sales_invoice_advance import get_invoice_advance_payments
 
 
@@ -20,9 +21,13 @@ def prevent_un_reconcile_advance_payments(self, method):
         allocation_doc = frappe.get_doc(allocation.reference_doctype, allocation.reference_name)
         advance_payments = get_invoice_advance_payments(allocation_doc)
         if advance_payments:
-            frappe.msgprint(_('Cant UNRreconcile {0}, Its Payed from Advance Payment Entry').format(allocation.reference_name))
+            frappe.msgprint(
+                _("Cant UNRreconcile {0}, Its Payed from Advance Payment Entry").format(
+                    allocation.reference_name
+                )
+            )
             valid = False
     if not valid:
         message_log = frappe.get_message_log()
-        error_messages = '\n'.join(log['message'] for log in message_log)
+        error_messages = "\n".join(log["message"] for log in message_log)
         raise frappe.ValidationError(error_messages)

@@ -1,13 +1,17 @@
 import json
 from typing import cast
+
 import frappe
-from frappe.utils import flt
+from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
+from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+from erpnext.accounts.party import get_party_account
 from frappe import qb
 from frappe.query_builder.custom import ConstantColumn
-from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
-from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
-from erpnext.accounts.party import get_party_account
-from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
+from frappe.utils import flt
+
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
+    ZATCABusinessSettings,
+)
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
 
 
@@ -17,25 +21,30 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
     advance_payments = []
     if hasattr(self, "__unsaved"):
         for sales_invoice_advance in self.advances:
-            payment_entry = frappe.get_doc(sales_invoice_advance.reference_type, sales_invoice_advance.reference_name)
+            payment_entry = frappe.get_doc(
+                sales_invoice_advance.reference_type, sales_invoice_advance.reference_name
+            )
             if (
-                payment_entry.is_advance_payment == True
+                payment_entry.is_advance_payment == 1
                 and payment_entry.party_type == "Customer"
                 and payment_entry.payment_type == "Receive"
             ):
-                advance_payments.append(frappe._dict(
-                    allocated_amount=sales_invoice_advance.allocated_amount,
-                    reference_name=sales_invoice_advance.reference_name,
-                    remarks=sales_invoice_advance.remarks,
-                    reference_row=sales_invoice_advance.reference_row,
-                    advance_amount=sales_invoice_advance.advance_amount,
-                    advance_payment_invoice=payment_entry.advance_payment_invoice,
-                ))
+                advance_payments.append(
+                    frappe._dict(
+                        allocated_amount=sales_invoice_advance.allocated_amount,
+                        reference_name=sales_invoice_advance.reference_name,
+                        remarks=sales_invoice_advance.remarks,
+                        reference_row=sales_invoice_advance.reference_row,
+                        advance_amount=sales_invoice_advance.advance_amount,
+                        advance_payment_invoice=payment_entry.advance_payment_invoice,
+                    )
+                )
         return advance_payments
 
     return (
         frappe.qb.from_(sales_invoice_advance)
-        .join(payment_entry).on(payment_entry.name == sales_invoice_advance.reference_name)
+        .join(payment_entry)
+        .on(payment_entry.name == sales_invoice_advance.reference_name)
         .select(
             sales_invoice_advance.allocated_amount,
             sales_invoice_advance.reference_name,
@@ -43,20 +52,21 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
             sales_invoice_advance.remarks,
             sales_invoice_advance.reference_row,
             sales_invoice_advance.advance_amount,
-
             payment_entry.advance_payment_invoice,
-        ).where(
-            (payment_entry.is_advance_payment == True)
-            &(payment_entry.payment_type == "Receive")
+        )
+        .where(
+            (payment_entry.is_advance_payment == 1)
+            & (payment_entry.payment_type == "Receive")
             & (payment_entry.party_type == "Customer")
             & (sales_invoice_advance.parent == self.name)
         )
     ).run(as_dict=True)
 
 
-
 def set_advance_payment_invoice_settling_gl_entries(advance_payment):
-    advance_payment_invoice = frappe.get_doc("Sales Invoice", advance_payment.advance_payment_invoice)
+    advance_payment_invoice = frappe.get_doc(
+        "Sales Invoice", advance_payment.advance_payment_invoice
+    )
     item = advance_payment_invoice.items[0]
     gl_entries = advance_payment_invoice.get_gl_entries()
     income_account = item.income_account
@@ -73,36 +83,49 @@ def set_advance_payment_invoice_settling_gl_entries(advance_payment):
         else:
             amount = tax_amount
 
-        if (amount == tax_amount) and advance_payment.allocated_amount < 0.04 and gl_entry.account in tax_accounts:
+        if (
+            (amount == tax_amount)
+            and advance_payment.allocated_amount < 0.04
+            and gl_entry.account in tax_accounts
+        ):
             continue
         advance_gl_entry = gl_entry.copy()
 
         if advance_gl_entry.debit != 0.0:
-            advance_gl_entry['debit'] = 0.0
-            advance_gl_entry['debit_in_account_currency'] = 0.0
-            advance_gl_entry['credit'] = amount
-            advance_gl_entry['credit_in_account_currency'] = amount
+            advance_gl_entry["debit"] = 0.0
+            advance_gl_entry["debit_in_account_currency"] = 0.0
+            advance_gl_entry["credit"] = amount
+            advance_gl_entry["credit_in_account_currency"] = amount
         else:
-            advance_gl_entry['debit'] = amount
-            advance_gl_entry['debit_in_account_currency'] = amount
-            advance_gl_entry['credit'] = 0.0
-            advance_gl_entry['credit_in_account_currency'] = 0.0
+            advance_gl_entry["debit"] = amount
+            advance_gl_entry["debit_in_account_currency"] = amount
+            advance_gl_entry["credit"] = 0.0
+            advance_gl_entry["credit_in_account_currency"] = 0.0
         advance_gl_entries.append(advance_gl_entry)
     advance_payment_invoice.make_gl_entries(advance_gl_entries)
 
 
 def calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice):
-    return round(((advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges) / advance_payment_invoice.grand_total),2)
+    tax_amount = (
+        advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges
+    ) / advance_payment_invoice.grand_total
+    return round(tax_amount, 2)
 
 
 def get_prepayment_info(self: SalesInvoice | POSInvoice):
     advance_payments = get_invoice_advance_payments(self)
     for idx, advance_payment in enumerate(advance_payments, start=1):
-        advance_payment_invoice = frappe.get_doc('Sales Invoice', advance_payment.advance_payment_invoice)
+        advance_payment_invoice = frappe.get_doc(
+            "Sales Invoice", advance_payment.advance_payment_invoice
+        )
         item = advance_payment_invoice.items[0]
         advance_payment["tax_percent"] = abs(item.tax_rate or 0.0)
-        advance_payment["tax_amount"] = calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice)
-        advance_payment["amount"] = round(advance_payment.allocated_amount - advance_payment["tax_amount"], 2)
+        advance_payment["tax_amount"] = calculate_advance_payment_tax_amount(
+            advance_payment, advance_payment_invoice
+        )
+        advance_payment["amount"] = round(
+            advance_payment.allocated_amount - advance_payment["tax_amount"], 2
+        )
         advance_payment["idx"] = idx
     return advance_payments
 
@@ -139,7 +162,7 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
             & (payment_entry.payment_type == "Receive")
             & (payment_entry.docstatus == 1)
             & (payment_entry.unallocated_amount.gt(0))
-            & (payment_entry.is_advance_payment == True)
+            & (payment_entry.is_advance_payment == 1)
         )
         .orderby(payment_entry.posting_date)
     ).run(as_dict=1)
@@ -160,7 +183,9 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
             "remarks": advance_payment.remarks,
             "advance_amount": flt(advance_payment.amount),
             "allocated_amount": allocated_amount,
-            "ref_exchange_rate": flt(advance_payment.exchange_rate),  # exchange_rate of advance entry
+            "ref_exchange_rate": flt(
+                advance_payment.exchange_rate
+            ),  # exchange_rate of advance entry
         }
 
         advances.append(advance_row)
