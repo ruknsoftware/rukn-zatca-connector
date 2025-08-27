@@ -2,6 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
 from frappe.query_builder import DocType
 from frappe.utils.data import get_link_to_form
@@ -31,8 +32,10 @@ class ZATCAPhase1BusinessSettings(Document):
         if business_settings_id and self.status == "Active":
             link = get_link_to_form("ZATCA Business Settings", business_settings_id)
             frappe.throw(
-                f"ZATCA Phase 2 Business Settings already enabled for company {self.company}: {link}",
-                title="Another Setting Already Enabled",
+                _("ZATCA Phase 2 Business Settings already enabled for company {0}: {1}").format(
+                    self.company, link
+                ),
+                title=_("Another Setting Already Enabled"),
             )
 
     @staticmethod
