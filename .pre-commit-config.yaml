@@ -10,7 +10,7 @@ repos:
         files: "ksa_compliance.*"
       - id: end-of-file-fixer
         files: "ksa_compliance.*"
-        exclude: ".*json$|.*txt$"
+        exclude: ".*json$|.*txt$|.*xsd$"
       - id: check-yaml
 
   - repo: https://github.com/PyCQA/isort
