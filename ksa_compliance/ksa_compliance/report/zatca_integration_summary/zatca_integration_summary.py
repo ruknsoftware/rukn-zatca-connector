@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import frappe
+from frappe import _
 
 from ksa_compliance.ksa_compliance.report.zatca_integration_details.zatca_integration_details import (
     get_pie_chart_data,
@@ -36,7 +37,7 @@ def execute(filters=None):
         report_summary = [
             {
                 "value": records_count,
-                "label": "Number of records",
+                "label": _("Number of records"),
                 "datatype": "Number",
             },
         ]
@@ -50,31 +51,31 @@ def get_columns():
         {
             "fieldname": "integration_status",
             "fieldtype": "Data",
-            "label": "ZATCA Integration status",
+            "label": _("ZATCA Integration status"),
             "width": 200,
         },
         {
             "fieldname": "records_count",
             "fieldtype": "Int",
-            "label": "Total Number of invoices",
+            "label": _("Total Number of invoices"),
             "width": 150,
         },
         {
             "fieldname": "net_total",
             "fieldtype": "Currency",
-            "label": "Net Total Amount",
+            "label": _("Net Total Amount"),
             "width": 150,
         },
         {
             "fieldname": "total_taxes_and_charges",
             "fieldtype": "Currency",
-            "label": "VAT Total Amount",
+            "label": _("VAT Total Amount"),
             "width": 150,
         },
         {
             "fieldname": "grand_total",
             "fieldtype": "Currency",
-            "label": "Grand Total Amount",
+            "label": _("Grand Total Amount"),
             "width": 150,
         },
     ]
