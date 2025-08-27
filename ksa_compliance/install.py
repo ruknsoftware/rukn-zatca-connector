@@ -80,7 +80,7 @@ def add_property_setters():
         "doctype": "Mode of Payment",
         "property": "field_order",
         "value": '["mode_of_payment", "enabled", "type", "accounts", "custom_zatca_payment_means_code"]',
-        "moduel" : "KSA Compliance"
+        "module" : "KSA Compliance"
     })
 
 
