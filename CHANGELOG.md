@@ -7,6 +7,11 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.50.5
+* Add CI/CD GITHUB Actions Config
+* Apply Pre-commit on Project
+* FIX Frappe Semgrep on Project
+
 ## 0.50.4
 * FIX Apply Applicable Advances on validate form script
 
