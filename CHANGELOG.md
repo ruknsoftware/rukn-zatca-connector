@@ -10,6 +10,9 @@ to a section with the version name.
 ## 0.50.8
 * Avoid Check Pay Payment Entries from non reconciled invoices IS Advance Invoice
 
+## 0.50.7
+* Fix Setup ZATCA Custom Fields When Install
+
 ## 0.50.6
 * Apply advance payments before validate hook to ensure passing updates for totals
 * Remove Apply Applicable Advances on validate form script
