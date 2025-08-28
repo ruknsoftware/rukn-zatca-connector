@@ -1,6 +1,7 @@
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
+ksa_compliance_module = "KSA Compliance"
 
 def after_install():
 	add_custom_fields()
@@ -8,7 +9,6 @@ def after_install():
 
 
 def add_custom_fields():
-	ksa_compliance_module = "KSA Compliance"
 	custom_fields = {
 		"Payment Entry": [
 			dict(
@@ -80,9 +80,7 @@ def add_property_setters():
         "doctype": "Mode of Payment",
         "property": "field_order",
         "value": '["mode_of_payment", "enabled", "type", "accounts", "custom_zatca_payment_means_code"]',
-        "module" : "KSA Compliance"
-    })
-
+    },module=ksa_compliance_module)
 
 def after_migrate():
 
@@ -98,6 +96,5 @@ def after_migrate():
             "fieldname": fieldname,
             "property": "reqd", 
             "value": "1",
-            "module": "KSA Compliance"
-        })
-        
+            "property_type": "Check"
+        },module=ksa_compliance_module)
