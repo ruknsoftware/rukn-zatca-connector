@@ -283,3 +283,27 @@ Prepayment VAT Amount,مبلغ ضريبة القيمة المضافة للدفع
 Total Prepayment Amount,إجمالي مبلغ الدفعة المقدمة
 Advance Payment Reference,الرقم المرجعي للدفعة المقدمة
 Changing this setting requires redoing the onboarding process, starting from CSR generation.,تغيير هذا الإعداد يتطلب إعادة عملية الإعداد الأولي بدءًا من إنشاء CSR.
+ZATCA Phase 2 Business Settings already enabled for company {0}: {1},تم تفعيل إعدادات الأعمال الخاصة بالمرحلة الثانية من ZATCA للشركة بالفعل {0}: {1}
+Another Setting Already Enabled,إعداد آخر تم تمكينه بالفعل
+"To date must be after From date. error_code='InvalidDateRange', code=400","يجب أن يكون تاريخ "إلى" بعد تاريخ "من". error_code='InvalidDateRange', code=400"
+Number of records,عدد السجلات
+Zatca Integration Status,حالة تكامل زاتكا
+Total Number of invoices,إجمالي عدد الفواتير
+Net Total Amount,المبلغ الإجمالي الصافي
+VAT Total Amount,إجمالي مبلغ ضريبة القيمة المضافة
+Grand Total Amount,المبلغ الإجمالي الكلي
+You cannot cancel {0} according to ZATCA Advance Invoice {1}.,لا يمكنك إلغاء {0} وفقًا لفواتير ZATCA المسبقة {1}.
+You cannot cancel {0} according to ZATCA Regulations.,لا يمكنك إلغاء {0} وفقًا للوائح ZATCA.
+Please include tax rate in Sales Taxes and Charges Table,يرجى إدراج معدل الضريبة في قالب الضرائب والرسوم على المبيعات
+Validation Error,خطأ التحقق
+Advance payment invoices must include only the advance payment item,يجب أن تتضمن فواتير الدفع المسبق بند الدفع المسبق فقط
+Advance payment invoices can not include Advance Payments,لا يمكن أن تتضمن فواتير الدفع المسبق الدفعات المسبقة.
+Cant Return Invoice Having Advance Payment,لا يمكن إرجاع الفاتورة التي تحتوي على دفعة مقدمة
+Cant Return exceeds the outstanding amount {0} of Advance Invoice,لا يمكن إرجاع المبلغ الذي يتجاوز المبلغ المستحق {0} من الفاتورة المقدمة
+Cant Add Advance Payments Invoices Entries On POS Invoice,لا يمكن إضافة إدخالات فواتير الدفع المسبق على فاتورة نقطة البيع
+Reference No and Reference Date are required for Bank accounts.,رقم المرجع وتاريخ المرجع مطلوبان لحسابات البنك.
+Cant UNRreconcile From Advance Payment Entry,لا يمكن إلغاء التوفيق بين إدخال الدفع المسبق
+"Cant UNRreconcile {0}, Its Payed from Advance Payment Entry","لا يمكن إلغاء تسوية {0}، فقد تم دفعها من إدخال الدفع المسبق"
+Cannot create return for consolidated invoice {0}.,لا يمكن إنشاء إرجاع للفاتورة الموحدة {0}.
+Cannot Create Return,لا يمكن إنشاء الإرجاع
+{0} does not exist or is not a file,{0} غير موجود أو ليس ملفًا
