@@ -23,5 +23,6 @@ class ZATCAInvoiceCountingSettings(Document):
 
     def on_trash(self) -> None:
         frappe.throw(
-            msg=_('You cannot delete a configured Invoice Counting Settings'), title=_('This Action Is Not Allowed')
+            msg=_("You cannot delete a configured Invoice Counting Settings"),
+            title=_("This Action Is Not Allowed"),
         )

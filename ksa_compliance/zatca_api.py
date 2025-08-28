@@ -3,13 +3,13 @@ import dataclasses
 import traceback
 from dataclasses import dataclass
 from enum import Enum
-from typing import cast, List, Dict, Callable, TypeVar, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, TypeVar, cast
 from urllib.parse import urljoin
 
 import requests
-from requests import HTTPError, Response, JSONDecodeError
+from requests import HTTPError, JSONDecodeError, Response
 from requests.auth import HTTPBasicAuth
-from result import Result, Ok, Err
+from result import Err, Ok, Result
 
 from ksa_compliance import logger
 
@@ -18,8 +18,8 @@ class ZatcaSendMode(Enum):
     """Mode used for sending invoice XML to ZATCA. Compliance is for passing compliance checks. Production is regular
     operation"""
 
-    Compliance = 'Compliance'
-    Production = 'Production'
+    Compliance = "Compliance"
+    Production = "Production"
 
 
 @dataclass
@@ -32,13 +32,13 @@ class ComplianceResult:
     secret: str
 
     @staticmethod
-    def from_json(data: dict, raw_response: str) -> 'ComplianceResult':
+    def from_json(data: dict, raw_response: str) -> "ComplianceResult":
         """Create a [ComplianceResult] from JSON [data]"""
         return ComplianceResult(
-            request_id=data['requestID'],
-            disposition_message=data['dispositionMessage'],
-            security_token=data['binarySecurityToken'],
-            secret=data['secret'],
+            request_id=data["requestID"],
+            disposition_message=data["dispositionMessage"],
+            security_token=data["binarySecurityToken"],
+            secret=data["secret"],
         )
 
 
@@ -49,13 +49,13 @@ class WarningOrError:
     message: str
 
     @staticmethod
-    def from_json(data: dict | str) -> 'WarningOrError':
+    def from_json(data: dict | str) -> "WarningOrError":
         if isinstance(data, str):
-            return WarningOrError(category='No Category', code='No Code', message=data)
+            return WarningOrError(category="No Category", code="No Code", message=data)
         return WarningOrError(
-            category=data.get('category', 'No Category'),
-            code=data.get('code', 'No Code'),
-            message=data.get('message', 'No Message'),
+            category=data.get("category", "No Category"),
+            code=data.get("code", "No Code"),
+            message=data.get("message", "No Message"),
         )
 
 
@@ -70,11 +70,11 @@ class ReportOrClearInvoiceResult:
 
     def to_json(self) -> dict:
         result = dataclasses.asdict(self)
-        del result['raw_response']
+        del result["raw_response"]
         return result
 
     @staticmethod
-    def from_json(data: dict, raw_response: str) -> 'ReportOrClearInvoiceResult':
+    def from_json(data: dict, raw_response: str) -> "ReportOrClearInvoiceResult":
         # The swagger documentation on  https://sandbox.zatca.gov.sa/IntegrationSandbox says the response should be
         # like this:
         # {
@@ -96,18 +96,22 @@ class ReportOrClearInvoiceResult:
         #  }
         #
         # So we're going to try to parse both. Note that for clearance, it's clearanceStatus instead of reportingStatus
-        status = data.get('reportingStatus') or data.get('clearanceStatus') or data.get('status')
-        invoice_hash = data.get('invoiceHash')
-        cleared_invoice = data.get('clearedInvoice')
+        status = data.get("reportingStatus") or data.get("clearanceStatus") or data.get("status")
+        invoice_hash = data.get("invoiceHash")
+        cleared_invoice = data.get("clearedInvoice")
         warnings, errors = [], []
-        if data.get('warnings'):
-            warnings = [WarningOrError.from_json(w) for w in data['warnings']]
-        if data.get('validationResults') and data.get('validationResults').get('warningMessages'):
-            warnings = [WarningOrError.from_json(w) for w in data['validationResults']['warningMessages']]
-        if data.get('errors'):
-            errors = [WarningOrError.from_json(e) for e in data['errors']]
-        if data.get('validationResults') and data.get('validationResults').get('errorMessages'):
-            errors = [WarningOrError.from_json(e) for e in data['validationResults']['errorMessages']]
+        if data.get("warnings"):
+            warnings = [WarningOrError.from_json(w) for w in data["warnings"]]
+        if data.get("validationResults") and data.get("validationResults").get("warningMessages"):
+            warnings = [
+                WarningOrError.from_json(w) for w in data["validationResults"]["warningMessages"]
+            ]
+        if data.get("errors"):
+            errors = [WarningOrError.from_json(e) for e in data["errors"]]
+        if data.get("validationResults") and data.get("validationResults").get("errorMessages"):
+            errors = [
+                WarningOrError.from_json(e) for e in data["validationResults"]["errorMessages"]
+            ]
         return ReportOrClearInvoiceResult(
             status, invoice_hash, cleared_invoice, warnings, errors, raw_response=raw_response
         )
@@ -119,14 +123,18 @@ class ReportOrClearInvoiceError:
     error: str
 
 
-def get_compliance_csid(server: str, csr: str, otp: str) -> Tuple[Result[ComplianceResult, str], int]:
+def get_compliance_csid(
+    server: str, csr: str, otp: str
+) -> Tuple[Result[ComplianceResult, str], int]:
     """Gets a compliance CSID from ZATCA using a CSR and OTP."""
     headers = {
-        'Accept-Version': 'V2',
-        'OTP': otp,
+        "Accept-Version": "V2",
+        "OTP": otp,
     }
-    body = {'csr': csr}
-    return api_call(server, 'compliance', headers, body, ComplianceResult.from_json, try_get_csid_error)
+    body = {"csr": csr}
+    return api_call(
+        server, "compliance", headers, body, ComplianceResult.from_json, try_get_csid_error
+    )
 
 
 def get_production_csid(
@@ -134,13 +142,19 @@ def get_production_csid(
 ) -> Tuple[Result[ComplianceResult, str], int]:
     """Gets a production CSID from ZATCA for a compliance request."""
     headers = {
-        'Accept-Version': 'V2',
-        'OTP': otp,
+        "Accept-Version": "V2",
+        "OTP": otp,
     }
-    body = {'compliance_request_id': compliance_request_id}
+    body = {"compliance_request_id": compliance_request_id}
     auth = HTTPBasicAuth(security_token, secret)
     return api_call(
-        server, 'production/csids', headers, body, ComplianceResult.from_json, try_get_csid_error, auth=auth
+        server,
+        "production/csids",
+        headers,
+        body,
+        ComplianceResult.from_json,
+        try_get_csid_error,
+        auth=auth,
     )
 
 
@@ -155,12 +169,14 @@ def report_invoice(
 ) -> Tuple[Result[ReportOrClearInvoiceResult, ReportOrClearInvoiceError], int]:
     """Reports a simplified invoice to ZATCA"""
     b64_xml = base64.b64encode(invoice_xml.encode()).decode()
-    body = {'invoiceHash': invoice_hash, 'uuid': invoice_uuid, 'invoice': b64_xml}
+    body = {"invoiceHash": invoice_hash, "uuid": invoice_uuid, "invoice": b64_xml}
     headers = {
-        'Accept-Version': 'V2',
+        "Accept-Version": "V2",
     }
 
-    url = 'invoices/reporting/single' if mode == ZatcaSendMode.Production else 'compliance/invoices'
+    url = (
+        "invoices/reporting/single" if mode == ZatcaSendMode.Production else "compliance/invoices"
+    )
     return api_call(
         server,
         url,
@@ -183,13 +199,15 @@ def clear_invoice(
 ) -> Tuple[Result[ReportOrClearInvoiceResult, ReportOrClearInvoiceError], int]:
     """Reports a standard invoice to ZATCA"""
     b64_xml = base64.b64encode(invoice_xml.encode()).decode()
-    body = {'invoiceHash': invoice_hash, 'uuid': invoice_uuid, 'invoice': b64_xml}
+    body = {"invoiceHash": invoice_hash, "uuid": invoice_uuid, "invoice": b64_xml}
     headers = {
-        'Clearance-Status': '1',
-        'Accept-Version': 'V2',
+        "Clearance-Status": "1",
+        "Accept-Version": "V2",
     }
 
-    url = 'invoices/clearance/single' if mode == ZatcaSendMode.Production else 'compliance/invoices'
+    url = (
+        "invoices/clearance/single" if mode == ZatcaSendMode.Production else "compliance/invoices"
+    )
     return api_call(
         server,
         url,
@@ -201,8 +219,8 @@ def clear_invoice(
     )
 
 
-TOk = TypeVar('TOk')
-TError = TypeVar('TError')
+TOk = TypeVar("TOk")
+TError = TypeVar("TError")
 
 
 def api_call(
@@ -220,13 +238,13 @@ def api_call(
 
     Never throws an exception
     """
-    if not server.endswith('/'):
-        server = server + '/'
+    if not server.endswith("/"):
+        server = server + "/"
 
     url = urljoin(server, path)
 
     final_headers = headers.copy()
-    final_headers.update({'accept': 'application/json', 'accept-language': 'en'})
+    final_headers.update({"accept": "application/json", "accept-language": "en"})
 
     response: Response | None = None
     try:
@@ -235,17 +253,17 @@ def api_call(
         return Ok(result_builder(response.json(), response.text)), response.status_code
     except HTTPError as e:
         error = error_builder(e.response, e)
-        logger.error(f'An HTTP error occurred: {error}')
+        logger.error(f"An HTTP error occurred: {error}")
         if e.response.text:
-            logger.info(f'Response: {e.response.text}')
+            logger.info(f"Response: {e.response.text}")
 
         return Err(error), response.status_code
     except Exception as e:
         error = error_builder(response, e)
-        logger.error(f'An unexpected error occurred: {error}', exc_info=e)
+        logger.error(f"An unexpected error occurred: {error}", exc_info=e)
         status_code = 0
         if response is not None:
-            logger.info(f'Response: {response.text}')
+            logger.info(f"Response: {response.text}")
             status_code = response.status_code
         return Err(error), status_code
 
@@ -257,19 +275,21 @@ def try_get_csid_error(response: Response | None, exception: Exception | None) -
     """
     if response is None:
         if exception:
-            return ''.join(traceback.format_exception_only(exception))
+            return "".join(traceback.format_exception_only(exception))
 
         return "API call failed but we don't have a response or an exception. This is a bug."
 
     try:
         data = response.json()
         if response.status_code == 400:
-            errors = [WarningOrError.from_json(e) for e in cast(List[dict | str], data.get('errors', []))]
+            errors = [
+                WarningOrError.from_json(e) for e in cast(List[dict | str], data.get("errors", []))
+            ]
             if errors:
-                return ', '.join([e.message for e in errors])
+                return ", ".join([e.message for e in errors])
 
-        if response.status_code == 500 and data.get('message'):
-            return data['message']
+        if response.status_code == 500 and data.get("message"):
+            return data["message"]
 
         return response.text
     except JSONDecodeError:
@@ -277,30 +297,34 @@ def try_get_csid_error(response: Response | None, exception: Exception | None) -
         return response.text
 
 
-def try_get_report_or_clear_error(response: Response | None, exception: Exception | None) -> ReportOrClearInvoiceError:
+def try_get_report_or_clear_error(
+    response: Response | None, exception: Exception | None
+) -> ReportOrClearInvoiceError:
     """Tries to extract an error from a ZATCA reporting/clearance response"""
     if response is None:
         if exception:
-            return ReportOrClearInvoiceError('', ''.join(traceback.format_exception_only(exception)))
+            return ReportOrClearInvoiceError(
+                "", "".join(traceback.format_exception_only(exception))
+            )
 
         return ReportOrClearInvoiceError(
-            '', "API call failed but we don't have a response or an exception. This is a bug."
+            "", "API call failed but we don't have a response or an exception. This is a bug."
         )
 
     try:
         data = response.json()
         if response.status_code == 400:
-            if data.get('validationResults'):
-                if data['validationResults'].get('errorMessages'):
-                    errors = cast(List[dict], data['validationResults']['errorMessages'])
+            if data.get("validationResults"):
+                if data["validationResults"].get("errorMessages"):
+                    errors = cast(List[dict], data["validationResults"]["errorMessages"])
                     return ReportOrClearInvoiceError(
-                        response.text, '\n'.join([e['code'] + ': ' + e['message'] for e in errors])
+                        response.text, "\n".join([e["code"] + ": " + e["message"] for e in errors])
                     )
 
-        if response.status_code == 500 and data.get('message'):
-            return ReportOrClearInvoiceError(response.text, data['message'])
+        if response.status_code == 500 and data.get("message"):
+            return ReportOrClearInvoiceError(response.text, data["message"])
     except JSONDecodeError:
         # If the response is not JSON, we return the content itself as the error
         pass
 
-    return ReportOrClearInvoiceError(response.text, 'An unknown error occurred')
+    return ReportOrClearInvoiceError(response.text, "An unknown error occurred")

@@ -11,7 +11,7 @@ def custom_erpnext_setup():
             {
                 "currency": "SAR",
                 "company_name": "_Test KSA Company",
-                "country": "Saudi Arabia",                
+                "country": "Saudi Arabia",
                 "full_name": "Test User",
                 "timezone": "Asia/Riyadh",
                 "company_abbr": "_TKC",

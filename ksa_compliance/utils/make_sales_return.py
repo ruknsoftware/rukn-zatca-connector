@@ -1,11 +1,18 @@
 import frappe
+from erpnext.controllers.sales_and_purchase_return import (
+    get_returned_qty_map_for_row,
+)
+from erpnext.controllers.sales_and_purchase_return import (
+    make_return_doc as erpnext_make_return_doc,
+)
 from frappe import _
-from frappe.utils import flt
 from frappe.model.mapper import get_mapped_doc
-from erpnext.controllers.sales_and_purchase_return import make_return_doc as erpnext_make_return_doc
-from erpnext.controllers.sales_and_purchase_return import get_returned_qty_map_for_row
+from frappe.utils import flt
+
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
+    ZATCABusinessSettings,
+)
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
-from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
 
 
 @frappe.whitelist()
@@ -18,7 +25,9 @@ def make_sales_return(source_name, target_doc=None):
     return make_return_doc("Sales Invoice", source_name, target_doc)
 
 
-def make_return_doc(doctype: str, source_name: str, target_doc=None, return_against_rejected_qty=False):
+def make_return_doc(
+    doctype: str, source_name: str, target_doc=None, return_against_rejected_qty=False
+):
     company = frappe.db.get_value(doctype, source_name, "company")
     default_warehouse_for_sales_return = frappe.get_cached_value(
         "Company", company, "default_warehouse_for_sales_return"
@@ -46,7 +55,9 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
 
             # look for Print Heading "Credit Note"
             if not doc.select_print_heading:
-                doc.select_print_heading = frappe.get_cached_value("Print Heading", _("Credit Note"))
+                doc.select_print_heading = frappe.get_cached_value(
+                    "Print Heading", _("Credit Note")
+                )
 
         elif doctype == "Purchase Invoice":
             # look for Print Heading "Debit Note"
@@ -133,7 +144,8 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
                     source_doc.stock_qty - (returned_qty_map.get("stock_qty") or 0)
                 )
                 target_doc.received_stock_qty = -1 * flt(
-                    source_doc.received_stock_qty - (returned_qty_map.get("received_stock_qty") or 0)
+                    source_doc.received_stock_qty
+                    - (returned_qty_map.get("received_stock_qty") or 0)
                 )
 
             if doctype == "Subcontracting Receipt":
@@ -148,7 +160,9 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
                 target_doc.purchase_receipt_item = source_doc.name
 
             if doctype == "Purchase Receipt" and return_against_rejected_qty:
-                target_doc.qty = -1 * flt(source_doc.rejected_qty - (returned_qty_map.get("qty") or 0))
+                target_doc.qty = -1 * flt(
+                    source_doc.rejected_qty - (returned_qty_map.get("qty") or 0)
+                )
                 target_doc.rejected_qty = 0.0
                 target_doc.rejected_warehouse = ""
                 target_doc.warehouse = source_doc.rejected_warehouse
@@ -167,7 +181,9 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
             )
             target_doc.qty = -1 * flt(source_doc.qty - (returned_qty_map.get("qty") or 0))
 
-            target_doc.stock_qty = -1 * flt(source_doc.stock_qty - (returned_qty_map.get("stock_qty") or 0))
+            target_doc.stock_qty = -1 * flt(
+                source_doc.stock_qty - (returned_qty_map.get("stock_qty") or 0)
+            )
             target_doc.purchase_order = source_doc.purchase_order
             target_doc.purchase_receipt = source_doc.purchase_receipt
             target_doc.rejected_warehouse = source_doc.rejected_warehouse
@@ -180,7 +196,9 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
                 source_parent.name, source_parent.customer, source_doc.name, doctype
             )
             target_doc.qty = -1 * flt(source_doc.qty - (returned_qty_map.get("qty") or 0))
-            target_doc.stock_qty = -1 * flt(source_doc.stock_qty - (returned_qty_map.get("stock_qty") or 0))
+            target_doc.stock_qty = -1 * flt(
+                source_doc.stock_qty - (returned_qty_map.get("stock_qty") or 0)
+            )
 
             target_doc.against_sales_order = source_doc.against_sales_order
             target_doc.against_sales_invoice = source_doc.against_sales_invoice
@@ -195,8 +213,7 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
             # OUR UPDATE
             # CALCULATE ITEM ADVANCE RATE DEPENDING ON OUTSTANDING AMOUNT
             target_doc.rate = round(
-                source_parent.outstanding_amount / (1 + source_doc.tax_rate / 100),
-                2
+                source_parent.outstanding_amount / (1 + source_doc.tax_rate / 100), 2
             )
             # END OF UPDATE
 
@@ -204,7 +221,9 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
                 source_parent.name, source_parent.customer, source_doc.name, doctype
             )
             target_doc.qty = -1 * flt(source_doc.qty - (returned_qty_map.get("qty") or 0))
-            target_doc.stock_qty = -1 * flt(source_doc.stock_qty - (returned_qty_map.get("stock_qty") or 0))
+            target_doc.stock_qty = -1 * flt(
+                source_doc.stock_qty - (returned_qty_map.get("stock_qty") or 0)
+            )
 
             target_doc.sales_order = source_doc.sales_order
             target_doc.delivery_note = source_doc.delivery_note
@@ -229,9 +248,9 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
             target_doc.batch_no = None
 
         if (
-                (source_doc.serial_no or source_doc.batch_no)
-                and not serial_and_batch_bundle
-                and not use_serial_batch_fields
+            (source_doc.serial_no or source_doc.batch_no)
+            and not serial_and_batch_bundle
+            and not use_serial_batch_fields
         ):
             target_doc.set("use_serial_batch_fields", 1)
 
@@ -306,7 +325,8 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
                     "docstatus": ["=", 1],
                 },
             },
-            doctype + " Item": {
+            doctype
+            + " Item": {
                 "doctype": doctype + " Item",
                 "field_map": {"serial_no": "serial_no", "batch_no": "batch_no", "bom": "bom"},
                 "postprocess": update_item,
@@ -319,4 +339,3 @@ def make_return_doc(doctype: str, source_name: str, target_doc=None, return_agai
     )
 
     return doclist
-
