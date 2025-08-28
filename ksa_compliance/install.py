@@ -1,12 +1,15 @@
+import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+ksa_compliance_module = "KSA Compliance"
 
 
 def after_install():
     add_custom_fields()
+    add_property_setters()
 
 
 def add_custom_fields():
-    ksa_compliance_module = "KSA Compliance"
     custom_fields = {
         "Payment Entry": [
             dict(
@@ -57,5 +60,50 @@ def add_custom_fields():
                 read_only=True,
             ),
         ],
+        "Mode of Payment": [
+            dict(
+                fieldname="custom_zatca_payment_means_code",
+                label="ZATCA Payment Means Code",
+                fieldtype="Data",
+                insert_after="accounts",
+                dt="Mode of Payment",
+                reqd=0,
+                description="Value from <a href='https://unece.org/fileadmin/DAM/trade/untdid/d16b/tred/tred4461.htm' target='_blank'>UN/EDIFACT 4461</a>",
+                module=ksa_compliance_module,
+            )
+        ],
     }
     create_custom_fields(custom_fields)
+
+
+def add_property_setters():
+    frappe.make_property_setter(
+        {
+            "doctype_or_field": "DocType",
+            "doctype": "Mode of Payment",
+            "property": "field_order",
+            "value": '["mode_of_payment", "enabled", "type", "accounts", "custom_zatca_payment_means_code"]',
+        },
+        module=ksa_compliance_module,
+    )
+
+
+def after_migrate():
+
+    doctype = "Mode of Payment"
+    fieldname = "custom_zatca_payment_means_code"
+
+    setter_name = f"{doctype}-{fieldname}-reqd"
+
+    if not frappe.db.exists("Property Setter", setter_name):
+
+        frappe.make_property_setter(
+            {
+                "doctype": doctype,
+                "fieldname": fieldname,
+                "property": "reqd",
+                "value": "1",
+                "property_type": "Check",
+            },
+            module=ksa_compliance_module,
+        )
