@@ -214,13 +214,6 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
             )
             valid = False
 
-        if settings.auto_apply_advance_payments:
-            applicable_advance_payments = get_invoice_applicable_advance_payments(
-                self, is_validate=True
-            )
-            if len(applicable_advance_payments) != 0:
-                self.advances = []
-                self.extend("advances", applicable_advance_payments)
         advance_payments = get_invoice_advance_payments(self)
         if self.is_return:
             return_against = frappe.get_doc(self.doctype, self.return_against)
@@ -301,6 +294,21 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
         message_log = frappe.get_message_log()
         error_messages = "\n".join(log["message"] for log in message_log)
         raise frappe.ValidationError(error_messages)
+
+
+def auto_apply_advance_payments(self: SalesInvoice, method):
+    settings = ZATCABusinessSettings.for_company(self.company)
+    if (
+        not settings
+        or not settings.enable_zatca_integration
+        or not settings.auto_apply_advance_payments
+    ):
+        return
+
+    applicable_advance_payments = get_invoice_applicable_advance_payments(self, is_validate=True)
+    if len(applicable_advance_payments) != 0:
+        self.advances = []
+        self.extend("advances", applicable_advance_payments)
 
 
 def is_valid_advance_invoice(is_advance_invoice, self) -> bool:

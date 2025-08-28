@@ -26,9 +26,6 @@ frappe.require("/assets/ksa_compliance/js/update_invoice_mode_of_payment.js").th
                 });
             }
         },
-        validate: function(frm) {
-            frm.trigger("apply_advance_payments");
-        },
 
         customer: function(frm) {
             frm.trigger("apply_advance_payments");
