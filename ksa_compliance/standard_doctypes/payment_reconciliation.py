@@ -84,9 +84,10 @@ class CustomPaymentReconciliation(PaymentReconciliation):
         for invoice in non_reconciled_invoices:
             if invoice.voucher_no in cr_dr_notes:
                 continue
-            invoice_doc = frappe.get_doc(invoice.voucher_type, invoice.voucher_no)
-            if invoice_has_advance_item(invoice_doc, settings):
-                continue
+            if invoice.voucher_type == "Sales Invoice":
+                invoice_doc = frappe.get_doc(invoice.voucher_type, invoice.voucher_no)
+                if invoice_has_advance_item(invoice_doc, settings):
+                    continue
             filtered_non_reconciled_invoices.append(invoice)
 
         if self.invoice_limit:
