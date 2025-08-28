@@ -336,7 +336,7 @@ def write_binary_temp_file(content: bytes, name: str) -> str:
 
 
 def get_temp_path(name: str) -> str:
-    tmp = tempfile.NamedTemporaryFile(prefix="ksacli-", suffix="-" + name, delete=False)
+    tmp = tempfile.NamedTemporaryFile(suffix="-" + name, delete=False)
     try:
         tmp.flush()
         tmp.close()
