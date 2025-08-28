@@ -7,6 +7,10 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.50.6
+* Apply advance payments before validate hook to ensure passing updates for totals
+* Remove Apply Applicable Advances on validate form script
+
 ## 0.50.5
 * Add CI/CD GITHUB Actions Config
 * Apply Pre-commit on Project
