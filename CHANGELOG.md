@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.50.9
+* Install Payments Before Run App Tests
+
 ## 0.50.8
 * Avoid Check Pay Payment Entries from non reconciled invoices IS Advance Invoice
 
