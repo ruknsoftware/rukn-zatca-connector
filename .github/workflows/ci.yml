@@ -93,7 +93,9 @@ jobs:
           bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
           bench get-app erpnext --branch version-15
+          bench get-app payments --branch version-15
           bench --site test_site install-app erpnext
+          bench --site test_site install-app payments
           bench --site test_site install-app ksa_compliance
           bench build
         env:
