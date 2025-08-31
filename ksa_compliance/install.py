@@ -1,8 +1,6 @@
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
-from frappe.custom.doctype.property_setter.property_setter import (
-    make_property_setter as make_ps_compat,
-)
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 ksa_compliance_module = "KSA Compliance"
 
@@ -84,7 +82,7 @@ def add_property_setters():
     setter_name = "Mode of Payment-field_order"
 
     if not frappe.db.exists("Property Setter", setter_name):
-        ps_doc = make_ps_compat(
+        ps_doc = make_property_setter(
             doctype="Mode of Payment",
             fieldname=None,
             property="field_order",
@@ -104,7 +102,7 @@ def after_migrate():
     setter_name = f"{doctype}-{fieldname}-reqd"
 
     if not frappe.db.exists("Property Setter", setter_name):
-        ps_doc = make_ps_compat(
+        ps_doc = make_property_setter(
             doctype=doctype,
             fieldname=fieldname,
             property="reqd",
