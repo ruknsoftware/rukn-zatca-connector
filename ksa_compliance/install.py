@@ -1,5 +1,6 @@
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+from frappe.custom.doctype.property_setter.property_setter import make_property_setter
 
 ksa_compliance_module = "KSA Compliance"
 
@@ -77,33 +78,38 @@ def add_custom_fields():
 
 
 def add_property_setters():
-    frappe.make_property_setter(
-        {
-            "doctype_or_field": "DocType",
-            "doctype": "Mode of Payment",
-            "property": "field_order",
-            "value": '["mode_of_payment", "enabled", "type", "accounts", "custom_zatca_payment_means_code"]',
-        },
-        module=ksa_compliance_module,
-    )
+
+    setter_name = "Mode of Payment-field_order"
+
+    if not frappe.db.exists("Property Setter", setter_name):
+        ps_doc = make_property_setter(
+            doctype="Mode of Payment",
+            fieldname=None,
+            property="field_order",
+            value='["mode_of_payment", "enabled", "type", "accounts", "custom_zatca_payment_means_code"]',
+            property_type="Data",
+            for_doctype=True,
+        )
+
+        ps_doc.module = ksa_compliance_module
+        ps_doc.save(ignore_permissions=True)
 
 
 def after_migrate():
 
     doctype = "Mode of Payment"
     fieldname = "custom_zatca_payment_means_code"
-
     setter_name = f"{doctype}-{fieldname}-reqd"
 
     if not frappe.db.exists("Property Setter", setter_name):
-
-        frappe.make_property_setter(
-            {
-                "doctype": doctype,
-                "fieldname": fieldname,
-                "property": "reqd",
-                "value": "1",
-                "property_type": "Check",
-            },
-            module=ksa_compliance_module,
+        ps_doc = make_property_setter(
+            doctype=doctype,
+            fieldname=fieldname,
+            property="reqd",
+            value="1",
+            property_type="Check",
+            for_doctype=False,
         )
+
+        ps_doc.module = ksa_compliance_module
+        ps_doc.save(ignore_permissions=True)
