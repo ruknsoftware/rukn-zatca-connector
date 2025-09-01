@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.51.2
+* Fix Default Other IDs Handling by moving population logic to server-side and adding update method
+
 ## 0.51.1
 * Fix Return Zero Qty
 
