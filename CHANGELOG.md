@@ -8,7 +8,7 @@ to a section with the version name.
 
 ## Unreleased Changes
 ## 0.51.2
-* fix ui error in the ui zatca business settings
+* Fix Default Other IDs Handling by moving population logic to server-side and adding update method
 
 ## 0.51.1
 * Fix Return Zero Qty
