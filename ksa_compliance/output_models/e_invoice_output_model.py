@@ -1008,10 +1008,13 @@ class Einvoice:
 
             # We use absolute values for int/float values because we want positive values in the XML in the return invoice
             # case
+            item_qty = abs(item.qty)
+            if self.sales_invoice_doc.is_return and item_qty == 0:
+                item_qty = 1
             item_lines.append(
                 {
                     "idx": item.idx,
-                    "qty": abs(item.qty),
+                    "qty": item_qty,
                     "uom": item.uom,
                     "item_code": item.item_code,
                     "item_name": item.item_name,
