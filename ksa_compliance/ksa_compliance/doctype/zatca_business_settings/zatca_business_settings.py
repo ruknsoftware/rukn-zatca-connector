@@ -1,6 +1,7 @@
 # Copyright (c) 2024, LavaLoon and contributors
 # For license information, please see license.txt
 import base64
+import json
 import os
 from typing import Literal, NoReturn, Optional, cast
 
@@ -125,6 +126,36 @@ class ZATCABusinessSettings(Document):
             )
             # Create Item Tax Template
             self.create_item_tax_template(account_head=tax_account_id)
+        if not self.other_ids:
+            self.populate_default_additional_ids()
+
+    def populate_default_additional_ids(self):
+        default_ids = [
+            {"type_name": "Commercial Registration Number", "type_code": "CRN"},
+            {"type_name": "MOMRAH License", "type_code": "MOM"},
+            {"type_name": "MHRSD License", "type_code": "MLS"},
+            {"type_name": "700 Number", "type_code": "700"},
+            {"type_name": "MISA License", "type_code": "SAG"},
+            {"type_name": "Other ID", "type_code": "OTH"},
+        ]
+        for id_type in default_ids:
+            self.append("other_ids", id_type)
+
+    def update_additional_ids(self, id_values):
+
+        if isinstance(id_values, str):
+            id_values = json.loads(id_values)
+
+        made_changes = False
+        for row in self.other_ids:
+            if row.type_code in id_values and row.value != id_values.get(row.type_code):
+                row.value = id_values.get(row.type_code)
+                made_changes = True
+
+        if made_changes:
+            self.save(ignore_permissions=True)
+
+        return self
 
     @property
     def is_live_sync(self) -> bool:
