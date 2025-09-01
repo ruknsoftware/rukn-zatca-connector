@@ -141,7 +141,6 @@ class ZATCABusinessSettings(Document):
         for id_type in default_ids:
             self.append("other_ids", id_type)
 
-    @frappe.whitelist()
     def update_additional_ids(self, id_values):
 
         if isinstance(id_values, str):
