@@ -2,9 +2,10 @@
 # For license information, please see license.txt
 
 import frappe
+from frappe import _
 from frappe.model.document import Document
-from frappe.utils.data import get_link_to_form
 from frappe.query_builder import DocType
+from frappe.utils.data import get_link_to_form
 
 
 class ZATCAPhase1BusinessSettings(Document):
@@ -18,32 +19,39 @@ class ZATCAPhase1BusinessSettings(Document):
 
         address: DF.Link
         company: DF.Link
-        status: DF.Literal['Active', 'Disabled']
-        type_of_transaction: DF.Literal['Simplified Tax Invoice', 'Standard Tax Invoice', 'Both']
+        status: DF.Literal["Active", "Disabled"]
+        type_of_transaction: DF.Literal["Simplified Tax Invoice", "Standard Tax Invoice", "Both"]
         vat_registration_number: DF.Data | None
     # end: auto-generated types
     pass
 
     def validate(self):
-        business_settings_id = frappe.get_value('ZATCA Business Settings', {'company': self.company})
-        if business_settings_id and self.status == 'Active':
-            link = get_link_to_form('ZATCA Business Settings', business_settings_id)
+        business_settings_id = frappe.get_value(
+            "ZATCA Business Settings", {"company": self.company}
+        )
+        if business_settings_id and self.status == "Active":
+            link = get_link_to_form("ZATCA Business Settings", business_settings_id)
             frappe.throw(
-                f'ZATCA Phase 2 Business Settings already enabled for company {self.company}: {link}',
-                title='Another Setting Already Enabled',
+                _("ZATCA Phase 2 Business Settings already enabled for company {0}: {1}").format(
+                    self.company, link
+                ),
+                title=_("Another Setting Already Enabled"),
             )
 
     @staticmethod
     def is_enabled_for_company(company_id: str) -> bool:
         return bool(
-            frappe.db.get_value('ZATCA Phase 1 Business Settings', filters={'company': company_id, 'status': 'Active'})
+            frappe.db.get_value(
+                "ZATCA Phase 1 Business Settings",
+                filters={"company": company_id, "status": "Active"},
+            )
         )
 
 
 @frappe.whitelist()
 def get_company_primary_address(company):
-    dynamic_link = DocType('Dynamic Link')
-    address = DocType('Address')
+    dynamic_link = DocType("Dynamic Link")
+    address = DocType("Address")
     query = (
         frappe.qb.from_(address)
         .select(address.name)
@@ -58,5 +66,8 @@ def get_company_primary_address(company):
 @frappe.whitelist()
 def get_all_company_addresses(company):
     return frappe.get_all(
-        'Dynamic Link', filters={'link_name': company, 'parenttype': 'Address'}, fields=['parent'], pluck='parent'
+        "Dynamic Link",
+        filters={"link_name": company, "parenttype": "Address"},
+        fields=["parent"],
+        pluck="parent",
     )

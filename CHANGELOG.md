@@ -7,6 +7,32 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.51.1
+* Fix Return Zero Qty
+
+## 0.51.0
+* Fix Make Custom Property Setter On VERSION 14
+## 0.50.9
+* Install Payments Before Run App Tests
+
+## 0.50.8
+* Avoid Check Pay Payment Entries from non reconciled invoices IS Advance Invoice
+
+## 0.50.7
+* Fix Setup ZATCA Custom Fields When Install
+
+## 0.50.6
+* Apply advance payments before validate hook to ensure passing updates for totals
+* Remove Apply Applicable Advances on validate form script
+
+## 0.50.5
+* Add CI/CD GITHUB Actions Config
+* Apply Pre-commit on Project
+* FIX Frappe Semgrep on Project
+
+## 0.50.4
+* FIX Apply Applicable Advances on validate form script
+
 ## 0.50.3
 * FIX Settling Zero Amount On Advance Payment Invoice
 

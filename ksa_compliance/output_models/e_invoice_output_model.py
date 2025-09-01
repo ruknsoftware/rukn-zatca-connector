@@ -1,41 +1,53 @@
 from __future__ import annotations
 
-from typing import cast, Optional, List
+from typing import List, Optional, cast
 
 import frappe
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.setup.doctype.branch.branch import Branch
 from frappe.model.document import Document
-from frappe.utils import get_date_str, get_time, strip, flt
+from frappe.utils import flt, get_date_str, get_time, strip
+
 from ksa_compliance.invoice import InvoiceType, InvoiceTypeCode
-from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields import sales_invoice_additional_fields
-from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
+from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields import (
+    sales_invoice_additional_fields,
+)
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
+    ZATCABusinessSettings,
+)
 from ksa_compliance.ksa_compliance.doctype.zatca_return_against_reference.zatca_return_against_reference import (
     ZATCAReturnAgainstReference,
+)
+from ksa_compliance.standard_doctypes.sales_invoice_advance import (
+    calculate_advance_payment_tax_amount,
+    get_invoice_advance_payments,
 )
 from ksa_compliance.standard_doctypes.tax_category import map_tax_category
 from ksa_compliance.throw import fthrow
 from ksa_compliance.translation import ft
-from ksa_compliance.standard_doctypes.sales_invoice_advance import get_invoice_advance_payments, calculate_advance_payment_tax_amount
 
 
 def append_tax_details_into_item_lines(item_lines: list, is_tax_included: bool) -> list:
     for item in item_lines:
-        tax_percent = item['tax_percent']
-        tax_amount = item['tax_amount']
+        tax_percent = item["tax_percent"]
+        tax_amount = item["tax_amount"]
 
         """
-            In case of tax included we should get the item amount exclusive of vat from the current 'item amount', 
+            In case of tax included we should get the item amount exclusive of vat from the current 'item amount',
             and Since ERPNext discount on invoice affects the item tax amount we cannot simply subtract the item tax amount
-            from the item amount but we need to get the tax amount without being affected by applied discount, so we 
+            from the item amount but we need to get the tax amount without being affected by applied discount, so we
             use this calculation to get the actual item amount exclusive of vat: "item_amount / 1 + tax_percent"
         """
-        item['amount'] = flt(abs(item['amount']) / (1 + (tax_percent / 100)), 2) if is_tax_included else item['amount']
-        item['discount_amount'] = item['discount_amount'] * item['qty']
-        item['base_amount'] = item['amount'] + item['discount_amount']
-        item['tax_percent'] = tax_percent
-        item['tax_amount'] = tax_amount
-        item['total_amount'] = tax_amount + abs(item['amount'])
+        item["amount"] = (
+            flt(abs(item["amount"]) / (1 + (tax_percent / 100)), 2)
+            if is_tax_included
+            else item["amount"]
+        )
+        item["discount_amount"] = item["discount_amount"] * item["qty"]
+        item["base_amount"] = item["amount"] + item["discount_amount"]
+        item["tax_percent"] = tax_percent
+        item["tax_amount"] = tax_amount
+        item["total_amount"] = tax_amount + abs(item["amount"])
 
     return item_lines
 
@@ -46,13 +58,15 @@ def append_tax_categories_to_item(item_lines: list, taxes_and_charges: str | Non
     Returns unique Tax Categories with sum of item taxable amount and item tax amount per tax category.
     """
     if taxes_and_charges:
-        tax_category_id = frappe.get_value('Sales Taxes and Charges Template', taxes_and_charges, 'tax_category')
+        tax_category_id = frappe.get_value(
+            "Sales Taxes and Charges Template", taxes_and_charges, "tax_category"
+        )
     else:
         tax_category_id = None
     unique_tax_categories = {}
     for item in item_lines:
-        if item['item_tax_template']:
-            item_tax_category = map_tax_category(item_tax_template_id=item['item_tax_template'])
+        if item["item_tax_template"]:
+            item_tax_category = map_tax_category(item_tax_template_id=item["item_tax_template"])
         else:
             if tax_category_id:
                 item_tax_category = map_tax_category(tax_category_id=tax_category_id)
@@ -63,26 +77,34 @@ def append_tax_categories_to_item(item_lines: list, taxes_and_charges: str | Non
                     f"Or include Item Tax Template on {item['item_name']}"
                 )
 
-        item['tax_category_code'] = item_tax_category.tax_category_code
+        item["tax_category_code"] = item_tax_category.tax_category_code
         item_tax_category_details = {
-            'tax_category_code': item['tax_category_code'],
-            'tax_amount': item['tax_amount'],
-            'tax_percent': item['tax_percent'],
-            'taxable_amount': item['net_amount'],
-            'total_discount': item['amount'] - item['net_amount'],
+            "tax_category_code": item["tax_category_code"],
+            "tax_amount": item["tax_amount"],
+            "tax_percent": item["tax_percent"],
+            "taxable_amount": item["net_amount"],
+            "total_discount": item["amount"] - item["net_amount"],
         }
         if item_tax_category.reason_code:
-            item['tax_exemption_reason_code'] = item_tax_category.reason_code
-            item_tax_category_details['tax_exemption_reason_code'] = item_tax_category.reason_code
+            item["tax_exemption_reason_code"] = item_tax_category.reason_code
+            item_tax_category_details["tax_exemption_reason_code"] = item_tax_category.reason_code
         if item_tax_category.arabic_reason:
-            item['tax_exemption_reason'] = item_tax_category.arabic_reason
-            item_tax_category_details['tax_exemption_reason'] = item_tax_category.arabic_reason
+            item["tax_exemption_reason"] = item_tax_category.arabic_reason
+            item_tax_category_details["tax_exemption_reason"] = item_tax_category.arabic_reason
 
-        key = item_tax_category.tax_category_code + str(item_tax_category.reason_code) + str(item['tax_percent'])
+        key = (
+            item_tax_category.tax_category_code
+            + str(item_tax_category.reason_code)
+            + str(item["tax_percent"])
+        )
         if key in unique_tax_categories:
-            unique_tax_categories[key]['tax_amount'] += item_tax_category_details['tax_amount']
-            unique_tax_categories[key]['taxable_amount'] += item_tax_category_details['taxable_amount']
-            unique_tax_categories[key]['total_discount'] += item_tax_category_details['total_discount']
+            unique_tax_categories[key]["tax_amount"] += item_tax_category_details["tax_amount"]
+            unique_tax_categories[key]["taxable_amount"] += item_tax_category_details[
+                "taxable_amount"
+            ]
+            unique_tax_categories[key]["total_discount"] += item_tax_category_details[
+                "total_discount"
+            ]
         else:
             unique_tax_categories[key] = item_tax_category_details
 
@@ -92,23 +114,24 @@ def append_tax_categories_to_item(item_lines: list, taxes_and_charges: str | Non
 class Einvoice:
     def __init__(
         self,
-        sales_invoice_additional_fields_doc: 'sales_invoice_additional_fields.SalesInvoiceAdditionalFields',
-        invoice_type: InvoiceType = 'Simplified',
+        sales_invoice_additional_fields_doc: "sales_invoice_additional_fields.SalesInvoiceAdditionalFields",
+        invoice_type: InvoiceType = "Simplified",
     ):
         self.additional_fields_doc = sales_invoice_additional_fields_doc
         self.result = {
-            'invoice': {},
-            'business_settings': {},
-            'seller_details': {},
-            'buyer_details': {},
-            'prepayment_invoices': [],
-            'prepaid_amount': 0,
+            "invoice": {},
+            "business_settings": {},
+            "seller_details": {},
+            "buyer_details": {},
+            "prepayment_invoices": [],
+            "prepaid_amount": 0,
         }
 
         self.sales_invoice_doc = cast(
             SalesInvoice,
             frappe.get_doc(
-                sales_invoice_additional_fields_doc.invoice_doctype, sales_invoice_additional_fields_doc.sales_invoice
+                sales_invoice_additional_fields_doc.invoice_doctype,
+                sales_invoice_additional_fields_doc.sales_invoice,
             ),
         )
         self.business_settings_doc = ZATCABusinessSettings.for_invoice(
@@ -119,25 +142,25 @@ class Einvoice:
         if self.business_settings_doc.enable_branch_configuration:
             if not self.sales_invoice_doc.branch:
                 fthrow(
-                    msg=ft('Branch is mandatory when ZATCA Branch configuration is enabled.'),
-                    title=ft('Branch Is Mandatory'),
+                    msg=ft("Branch is mandatory when ZATCA Branch configuration is enabled."),
+                    title=ft("Branch Is Mandatory"),
                 )
 
             self.branch_doc = cast(
                 Branch,
                 frappe.get_doc(
-                    'Branch',
+                    "Branch",
                     self.sales_invoice_doc.branch,
                 ),
             )
             if self.branch_doc.custom_company != self.sales_invoice_doc.company:
                 fthrow(
                     msg=ft(
-                        'Selected branch $branch is not configured for company: $company.',
+                        "Selected branch $branch is not configured for company: $company.",
                         branch=self.sales_invoice_doc.branch,
                         company=self.sales_invoice_doc.company,
                     ),
-                    title=ft('Invalid Branch For Company'),
+                    title=ft("Invalid Branch For Company"),
                 )
 
         # Get Business Settings and Seller Fields
@@ -153,88 +176,94 @@ class Einvoice:
         # TODO: Allowance Charge (Discount)
         # FIXME: IF invoice is pre-paid
         self.get_text_value(
-            field_name='payment_means_type_code',
+            field_name="payment_means_type_code",
             source_doc=self.additional_fields_doc,
-            xml_name='payment_means_type_code',
-            parent='invoice',
+            xml_name="payment_means_type_code",
+            parent="invoice",
         )
 
-        if self.sales_invoice_doc.get('is_debit_note') or self.sales_invoice_doc.get('is_return'):
-            if self.sales_invoice_doc.doctype == 'Sales Invoice':
+        if self.sales_invoice_doc.get("is_debit_note") or self.sales_invoice_doc.get("is_return"):
+            if self.sales_invoice_doc.doctype == "Sales Invoice":
                 self.get_text_value(
-                    field_name='custom_return_reason',
+                    field_name="custom_return_reason",
                     source_doc=self.sales_invoice_doc,
-                    xml_name='instruction_note',
-                    parent='invoice',
+                    xml_name="instruction_note",
+                    parent="invoice",
                 )
             else:
-                self.set_value('invoice', 'instruction_note', 'Return of goods')
+                self.set_value("invoice", "instruction_note", "Return of goods")
 
         self.get_text_value(
-            field_name='mode_of_payment', source_doc=self.sales_invoice_doc, xml_name='PaymentNote', parent='invoice'
+            field_name="mode_of_payment",
+            source_doc=self.sales_invoice_doc,
+            xml_name="PaymentNote",
+            parent="invoice",
         )
 
         self.get_text_value(
-            field_name='payment_account_identifier', source_doc=self.sales_invoice_doc, xml_name='ID', parent='invoice'
+            field_name="payment_account_identifier",
+            source_doc=self.sales_invoice_doc,
+            xml_name="ID",
+            parent="invoice",
         )
 
         # <----- start document level allowance ----->
         # fields from 49 to 58  document level allowance
         self.get_float_value(
-            field_name='document_level_allowance_percentage',
+            field_name="document_level_allowance_percentage",
             source_doc=self.additional_fields_doc,
-            xml_name='charge_indicator',
-            parent='invoice',
+            xml_name="charge_indicator",
+            parent="invoice",
         )
 
         self.get_float_value(
-            field_name='document_level_allowance_amount',
+            field_name="document_level_allowance_amount",
             source_doc=self.additional_fields_doc,
-            xml_name='amount',
-            parent='invoice',
+            xml_name="amount",
+            parent="invoice",
         )
 
         self.get_float_value(
-            field_name='document_level_allowance_base_amount',
+            field_name="document_level_allowance_base_amount",
             source_doc=self.additional_fields_doc,
-            xml_name='amount',
-            parent='invoice',
+            xml_name="amount",
+            parent="invoice",
         )
 
         self.get_text_value(
-            field_name='document_level_allowance_vat_category_code',
+            field_name="document_level_allowance_vat_category_code",
             source_doc=self.additional_fields_doc,
-            xml_name='ID',
-            parent='invoice',
+            xml_name="ID",
+            parent="invoice",
         )
 
         self.get_float_value(
-            field_name='document_level_allowance_vat_rate',
+            field_name="document_level_allowance_vat_rate",
             source_doc=self.additional_fields_doc,
-            xml_name='percent',
-            parent='invoice',
+            xml_name="percent",
+            parent="invoice",
         )
 
         self.get_text_value(
-            field_name='reason_for_allowance',
+            field_name="reason_for_allowance",
             source_doc=self.additional_fields_doc,
-            xml_name='allowance_charge_reason',
-            parent='invoice',
+            xml_name="allowance_charge_reason",
+            parent="invoice",
         )
 
         self.get_text_value(
-            field_name='code_for_allowance_reason',
+            field_name="code_for_allowance_reason",
             source_doc=self.additional_fields_doc,
-            xml_name='allowance_charge_reason_code',
-            parent='invoice',
+            xml_name="allowance_charge_reason_code",
+            parent="invoice",
         )
 
         # Allowance on invoice should be only the document level allowance without items allowances.
         self.get_float_value(
-            field_name='discount_amount',
+            field_name="discount_amount",
             source_doc=self.sales_invoice_doc,
-            xml_name='allowance_total_amount',
-            parent='invoice',
+            xml_name="allowance_total_amount",
+            parent="invoice",
         )
         self.compute_invoice_discount_amount()
 
@@ -244,98 +273,108 @@ class Einvoice:
         # <----- start document level charge ----->
 
         self.get_bool_value(
-            field_name='charge_indicator',
+            field_name="charge_indicator",
             source_doc=self.additional_fields_doc,
-            xml_name='charge_indicator',
-            parent='invoice',
+            xml_name="charge_indicator",
+            parent="invoice",
         )
 
         self.get_float_value(
-            field_name='charge_percentage',
+            field_name="charge_percentage",
             source_doc=self.additional_fields_doc,
-            xml_name='MultiplierFactorNumeric',
-            parent='invoice',
+            xml_name="MultiplierFactorNumeric",
+            parent="invoice",
         )
 
         self.get_float_value(
-            field_name='charge_amount', source_doc=self.additional_fields_doc, xml_name='amount', parent='invoice'
+            field_name="charge_amount",
+            source_doc=self.additional_fields_doc,
+            xml_name="amount",
+            parent="invoice",
         )
 
         self.get_float_value(
-            field_name='charge_base_amount',
+            field_name="charge_base_amount",
             source_doc=self.additional_fields_doc,
-            xml_name='base_amount',
-            parent='invoice',
+            xml_name="base_amount",
+            parent="invoice",
         )
 
         self.get_text_value(
-            field_name='charge_vat_category_code',
+            field_name="charge_vat_category_code",
             source_doc=self.additional_fields_doc,
-            xml_name='ID',
-            parent='invoice',
+            xml_name="ID",
+            parent="invoice",
         )
 
         self.get_float_value(
-            field_name='charge_vat_rate', source_doc=self.additional_fields_doc, xml_name='Percent', parent='invoice'
+            field_name="charge_vat_rate",
+            source_doc=self.additional_fields_doc,
+            xml_name="Percent",
+            parent="invoice",
         )
 
         self.get_text_value(
-            field_name='reason_for_charge',
+            field_name="reason_for_charge",
             source_doc=self.additional_fields_doc,
-            xml_name='allowance_charge_reason',
-            parent='invoice',
+            xml_name="allowance_charge_reason",
+            parent="invoice",
         )
 
         self.get_text_value(
-            field_name='reason_for_charge_code',
+            field_name="reason_for_charge_code",
             source_doc=self.additional_fields_doc,
-            xml_name='allowance_charge_reason_code',
-            parent='invoice',
+            xml_name="allowance_charge_reason_code",
+            parent="invoice",
         )
 
         # <----- end document level charge ----->
         self.get_float_value(
-            field_name='sum_of_charges',
+            field_name="sum_of_charges",
             source_doc=self.additional_fields_doc,
-            xml_name='charge_total_amount',
-            parent='invoice',
+            xml_name="charge_total_amount",
+            parent="invoice",
         )
 
         # Invoice Line
         self.get_bool_value(
-            field_name='invoice_line_allowance_indicator',
+            field_name="invoice_line_allowance_indicator",
             source_doc=self.additional_fields_doc,
-            xml_name='ID',
-            parent='invoice',
+            xml_name="ID",
+            parent="invoice",
         )
 
         self.get_float_value(
-            field_name='invoice_line_allowance_percentage',
+            field_name="invoice_line_allowance_percentage",
             source_doc=self.additional_fields_doc,
-            xml_name='multiplier_factor_numeric',
-            parent='invoice',
+            xml_name="multiplier_factor_numeric",
+            parent="invoice",
         )
 
         # TODO: Add Conditional Case
         self.get_float_value(
-            field_name='invoice_line_charge_amount',
+            field_name="invoice_line_charge_amount",
             source_doc=self.additional_fields_doc,
-            xml_name='MultiplierFactorNumeric',
-            parent='invoice',
+            xml_name="MultiplierFactorNumeric",
+            parent="invoice",
         )
         self.prepayment_invoice()
 
         # After prepayment invoices are collected, recompute payable amount per BR-CO-16 to avoid double subtraction
-        prepaid_amount_total = float(self.result.get('prepaid_amount', 0.0) or 0.0)
+        prepaid_amount_total = float(self.result.get("prepaid_amount", 0.0) or 0.0)
         if self.sales_invoice_doc.is_rounded_total_disabled():
             base_payable = abs(self.sales_invoice_doc.grand_total)
         else:
             base_payable = abs(self.sales_invoice_doc.rounded_total)
-        self.result['invoice']['payable_amount'] = max(0.0, float(base_payable) - prepaid_amount_total)
+        self.result["invoice"]["payable_amount"] = max(
+            0.0, float(base_payable) - prepaid_amount_total
+        )
 
     # --------------------------- START helper functions ------------------------------
 
-    def get_text_value(self, field_name: str, source_doc: Document, xml_name: str = None, parent: str = None):
+    def get_text_value(
+        self, field_name: str, source_doc: Document, xml_name: str = None, parent: str = None
+    ):
         field_value = source_doc.get(field_name).strip() if source_doc.get(field_name) else None
 
         if field_value is None:
@@ -355,7 +394,9 @@ class Einvoice:
 
         return field_value
 
-    def get_bool_value(self, field_name: str, source_doc: Document, xml_name: str = None, parent: str = None):
+    def get_bool_value(
+        self, field_name: str, source_doc: Document, xml_name: str = None, parent: str = None
+    ):
         field_value = source_doc.get(field_name) if source_doc.get(field_name) else None
         if field_value is None:
             return
@@ -370,7 +411,9 @@ class Einvoice:
 
         return field_value
 
-    def get_int_value(self, field_name: str, source_doc: Document, xml_name: str = None, parent: str = None):
+    def get_int_value(
+        self, field_name: str, source_doc: Document, xml_name: str = None, parent: str = None
+    ):
         field_value = cast(any, source_doc.get(field_name, None))
 
         if field_value is None:
@@ -390,7 +433,9 @@ class Einvoice:
                 self.result[parent][field_name] = field_value
         return field_value
 
-    def get_float_value(self, field_name: str, source_doc: Document, xml_name: str = None, parent: str = None) -> float:
+    def get_float_value(
+        self, field_name: str, source_doc: Document, xml_name: str = None, parent: str = None
+    ) -> float:
         field_value = cast(any, source_doc.get(field_name))
 
         if field_value is None:
@@ -437,7 +482,7 @@ class Einvoice:
         # single-digit, e.g. 00:04:05 is represented as 0:4:5. ZATCA tries to parse an ISO date/time format
         # created from the date and time joined with a T (e.g. 2024-02-20T00:04:05), and it fails to parse the
         # format produced by get_time_str
-        formatted_value = get_time(field_value).strftime('%H:%M:%S')
+        formatted_value = get_time(field_value).strftime("%H:%M:%S")
 
         field_name = xml_name if xml_name else field_name
         if parent:
@@ -448,18 +493,34 @@ class Einvoice:
                 self.result[parent][field_name] = formatted_value
         return formatted_value
 
-    def get_list_value(self, field_name: str, source_doc: Document, xml_name: str = None, parent: str = None):
+    def get_list_value(
+        self, field_name: str, source_doc: Document, xml_name: str = None, parent: str = None
+    ):
         field_value = source_doc.get(field_name)
         if field_value is None or {}:
             return
 
-        if xml_name == 'party_identifications':
-            if parent == 'seller_details':
-                party_list = ['CRN', 'MOM', 'MLS', '700', 'SAG', 'OTH']
+        if xml_name == "party_identifications":
+            if parent == "seller_details":
+                party_list = ["CRN", "MOM", "MLS", "700", "SAG", "OTH"]
             else:  # buyer_details
-                party_list = ['TIN', 'CRN', 'MOM', 'MLS', '700', 'SAG', 'NAT', 'GCC', 'IQA', 'PAS', 'OTH']
+                party_list = [
+                    "TIN",
+                    "CRN",
+                    "MOM",
+                    "MLS",
+                    "700",
+                    "SAG",
+                    "NAT",
+                    "GCC",
+                    "IQA",
+                    "PAS",
+                    "OTH",
+                ]
             if field_value:
-                field_value = self.validate_scheme_with_order(field_value=field_value, ordered_list=party_list)
+                field_value = self.validate_scheme_with_order(
+                    field_value=field_value, ordered_list=party_list
+                )
                 if not field_value:
                     return
 
@@ -486,9 +547,11 @@ class Einvoice:
         res = {}
 
         for value in field_value:
-            type_code = value.get('type_code')
+            type_code = value.get("type_code")
             additional_id_value = (
-                value.get('value').strip() or None if type(value.get('value')) is str else value.get('value')
+                value.get("value").strip() or None
+                if type(value.get("value")) is str
+                else value.get("value")
             )
 
             if type_code not in ordered_list:
@@ -509,17 +572,17 @@ class Einvoice:
 
     def compute_invoice_discount_amount(self):
         discount_amount = abs(self.sales_invoice_doc.discount_amount)
-        if self.sales_invoice_doc.apply_discount_on != 'Grand Total' or discount_amount == 0:
+        if self.sales_invoice_doc.apply_discount_on != "Grand Total" or discount_amount == 0:
             self.additional_fields_doc.fatoora_invoice_discount_amount = discount_amount
             return
 
         applied_discount_percent = self.sales_invoice_doc.additional_discount_percentage
-        total_without_vat = self.result['invoice']['line_extension_amount']
+        total_without_vat = self.result["invoice"]["line_extension_amount"]
         tax_amount = abs(self.sales_invoice_doc.taxes[0].tax_amount)
         if applied_discount_percent == 0:
             applied_discount_percent = (discount_amount / (total_without_vat + tax_amount)) * 100
         applied_discount_amount = total_without_vat * (applied_discount_percent / 100)
-        self.result['invoice']['allowance_total_amount'] = applied_discount_amount
+        self.result["invoice"]["allowance_total_amount"] = applied_discount_amount
         self.additional_fields_doc.fatoora_invoice_discount_amount = applied_discount_amount
 
     def get_business_settings_and_seller_details(self):
@@ -530,102 +593,102 @@ class Einvoice:
                 has_branch_address = True
 
             party_identification = self.get_list_value(
-                field_name='custom_branch_ids',
+                field_name="custom_branch_ids",
                 source_doc=self.branch_doc,
-                xml_name='party_identifications',
-                parent='seller_details',
+                xml_name="party_identifications",
+                parent="seller_details",
             )
             if not party_identification:
                 fthrow(
                     msg=ft(
-                        'Commercial registration number is mandatory for branch $branch.',
+                        "Commercial registration number is mandatory for branch $branch.",
                         branch=self.sales_invoice_doc.branch,
                     ),
-                    title=ft('Mandatory CRN Error'),
+                    title=ft("Mandatory CRN Error"),
                 )
         else:
             self.get_list_value(
-                field_name='other_ids',
+                field_name="other_ids",
                 source_doc=self.business_settings_doc,
-                xml_name='party_identifications',
-                parent='seller_details',
+                xml_name="party_identifications",
+                parent="seller_details",
             )
 
         self.get_text_value(
-            field_name='custom_street' if has_branch_address else 'street',
+            field_name="custom_street" if has_branch_address else "street",
             source_doc=self.branch_doc if has_branch_address else self.business_settings_doc,
-            xml_name='street_name',
-            parent='seller_details',
+            xml_name="street_name",
+            parent="seller_details",
         )
 
         self.get_text_value(
-            field_name='custom_additional_street' if has_branch_address else 'additional_street',
+            field_name="custom_additional_street" if has_branch_address else "additional_street",
             source_doc=self.branch_doc if has_branch_address else self.business_settings_doc,
-            xml_name='additional_street_name',
-            parent='seller_details',
+            xml_name="additional_street_name",
+            parent="seller_details",
         )
 
         self.get_text_value(
-            field_name='custom_building_number' if has_branch_address else 'building_number',
+            field_name="custom_building_number" if has_branch_address else "building_number",
             source_doc=self.branch_doc if has_branch_address else self.business_settings_doc,
-            xml_name='building_number',
-            parent='seller_details',
+            xml_name="building_number",
+            parent="seller_details",
         )
 
         self.get_text_value(
-            field_name='additional_address_number',  # TODO: Fix missing field
+            field_name="additional_address_number",  # TODO: Fix missing field
             source_doc=self.business_settings_doc,
-            xml_name='plot_identification',
-            parent='seller_details',
+            xml_name="plot_identification",
+            parent="seller_details",
         )
 
         self.get_text_value(
-            field_name='custom_city' if has_branch_address else 'city',
+            field_name="custom_city" if has_branch_address else "city",
             source_doc=self.branch_doc if has_branch_address else self.business_settings_doc,
-            xml_name='city_name',
-            parent='seller_details',
+            xml_name="city_name",
+            parent="seller_details",
         )
 
         self.get_text_value(
-            field_name='custom_postal_code' if has_branch_address else 'postal_code',
+            field_name="custom_postal_code" if has_branch_address else "postal_code",
             source_doc=self.branch_doc if has_branch_address else self.business_settings_doc,
-            xml_name='postal_zone',
-            parent='seller_details',
+            xml_name="postal_zone",
+            parent="seller_details",
         )
 
         self.get_text_value(
-            field_name='province_state',  # TODO: Fix missing field
+            field_name="province_state",  # TODO: Fix missing field
             source_doc=self.business_settings_doc,
-            xml_name='CountrySubentity',
-            parent='seller_details',
+            xml_name="CountrySubentity",
+            parent="seller_details",
         )
 
         self.get_text_value(
-            field_name='custom_district' if has_branch_address else 'district',
+            field_name="custom_district" if has_branch_address else "district",
             source_doc=self.branch_doc if has_branch_address else self.business_settings_doc,
-            xml_name='city_subdivision_name',
-            parent='seller_details',
+            xml_name="city_subdivision_name",
+            parent="seller_details",
         )
 
         self.get_text_value(
-            field_name='country_code',
+            field_name="country_code",
             source_doc=self.business_settings_doc,
-            xml_name='country_code',
-            parent='seller_details',
+            xml_name="country_code",
+            parent="seller_details",
         )
 
         self.get_text_value(
-            field_name='vat_registration_number',
+            field_name="vat_registration_number",
             source_doc=self.business_settings_doc,
-            xml_name='company_id',
-            parent='business_settings',
+            xml_name="company_id",
+            parent="business_settings",
         )
 
         self.get_text_value(
-            field_name='seller_name',
+            field_name="seller_name",
             source_doc=self.business_settings_doc,
-            xml_name='registration_name',
-            parent='business_settings',
+            xml_name="registration_name",
+            parent="business_settings",
         )
 
         # --------------------------- END Business Settings and Seller Details fields ------------------------------
@@ -633,207 +696,255 @@ class Einvoice:
     def get_buyer_details(self, invoice_type):
         # --------------------------- START Buyer Details fields ------------------------------
         self.get_list_value(
-            field_name='other_buyer_ids',
+            field_name="other_buyer_ids",
             source_doc=self.additional_fields_doc,
-            xml_name='party_identifications',
-            parent='buyer_details',
+            xml_name="party_identifications",
+            parent="buyer_details",
         )
 
         self.get_text_value(
-            field_name='buyer_street_name',
+            field_name="buyer_street_name",
             source_doc=self.additional_fields_doc,
-            xml_name='street_name',
-            parent='buyer_details',
+            xml_name="street_name",
+            parent="buyer_details",
         )
 
         self.get_text_value(
-            field_name='buyer_additional_street_name',
+            field_name="buyer_additional_street_name",
             source_doc=self.additional_fields_doc,
-            xml_name='additional_street_name',
-            parent='buyer_details',
+            xml_name="additional_street_name",
+            parent="buyer_details",
         )
 
         self.get_text_value(
-            field_name='buyer_building_number',
+            field_name="buyer_building_number",
             source_doc=self.additional_fields_doc,
-            xml_name='building_number',
-            parent='buyer_details',
+            xml_name="building_number",
+            parent="buyer_details",
         )
 
         self.get_text_value(
-            field_name='buyer_additional_number',
+            field_name="buyer_additional_number",
             source_doc=self.additional_fields_doc,
-            xml_name='plot_identification',
-            parent='buyer_details',
+            xml_name="plot_identification",
+            parent="buyer_details",
         )
 
         self.get_text_value(
-            field_name='buyer_city', source_doc=self.additional_fields_doc, xml_name='city_name', parent='buyer_details'
-        )
-
-        self.get_text_value(
-            field_name='buyer_postal_code',
+            field_name="buyer_city",
             source_doc=self.additional_fields_doc,
-            xml_name='postal_zone',
-            parent='buyer_details',
+            xml_name="city_name",
+            parent="buyer_details",
         )
 
         self.get_text_value(
-            field_name='buyer_province_state',
+            field_name="buyer_postal_code",
             source_doc=self.additional_fields_doc,
-            xml_name='province',
-            parent='buyer_details',
+            xml_name="postal_zone",
+            parent="buyer_details",
         )
 
         self.get_text_value(
-            field_name='buyer_district',
+            field_name="buyer_province_state",
             source_doc=self.additional_fields_doc,
-            xml_name='city_subdivision_name',
-            parent='buyer_details',
+            xml_name="province",
+            parent="buyer_details",
         )
 
         self.get_text_value(
-            field_name='buyer_country_code',
+            field_name="buyer_district",
             source_doc=self.additional_fields_doc,
-            xml_name='country_code',
-            parent='buyer_details',
+            xml_name="city_subdivision_name",
+            parent="buyer_details",
         )
 
         self.get_text_value(
-            field_name='buyer_vat_registration_number',
+            field_name="buyer_country_code",
             source_doc=self.additional_fields_doc,
-            xml_name='company_id',
-            parent='buyer_details',
+            xml_name="country_code",
+            parent="buyer_details",
         )
 
         self.get_text_value(
-            field_name='customer_name',
+            field_name="buyer_vat_registration_number",
+            source_doc=self.additional_fields_doc,
+            xml_name="company_id",
+            parent="buyer_details",
+        )
+
+        self.get_text_value(
+            field_name="customer_name",
             source_doc=self.sales_invoice_doc,
-            xml_name='registration_name',
-            parent='buyer_details',
+            xml_name="registration_name",
+            parent="buyer_details",
         )
 
         # --------------------------- END Buyer Details fields ------------------------------
 
     def get_e_invoice_details(self, invoice_type: str):
-        is_standard = invoice_type == 'Standard'
+        is_standard = invoice_type == "Standard"
 
         # --------------------------- START Invoice fields ------------------------------
         # --------------------------- START Invoice Basic info ------------------------------
-        self.get_text_value(field_name='name', source_doc=self.sales_invoice_doc, xml_name='id', parent='invoice')
+        self.get_text_value(
+            field_name="name", source_doc=self.sales_invoice_doc, xml_name="id", parent="invoice"
+        )
 
-        self.get_text_value(field_name='uuid', source_doc=self.additional_fields_doc, xml_name='uuid', parent='invoice')
+        self.get_text_value(
+            field_name="uuid",
+            source_doc=self.additional_fields_doc,
+            xml_name="uuid",
+            parent="invoice",
+        )
 
         self.get_date_value(
-            field_name='posting_date', source_doc=self.sales_invoice_doc, xml_name='issue_date', parent='invoice'
+            field_name="posting_date",
+            source_doc=self.sales_invoice_doc,
+            xml_name="issue_date",
+            parent="invoice",
         )
 
         self.get_time_value(
-            field_name='posting_time', source_doc=self.sales_invoice_doc, xml_name='issue_time', parent='invoice'
+            field_name="posting_time",
+            source_doc=self.sales_invoice_doc,
+            xml_name="issue_time",
+            parent="invoice",
         )
 
         if is_standard:
             # TODO: Review this with business and finalize
             self.get_date_value(
-                field_name='due_date', source_doc=self.sales_invoice_doc, xml_name='delivery_date', parent='invoice'
+                field_name="due_date",
+                source_doc=self.sales_invoice_doc,
+                xml_name="delivery_date",
+                parent="invoice",
             )
 
         self.get_text_value(
-            field_name='invoice_type_code',
+            field_name="invoice_type_code",
             source_doc=self.additional_fields_doc,
-            xml_name='invoice_type_code',
-            parent='invoice',
+            xml_name="invoice_type_code",
+            parent="invoice",
         )
 
         self.get_text_value(
-            field_name='invoice_type_transaction',
+            field_name="invoice_type_transaction",
             source_doc=self.additional_fields_doc,
-            xml_name='invoice_type_transaction',
-            parent='invoice',
+            xml_name="invoice_type_transaction",
+            parent="invoice",
         )
 
         self.get_text_value(
-            field_name='currency', source_doc=self.sales_invoice_doc, xml_name='currency_code', parent='invoice'
+            field_name="currency",
+            source_doc=self.sales_invoice_doc,
+            xml_name="currency_code",
+            parent="invoice",
         )
         # Default "SAR"
         self.get_text_value(
-            field_name='tax_currency', source_doc=self.additional_fields_doc, xml_name='tax_currency', parent='invoice'
+            field_name="tax_currency",
+            source_doc=self.additional_fields_doc,
+            xml_name="tax_currency",
+            parent="invoice",
         )
 
         self.get_bool_value(
-            field_name='is_return', source_doc=self.sales_invoice_doc, xml_name='is_return', parent='invoice'
+            field_name="is_return",
+            source_doc=self.sales_invoice_doc,
+            xml_name="is_return",
+            parent="invoice",
         )
 
         self.get_bool_value(
-            field_name='is_debit_note', source_doc=self.sales_invoice_doc, xml_name='is_debit_note', parent='invoice'
+            field_name="is_debit_note",
+            source_doc=self.sales_invoice_doc,
+            xml_name="is_debit_note",
+            parent="invoice",
         )
 
         self.get_int_value(
-            field_name='invoice_counter',
+            field_name="invoice_counter",
             source_doc=self.additional_fields_doc,
-            xml_name='invoice_counter_value',
-            parent='invoice',
+            xml_name="invoice_counter_value",
+            parent="invoice",
         )
 
         self.get_text_value(
-            field_name='previous_invoice_hash', source_doc=self.additional_fields_doc, xml_name='pih', parent='invoice'
+            field_name="previous_invoice_hash",
+            source_doc=self.additional_fields_doc,
+            xml_name="pih",
+            parent="invoice",
         )
 
-        if self.sales_invoice_doc.get('is_debit_note') or self.sales_invoice_doc.get('is_return'):
+        if self.sales_invoice_doc.get("is_debit_note") or self.sales_invoice_doc.get("is_return"):
             billing_references = []
             if self.sales_invoice_doc.return_against:
                 billing_references.append(self.sales_invoice_doc.return_against)
 
             additional_references = cast(
                 List[ZATCAReturnAgainstReference] | None,
-                self.sales_invoice_doc.get('custom_return_against_additional_references'),
+                self.sales_invoice_doc.get("custom_return_against_additional_references"),
             )
             if additional_references:
                 billing_references.extend([ref.sales_invoice for ref in additional_references])
 
-            self.result['invoice']['billing_references'] = billing_references
+            self.result["invoice"]["billing_references"] = billing_references
 
         # FIXME: Contracting (contract ID)
-        if self.sales_invoice_doc.get('contract_id'):
+        if self.sales_invoice_doc.get("contract_id"):
             self.get_text_value(
-                field_name='contract_id',
+                field_name="contract_id",
                 source_doc=self.additional_fields_doc,
-                xml_name='contract_id',
-                parent='invoice',
+                xml_name="contract_id",
+                parent="invoice",
             )
 
-        self.get_float_value(field_name='total', source_doc=self.sales_invoice_doc, xml_name='total', parent='invoice')
-
         self.get_float_value(
-            field_name='net_total', source_doc=self.sales_invoice_doc, xml_name='net_total', parent='invoice'
+            field_name="total",
+            source_doc=self.sales_invoice_doc,
+            xml_name="total",
+            parent="invoice",
         )
 
         self.get_float_value(
-            field_name='total_taxes_and_charges',
+            field_name="net_total",
             source_doc=self.sales_invoice_doc,
-            xml_name='total_taxes_and_charges',
-            parent='invoice',
+            xml_name="net_total",
+            parent="invoice",
         )
 
         self.get_float_value(
-            field_name='base_total_taxes_and_charges',
+            field_name="total_taxes_and_charges",
             source_doc=self.sales_invoice_doc,
-            xml_name='base_total_taxes_and_charges',
-            parent='invoice',
+            xml_name="total_taxes_and_charges",
+            parent="invoice",
+        )
+
+        self.get_float_value(
+            field_name="base_total_taxes_and_charges",
+            source_doc=self.sales_invoice_doc,
+            xml_name="base_total_taxes_and_charges",
+            parent="invoice",
         )
         # TODO: Tax Account Currency
         self.get_float_value(
-            field_name='grand_total', source_doc=self.sales_invoice_doc, xml_name='grand_total', parent='invoice'
+            field_name="grand_total",
+            source_doc=self.sales_invoice_doc,
+            xml_name="grand_total",
+            parent="invoice",
         )
         self.get_float_value(
-            field_name='total_advance', source_doc=self.sales_invoice_doc, xml_name='prepaid_amount', parent='invoice'
+            field_name="total_advance",
+            source_doc=self.sales_invoice_doc,
+            xml_name="prepaid_amount",
+            parent="invoice",
         )
 
         if self.sales_invoice_doc.is_rounded_total_disabled():
             base_payable = abs(self.sales_invoice_doc.grand_total)
-            prepaid_amount = (self.result.get('prepaid_amount', 0.0) or 0.0)
-            self.result['invoice']['payable_amount'] = max(0.0, base_payable - prepaid_amount)
-            self.result['invoice']['rounding_adjustment'] = 0.0
+            prepaid_amount = self.result.get("prepaid_amount", 0.0) or 0.0
+            self.result["invoice"]["payable_amount"] = max(0.0, base_payable - prepaid_amount)
+            self.result["invoice"]["rounding_adjustment"] = 0.0
         else:
             # Tax inclusive amount + rounding adjustment = payable amount (before prepayments)
             # However, ZATCA doesn't accept negative values for tax inclusive amount or payable amount, so we put their
@@ -849,29 +960,38 @@ class Einvoice:
             # it or adjust its sign to produce the right result in the return case
             payable_before_prepay = abs(self.sales_invoice_doc.rounded_total)
             tax_inclusive_amount = abs(self.sales_invoice_doc.grand_total)
-            prepaid_amount = (self.result.get('prepaid_amount', 0.0) or 0.0)
+            prepaid_amount = self.result.get("prepaid_amount", 0.0) or 0.0
             # Apply BR-CO-16 by subtracting pre-paid amount
-            self.result['invoice']['payable_amount'] = max(0.0, payable_before_prepay - prepaid_amount)
+            self.result["invoice"]["payable_amount"] = max(
+                0.0, payable_before_prepay - prepaid_amount
+            )
             if self.sales_invoice_doc.is_return:
-                self.result['invoice']['rounding_adjustment'] = payable_before_prepay - tax_inclusive_amount
+                self.result["invoice"]["rounding_adjustment"] = (
+                    payable_before_prepay - tax_inclusive_amount
+                )
             else:
-                self.result['invoice']['rounding_adjustment'] = self.sales_invoice_doc.rounding_adjustment
+                self.result["invoice"][
+                    "rounding_adjustment"
+                ] = self.sales_invoice_doc.rounding_adjustment
 
         self.get_float_value(
-            field_name='outstanding_amount',
+            field_name="outstanding_amount",
             source_doc=self.sales_invoice_doc,
-            xml_name='outstanding_amount',
-            parent='invoice',
+            xml_name="outstanding_amount",
+            parent="invoice",
         )
         self.get_float_value(
-            field_name='net_amount',
+            field_name="net_amount",
             source_doc=self.sales_invoice_doc,
-            xml_name='VAT_category_taxable_amount',
-            parent='invoice',
+            xml_name="VAT_category_taxable_amount",
+            parent="invoice",
         )
 
         self.get_text_value(
-            field_name='po_no', source_doc=self.sales_invoice_doc, xml_name='purchase_order_reference', parent='invoice'
+            field_name="po_no",
+            source_doc=self.sales_invoice_doc,
+            xml_name="purchase_order_reference",
+            parent="invoice",
         )
 
         # --------------------------- END Invoice Basic info ------------------------------
@@ -888,37 +1008,44 @@ class Einvoice:
 
             # We use absolute values for int/float values because we want positive values in the XML in the return invoice
             # case
+            item_qty = abs(item.qty)
+            if self.sales_invoice_doc.is_return and item_qty == 0:
+                item_qty = 1
             item_lines.append(
                 {
-                    'idx': item.idx,
-                    'qty': abs(item.qty),
-                    'uom': item.uom,
-                    'item_code': item.item_code,
-                    'item_name': item.item_name,
-                    'net_amount': abs(item.net_amount),
-                    'amount': abs(item.amount),
-                    'rate': abs(item.rate),
-                    'discount_percentage': abs(item.discount_percentage) if has_discount else 0.0,
-                    'discount_amount': abs(item.discount_amount) if has_discount else 0.0,
-                    'item_tax_template': item.item_tax_template,
-                    'tax_percent': tax_percent,
-                    'tax_amount': tax_amount,
+                    "idx": item.idx,
+                    "qty": item_qty,
+                    "uom": item.uom,
+                    "item_code": item.item_code,
+                    "item_name": item.item_name,
+                    "net_amount": abs(item.net_amount),
+                    "amount": abs(item.amount),
+                    "rate": abs(item.rate),
+                    "discount_percentage": abs(item.discount_percentage) if has_discount else 0.0,
+                    "discount_amount": abs(item.discount_amount) if has_discount else 0.0,
+                    "item_tax_template": item.item_tax_template,
+                    "tax_percent": tax_percent,
+                    "tax_amount": tax_amount,
                 }
             )
 
         # Add tax amount and tax percent on each item line
         is_tax_included = bool(self.sales_invoice_doc.taxes[0].included_in_print_rate)
-        item_lines = append_tax_details_into_item_lines(item_lines=item_lines, is_tax_included=is_tax_included)
-        unique_tax_categories = append_tax_categories_to_item(item_lines, self.sales_invoice_doc.taxes_and_charges)
+        item_lines = append_tax_details_into_item_lines(
+            item_lines=item_lines, is_tax_included=is_tax_included
+        )
+        unique_tax_categories = append_tax_categories_to_item(
+            item_lines, self.sales_invoice_doc.taxes_and_charges
+        )
         # Append unique Tax categories to invoice
-        self.result['invoice']['tax_categories'] = unique_tax_categories
+        self.result["invoice"]["tax_categories"] = unique_tax_categories
 
         # Add invoice total taxes and charges percentage field
-        self.result['invoice']['total_taxes_and_charges_percent'] = sum(
-            it.rate for it in self.sales_invoice_doc.get('taxes', [])
+        self.result["invoice"]["total_taxes_and_charges_percent"] = sum(
+            it.rate for it in self.sales_invoice_doc.get("taxes", [])
         )
-        self.result['invoice']['item_lines'] = item_lines
-        self.result['invoice']['line_extension_amount'] = sum(it['amount'] for it in item_lines)
+        self.result["invoice"]["item_lines"] = item_lines
+        self.result["invoice"]["line_extension_amount"] = sum(it["amount"] for it in item_lines)
         # --------------------------- END Getting Invoice's item lines ------------------------------
 
     def prepayment_invoice(self):
@@ -927,9 +1054,12 @@ class Einvoice:
         advance_payments = get_invoice_advance_payments(sales_invoice_doc)
         for advance_payment in advance_payments:
 
-            advance_payment_invoice = frappe.get_doc('Sales Invoice', advance_payment.advance_payment_invoice)
-            siaf = frappe.get_last_doc('Sales Invoice Additional Fields',
-                                       {'sales_invoice': advance_payment_invoice.name})
+            advance_payment_invoice = frappe.get_doc(
+                "Sales Invoice", advance_payment.advance_payment_invoice
+            )
+            siaf = frappe.get_last_doc(
+                "Sales Invoice Additional Fields", {"sales_invoice": advance_payment_invoice.name}
+            )
             prepayment_invoice = {}
             advance_idx = advance_idx + 1
             prepayment_invoice["prepayment_invoice_idx"] = advance_idx
@@ -938,7 +1068,9 @@ class Einvoice:
             prepayment_invoice["qty"] = 1
 
             prepayment_invoice["issue_date"] = get_date_str(advance_payment_invoice.posting_date)
-            prepayment_invoice["issue_time"] = get_time(advance_payment_invoice.posting_time).strftime('%H:%M:%S')
+            prepayment_invoice["issue_time"] = get_time(
+                advance_payment_invoice.posting_time
+            ).strftime("%H:%M:%S")
 
             allocated_amount = advance_payment.allocated_amount
             prepayment_invoice["allocated_amount"] = allocated_amount
@@ -948,16 +1080,18 @@ class Einvoice:
 
             prepayment_invoice["tax_percent"] = abs(item.tax_rate or 0.0)
 
-            tax_amount = calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice)
+            tax_amount = calculate_advance_payment_tax_amount(
+                advance_payment, advance_payment_invoice
+            )
             prepayment_invoice["tax_amount"] = tax_amount
 
             taxable_amount = round(allocated_amount - tax_amount, 2)
             prepayment_invoice["taxable_amount"] = taxable_amount
 
-            self.result['prepaid_amount'] += round( (taxable_amount + tax_amount), 2)
+            self.result["prepaid_amount"] += round((taxable_amount + tax_amount), 2)
             prepayment_invoice["grand_total"] = advance_payment.allocated_amount
 
             prepayment_invoice["invoice_type_code"] = InvoiceTypeCode.ADVANCE_PAYMENT.value
             prepayment_invoice["uuid"] = siaf.uuid
 
-            self.result['prepayment_invoices'].append(prepayment_invoice)
+            self.result["prepayment_invoices"].append(prepayment_invoice)

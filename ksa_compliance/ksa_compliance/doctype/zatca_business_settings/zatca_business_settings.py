@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 import base64
 import os
-from typing import Optional, NoReturn, cast, Literal
+from typing import Literal, NoReturn, Optional, cast
 
 # import frappe
 import frappe
@@ -35,6 +35,7 @@ class ZATCABusinessSettings(Document):
 
     if TYPE_CHECKING:
         from frappe.types import DF
+
         from ksa_compliance.ksa_compliance.doctype.additional_seller_ids.additional_seller_ids import (
             AdditionalSellerIDs,
         )
@@ -46,7 +47,7 @@ class ZATCABusinessSettings(Document):
         block_invoice_on_invalid_xml: DF.Check
         building_number: DF.Data | None
         city: DF.Data | None
-        cli_setup: DF.Literal['Automatic', 'Manual']
+        cli_setup: DF.Literal["Automatic", "Manual"]
         company: DF.Link
         company_address: DF.Link
         company_category: DF.Data
@@ -60,7 +61,7 @@ class ZATCABusinessSettings(Document):
         district: DF.Data | None
         enable_branch_configuration: DF.Check
         enable_zatca_integration: DF.Check
-        fatoora_server: DF.Literal['Sandbox', 'Simulation', 'Production']
+        fatoora_server: DF.Literal["Sandbox", "Simulation", "Production"]
         java_home: DF.Data | None
         linked_tax_account: DF.Link | None
         other_ids: DF.Table[AdditionalSellerIDs]
@@ -74,44 +75,42 @@ class ZATCABusinessSettings(Document):
         security_token: DF.SmallText | None
         seller_name: DF.Data
         street: DF.Data | None
-        sync_with_zatca: DF.Literal['Live', 'Batches']
+        sync_with_zatca: DF.Literal["Live", "Batches"]
         tax_rate: DF.Percent
         type_of_business_transactions: DF.Literal[
-            'Let the system decide (both)', 'Simplified Tax Invoices', 'Standard Tax Invoices'
+            "Let the system decide (both)", "Simplified Tax Invoices", "Standard Tax Invoices"
         ]
         validate_generated_xml: DF.Check
         vat_registration_number: DF.Data
         zatca_cli_path: DF.Data | None
         zatca_tax_category: DF.Literal[
-            '',
-            'Standard rate',
-            'Services outside scope of tax / Not subject to VAT || {manual entry}',
-            'Exempt from Tax || Financial services mentioned in Article 29 of the VAT Regulations',
-            'Exempt from Tax || Life insurance services mentioned in Article 29 of the VAT Regulations',
-            'Exempt from Tax || Real estate transactions mentioned in Article 30 of the VAT Regulations',
-            'Exempt from Tax || Qualified Supply of Goods in Duty Free area',
-            'Zero rated goods || Export of goods',
-            'Zero rated goods || Export of services',
-            'Zero rated goods || The international transport of Goods',
-            'Zero rated goods || International transport of passengers',
-            'Zero rated goods || Services directly connected and incidental to a Supply of international passenger transport',
-            'Zero rated goods || Supply of a qualifying means of transport',
-            'Zero rated goods || Any services relating to Goods or passenger transportation as defined in article twenty five of these Regulations',
-            'Zero rated goods || Medicines and medical equipment',
-            'Zero rated goods || Qualifying metals',
-            'Zero rated goods || Private education to citizen',
-            'Zero rated goods || Private healthcare to citizen',
-            'Zero rated goods || Supply of qualified military goods',
+            "",
+            "Standard rate",
+            "Services outside scope of tax / Not subject to VAT || {manual entry}",
+            "Exempt from Tax || Financial services mentioned in Article 29 of the VAT Regulations",
+            "Exempt from Tax || Life insurance services mentioned in Article 29 of the VAT Regulations",
+            "Exempt from Tax || Real estate transactions mentioned in Article 30 of the VAT Regulations",
+            "Exempt from Tax || Qualified Supply of Goods in Duty Free area",
+            "Zero rated goods || Export of goods",
+            "Zero rated goods || Export of services",
+            "Zero rated goods || The international transport of Goods",
+            "Zero rated goods || International transport of passengers",
+            "Zero rated goods || Services directly connected and incidental to a Supply of international passenger transport",
+            "Zero rated goods || Supply of a qualifying means of transport",
+            "Zero rated goods || Any services relating to Goods or passenger transportation as defined in article twenty five of these Regulations",
+            "Zero rated goods || Medicines and medical equipment",
+            "Zero rated goods || Qualifying metals",
+            "Zero rated goods || Private education to citizen",
+            "Zero rated goods || Private healthcare to citizen",
+            "Zero rated goods || Supply of qualified military goods",
         ]
     # end: auto-generated types
 
     def after_insert(self):
-        invoice_counting_doc = frappe.new_doc('ZATCA Invoice Counting Settings')
+        invoice_counting_doc = frappe.new_doc("ZATCA Invoice Counting Settings")
         invoice_counting_doc.business_settings_reference = self.name
         invoice_counting_doc.invoice_counter = 0
-        invoice_counting_doc.previous_invoice_hash = (
-            'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI0NjcyOWQ3M2EyN2ZiNTdlOQ=='
-        )
+        invoice_counting_doc.previous_invoice_hash = "NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI0NjcyOWQ3M2EyN2ZiNTdlOQ=="
         invoice_counting_doc.insert(ignore_permissions=True)
 
     def before_insert(self):
@@ -121,13 +120,15 @@ class ZATCABusinessSettings(Document):
             # Create Tax Category based on ZATCA Tax Category in business settings
             tax_category_id = self.create_zatca_tax_category()
             # Create Sales Taxes and Charges Template
-            self.create_sales_taxes_and_charges_template(tax_category=tax_category_id, account_head=tax_account_id)
+            self.create_sales_taxes_and_charges_template(
+                tax_category=tax_category_id, account_head=tax_account_id
+            )
             # Create Item Tax Template
             self.create_item_tax_template(account_head=tax_account_id)
 
     @property
     def is_live_sync(self) -> bool:
-        return self.sync_with_zatca.lower() == 'live'
+        return self.sync_with_zatca.lower() == "live"
 
     @property
     def invoice_mode(self) -> InvoiceMode:
@@ -136,7 +137,9 @@ class ZATCABusinessSettings(Document):
     @property
     def has_production_csid(self) -> bool:
         return (
-            bool(self.production_security_token) and bool(self.production_secret) and bool(self.production_request_id)
+            bool(self.production_security_token)
+            and bool(self.production_secret)
+            and bool(self.production_request_id)
         )
 
     @property
@@ -163,11 +166,15 @@ class ZATCABusinessSettings(Document):
 
     @property
     def is_sandbox_server(self) -> bool:
-        return self.fatoora_server_url.startswith('https://gw-fatoora.zatca.gov.sa/e-invoicing/developer-portal')
+        return self.fatoora_server_url.startswith(
+            "https://gw-fatoora.zatca.gov.sa/e-invoicing/developer-portal"
+        )
 
     @property
     def is_simulation_server(self) -> bool:
-        return self.fatoora_server_url.startswith('https://gw-fatoora.zatca.gov.sa/e-invoicing/simulation')
+        return self.fatoora_server_url.startswith(
+            "https://gw-fatoora.zatca.gov.sa/e-invoicing/simulation"
+        )
 
     @property
     def _sandbox_private_key_path(self) -> str:
@@ -178,24 +185,26 @@ class ZATCABusinessSettings(Document):
         with the real private key, signature validation will fail
         """
         key = (
-            'MHQCAQEEIL14JV+5nr/sE8Sppaf2IySovrhVBtt8+yz'
-            '+g4NRKyz8oAcGBSuBBAAKoUQDQgAEoWCKa0Sa9FIErTOv0uAkC1VIKXxU9nPpx2vlf4yhMejy8c02XJblDq7tPydo8mq0ahOMmNo8gwni7Xt1KT9UeA=='
+            "MHQCAQEEIL14JV+5nr/sE8Sppaf2IySovrhVBtt8+yz"
+            "+g4NRKyz8oAcGBSuBBAAKoUQDQgAEoWCKa0Sa9FIErTOv0uAkC1VIKXxU9nPpx2vlf4yhMejy8c02XJblDq7tPydo8mq0ahOMmNo8gwni7Xt1KT9UeA=="
         )
         path = ksa_compliance.zatca_files.get_sandbox_private_key_path()
         if not os.path.isfile(path):
-            with open(path, 'wb') as f:
-                f.write(key.encode('utf-8'))
+            with open(path, "wb") as f:
+                f.write(key.encode("utf-8"))
         return path
 
     @property
     def fatoora_server_url(self) -> str:
-        if self.fatoora_server == 'Sandbox':
-            return 'https://gw-fatoora.zatca.gov.sa/e-invoicing/developer-portal/'
-        if self.fatoora_server == 'Simulation':
-            return 'https://gw-fatoora.zatca.gov.sa/e-invoicing/simulation/'
-        if self.fatoora_server == 'Production':
-            return 'https://gw-fatoora.zatca.gov.sa/e-invoicing/core/'
-        fthrow(f'Invalid Fatoora Server, Please update {self.company} Fatoora Server in ZATCA Business Settings')
+        if self.fatoora_server == "Sandbox":
+            return "https://gw-fatoora.zatca.gov.sa/e-invoicing/developer-portal/"
+        if self.fatoora_server == "Simulation":
+            return "https://gw-fatoora.zatca.gov.sa/e-invoicing/simulation/"
+        if self.fatoora_server == "Production":
+            return "https://gw-fatoora.zatca.gov.sa/e-invoicing/core/"
+        fthrow(
+            f"Invalid Fatoora Server, Please update {self.company} Fatoora Server in ZATCA Business Settings"
+        )
 
     def onboard(self, otp: str) -> NoReturn:
         """Creates a CSR and issues a compliance CSID request. On success, updates the document with the CSR,
@@ -208,9 +217,11 @@ class ZATCABusinessSettings(Document):
         self._throw_if_api_config_missing()
 
         csr_result = self._generate_csr()
-        compliance_result, status_code = api.get_compliance_csid(self.fatoora_server_url, csr_result.csr, otp)
+        compliance_result, status_code = api.get_compliance_csid(
+            self.fatoora_server_url, csr_result.csr, otp
+        )
         if is_err(compliance_result):
-            fthrow(compliance_result.err_value, title=_('Compliance API Error'))
+            fthrow(compliance_result.err_value, title=_("Compliance API Error"))
 
         self.csr = csr_result.csr
         self.security_token = compliance_result.ok_value.security_token
@@ -218,12 +229,12 @@ class ZATCABusinessSettings(Document):
         self.compliance_request_id = compliance_result.ok_value.request_id
         self.save()
 
-        with open(self.compliance_cert_path, 'wb+') as cert:
-            cert.write(b'-----BEGIN CERTIFICATE-----\n')
+        with open(self.compliance_cert_path, "wb+") as cert:
+            cert.write(b"-----BEGIN CERTIFICATE-----\n")
             cert.write(base64.b64decode(compliance_result.ok_value.security_token))
-            cert.write(b'\n-----END CERTIFICATE-----')
+            cert.write(b"\n-----END CERTIFICATE-----")
 
-        frappe.msgprint(_('Onboarding completed successfully'), title=_('Success'))
+        frappe.msgprint(_("Onboarding completed successfully"), title=_("Success"))
 
     def get_production_csid(self, otp: str) -> NoReturn:
         """Uses the compliance response to issue a production CSID. On success, updates the document with the CSID
@@ -235,67 +246,76 @@ class ZATCABusinessSettings(Document):
             fthrow(_("Please onboard first to generate a 'Compliance Request ID'"))
 
         csid_result, status_code = api.get_production_csid(
-            self.fatoora_server_url, self.compliance_request_id, otp, self.security_token, self.get_password('secret')
+            self.fatoora_server_url,
+            self.compliance_request_id,
+            otp,
+            self.security_token,
+            self.get_password("secret"),
         )
         if is_err(csid_result):
-            fthrow(csid_result.err_value, title=_('Production CSID Error'))
+            fthrow(csid_result.err_value, title=_("Production CSID Error"))
 
         self.production_request_id = csid_result.ok_value.request_id
         self.production_security_token = csid_result.ok_value.security_token
         self.production_secret = csid_result.ok_value.secret
         self.save()
 
-        with open(self.cert_path, 'wb+') as cert:
-            cert.write(b'-----BEGIN CERTIFICATE-----\n')
+        with open(self.cert_path, "wb+") as cert:
+            cert.write(b"-----BEGIN CERTIFICATE-----\n")
             cert.write(base64.b64decode(csid_result.ok_value.security_token))
-            cert.write(b'\n-----END CERTIFICATE-----')
+            cert.write(b"\n-----END CERTIFICATE-----")
 
-        frappe.msgprint(_('Production CSID generated successfully'), title=_('Success'))
+        frappe.msgprint(_("Production CSID generated successfully"), title=_("Success"))
 
     @property
     def csr_config(self) -> dict:
         if self.invoice_mode == InvoiceMode.Standard:
-            invoice_type = '1000'
+            invoice_type = "1000"
         elif self.invoice_mode == InvoiceMode.Simplified:
-            invoice_type = '0100'
+            invoice_type = "0100"
         else:
-            invoice_type = '1100'
+            invoice_type = "1100"
 
         return {
-            'unit_common_name': self.company_unit,  # Review: Same as unit_name
-            'unit_serial_number': self.company_unit_serial,
-            'vat_number': self.vat_registration_number,
-            'unit_name': self.company_unit or 'Main Branch',  # Review: Use default value?
-            'organization_name': self.seller_name,
-            'country': self.country_code.upper(),
-            'invoice_type': invoice_type,
-            'address': self._format_address(),
-            'category': self.company_category,
+            "unit_common_name": self.company_unit,  # Review: Same as unit_name
+            "unit_serial_number": self.company_unit_serial,
+            "vat_number": self.vat_registration_number,
+            "unit_name": self.company_unit or "Main Branch",  # Review: Use default value?
+            "organization_name": self.seller_name,
+            "country": self.country_code.upper(),
+            "invoice_type": invoice_type,
+            "address": self._format_address(),
+            "category": self.company_category,
         }
 
     @staticmethod
     def for_invoice(
-        invoice_id: str, doctype: Literal['Sales Invoice', 'POS Invoice']
-    ) -> Optional['ZATCABusinessSettings']:
-        company_id = frappe.db.get_value(doctype, invoice_id, ['company'])
+        invoice_id: str, doctype: Literal["Sales Invoice", "POS Invoice"]
+    ) -> Optional["ZATCABusinessSettings"]:
+        company_id = frappe.db.get_value(doctype, invoice_id, ["company"])
         if not company_id:
             return None
 
         return ZATCABusinessSettings.for_company(company_id)
 
     @staticmethod
-    def for_company(company_id: str) -> Optional['ZATCABusinessSettings']:
-        business_settings_id = frappe.db.get_value('ZATCA Business Settings', filters={'company': company_id})
+    def for_company(company_id: str) -> Optional["ZATCABusinessSettings"]:
+        business_settings_id = frappe.db.get_value(
+            "ZATCA Business Settings", filters={"company": company_id}
+        )
         if not business_settings_id:
             return None
 
-        return cast(ZATCABusinessSettings, frappe.get_doc('ZATCA Business Settings', business_settings_id))
+        return cast(
+            ZATCABusinessSettings, frappe.get_doc("ZATCA Business Settings", business_settings_id)
+        )
 
     @staticmethod
     def is_enabled_for_company(company_id: str) -> bool:
         return bool(
             frappe.db.get_value(
-                'ZATCA Business Settings', filters={'company': company_id, 'enable_zatca_integration': True}
+                "ZATCA Business Settings",
+                filters={"company": company_id, "enable_zatca_integration": True},
             )
         )
 
@@ -303,18 +323,23 @@ class ZATCABusinessSettings(Document):
     def is_branch_config_enabled(company_id: str) -> bool:
         return bool(
             frappe.db.get_value(
-                'ZATCA Business Settings', filters={'company': company_id, 'enable_branch_configuration': True}
+                "ZATCA Business Settings",
+                filters={"company": company_id, "enable_branch_configuration": True},
             )
         )
 
     def _generate_csr(self) -> cli.CsrResult:
         config = frappe.render_template(
-            'ksa_compliance/templates/csr-config.properties', is_path=True, context=self.csr_config
+            "ksa_compliance/templates/csr-config.properties", is_path=True, context=self.csr_config
         )
 
-        logger.info(f'CSR config: {config}')
+        logger.info(f"CSR config: {config}")
         return cli.generate_csr(
-            self.zatca_cli_path, self.java_home, self.file_prefix, config, simulation=self.is_simulation_server
+            self.zatca_cli_path,
+            self.java_home,
+            self.file_prefix,
+            config,
+            simulation=self.is_simulation_server,
         )
 
     def _format_address(self) -> str:
@@ -324,15 +349,15 @@ class ZATCABusinessSettings(Document):
         TODO: We should use a national short address instead (https://splonline.com.sa/en/national-address-1/) if
           available. It should be added to the Address doctype.
         """
-        address = ''
+        address = ""
         if self.building_number:
-            address += self.building_number + ' '
+            address += self.building_number + " "
 
         address += self.street
         if self.district:
-            address += ', ' + self.district
+            address += ", " + self.district
 
-        address += ', ' + self.city
+        address += ", " + self.city
         return address
 
     def _throw_if_api_config_missing(self) -> None:
@@ -340,31 +365,34 @@ class ZATCABusinessSettings(Document):
             fthrow(_("Please configure 'Fatoora Server URL'"))
 
     def on_trash(self) -> NoReturn:
-        fthrow(msg=_('You cannot Delete a configured ZATCA Business Settings'), title=_('This Action Is Not Allowed'))
+        fthrow(
+            msg=_("You cannot Delete a configured ZATCA Business Settings"),
+            title=_("This Action Is Not Allowed"),
+        )
 
     def create_tax_account(self) -> str:
-        account_doc = cast(Account, frappe.new_doc('Account'))
+        account_doc = cast(Account, frappe.new_doc("Account"))
 
         # Since ERPNext Translates account_name "_" in _("Duties and Taxes") must be used to translate the account_name to current system language.
         parent_account = frappe.get_value(
-            'Account', {'company': self.company, 'account_name': _('Duties and Taxes')}, 'name'
+            "Account", {"company": self.company, "account_name": _("Duties and Taxes")}, "name"
         )
         account_doc.parent_account = parent_account
         account_doc.company = self.company
         account_doc.account_name = self.account_name
         account_doc.account_number = self.account_number
-        account_doc.account_type = 'Tax'
+        account_doc.account_type = "Tax"
         account_doc.tax_rate = self.tax_rate
         account_doc.insert(ignore_permissions=True)
         self.linked_tax_account = account_doc.name
         return account_doc.name
 
     def create_zatca_tax_category(self) -> str:
-        tax_category_name = self.zatca_tax_category.split(' || ')[-1]
-        tax_category_id = frappe.db.exists('Tax Category', tax_category_name)
+        tax_category_name = self.zatca_tax_category.split(" || ")[-1]
+        tax_category_id = frappe.db.exists("Tax Category", tax_category_name)
         if tax_category_id:
             return tax_category_id
-        tax_category_doc = cast(TaxCategory, frappe.new_doc('Tax Category'))
+        tax_category_doc = cast(TaxCategory, frappe.new_doc("Tax Category"))
         tax_category_doc.title = tax_category_name
         tax_category_doc.custom_zatca_category = self.zatca_tax_category
         tax_category_doc.insert(ignore_permissions=True, ignore_mandatory=True)
@@ -372,45 +400,53 @@ class ZATCABusinessSettings(Document):
 
     def create_sales_taxes_and_charges_template(self, tax_category: str, account_head: str):
         sales_taxes_and_charges_template_doc = cast(
-            SalesTaxesandChargesTemplate, frappe.new_doc('Sales Taxes and Charges Template')
+            SalesTaxesandChargesTemplate, frappe.new_doc("Sales Taxes and Charges Template")
         )
-        sales_taxes_and_charges_template_doc.title = f'VAT - {self.tax_rate}%'
+        sales_taxes_and_charges_template_doc.title = f"VAT - {self.tax_rate}%"
         sales_taxes_and_charges_template_doc.company = self.company
         sales_taxes_and_charges_template_doc.tax_category = tax_category
         sales_taxes_and_charges_template_doc.append(
-            'taxes',
+            "taxes",
             {
-                'charge_type': 'On Net Total',
-                'account_head': account_head,
-                'description': 'VAT Account',
-                'rate': self.tax_rate,
+                "charge_type": "On Net Total",
+                "account_head": account_head,
+                "description": "VAT Account",
+                "rate": self.tax_rate,
             },
         )
         sales_taxes_and_charges_template_doc.insert(ignore_permissions=True)
 
     def create_item_tax_template(self, account_head: str):
-        item_tax_template_doc = cast(ItemTaxTemplate, frappe.new_doc('Item Tax Template'))
-        item_tax_template_doc.title = f'VAT - {self.tax_rate}%'
+        item_tax_template_doc = cast(ItemTaxTemplate, frappe.new_doc("Item Tax Template"))
+        item_tax_template_doc.title = f"VAT - {self.tax_rate}%"
         item_tax_template_doc.company = self.company
         item_tax_template_doc.custom_zatca_item_tax_category = self.zatca_tax_category
-        item_tax_template_doc.append('taxes', {'tax_type': account_head, 'tax_rate': self.tax_rate})
+        item_tax_template_doc.append(
+            "taxes", {"tax_type": account_head, "tax_rate": self.tax_rate}
+        )
         item_tax_template_doc.insert(ignore_permissions=True, ignore_mandatory=True)
 
 
 @frappe.whitelist()
 def fetch_company_addresses(company_name):
-    company_list_dict = frappe.get_all('Dynamic Link', filters={'link_name': company_name}, fields=['parent'])
+    company_list_dict = frappe.get_all(
+        "Dynamic Link", filters={"link_name": company_name}, fields=["parent"]
+    )
     company_list = [address.parent for address in company_list_dict]
     return company_list
 
 
 @frappe.whitelist()
 def onboard(business_settings_id: str, otp: str) -> NoReturn:
-    settings = cast(ZATCABusinessSettings, frappe.get_doc('ZATCA Business Settings', business_settings_id))
+    settings = cast(
+        ZATCABusinessSettings, frappe.get_doc("ZATCA Business Settings", business_settings_id)
+    )
     settings.onboard(otp)
 
 
 @frappe.whitelist()
 def get_production_csid(business_settings_id: str, otp: str) -> NoReturn:
-    settings = cast(ZATCABusinessSettings, frappe.get_doc('ZATCA Business Settings', business_settings_id))
+    settings = cast(
+        ZATCABusinessSettings, frappe.get_doc("ZATCA Business Settings", business_settings_id)
+    )
     settings.get_production_csid(otp)

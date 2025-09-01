@@ -1,9 +1,9 @@
-app_name = 'ksa_compliance'
-app_title = 'KSA Compliance'
-app_publisher = 'LavaLoon'
-app_description = 'KSA Compliance app for E-invoice'
-app_email = 'info@lavaloon.com'
-app_license = 'Copyright (c) 2023 LavaLoon'
+app_name = "ksa_compliance"
+app_title = "KSA Compliance"
+app_publisher = "LavaLoon"
+app_description = "KSA Compliance app for E-invoice"
+app_email = "info@lavaloon.com"
+app_license = "Copyright (c) 2023 LavaLoon"
 # required_apps = []
 
 # Includes in <head>
@@ -34,10 +34,10 @@ app_license = 'Copyright (c) 2023 LavaLoon'
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
 doctype_js = {
-    'Customer': 'public/js/customer.js',
-    'Branch': 'public/js/branch.js',
-    'Sales Invoice': 'public/js/sales_invoice.js',
-    'Payment Entry': 'public/js/payment_entry.js',
+    "Customer": "public/js/customer.js",
+    "Branch": "public/js/branch.js",
+    "Sales Invoice": "public/js/sales_invoice.js",
+    "Payment Entry": "public/js/payment_entry.js",
 }
 
 # Svg Icons
@@ -67,10 +67,10 @@ doctype_js = {
 
 # add methods and filters to jinja environment
 jinja = {
-    'methods': [
-        'ksa_compliance.jinja.get_zatca_phase_1_qr_for_invoice',
-        'frappe.utils.data.rounded',
-        'ksa_compliance.jinja.get_phase_2_print_format_details',
+    "methods": [
+        "ksa_compliance.jinja.get_zatca_phase_1_qr_for_invoice",
+        "frappe.utils.data.rounded",
+        "ksa_compliance.jinja.get_phase_2_print_format_details",
     ],
 }
 
@@ -79,6 +79,8 @@ jinja = {
 
 # before_install = "ksa_compliance.install.before_install"
 after_install = "ksa_compliance.install.after_install"
+
+after_migrate = "ksa_compliance.install.after_migrate"
 
 # Uninstallation
 # ------------
@@ -141,34 +143,33 @@ override_doctype_class = {
 # }
 
 doc_events = {
-    'Sales Invoice': {
-        'on_submit': 'ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype',
-        'validate': 'ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice',
-        'before_cancel': 'ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice',
+    "Sales Invoice": {
+        "on_submit": "ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype",
+        "validate": "ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice",
+        "before_validate": "ksa_compliance.standard_doctypes.sales_invoice.auto_apply_advance_payments",
+        "before_cancel": "ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice",
     },
-
-    'Payment Entry': {
-        'validate': 'ksa_compliance.standard_doctypes.payment_entry.prevent_settling_advance_invoice_from_payment_entry_references',
-        'before_cancel': 'ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice',
+    "Payment Entry": {
+        "validate": "ksa_compliance.standard_doctypes.payment_entry.prevent_settling_advance_invoice_from_payment_entry_references",
+        "before_cancel": "ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice",
     },
-
-    'POS Invoice': {
-        'on_submit': 'ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype',
-        'validate': 'ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice',
-        'before_cancel': 'ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice',
+    "POS Invoice": {
+        "on_submit": "ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype",
+        "validate": "ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice",
+        "before_cancel": "ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice",
     },
-    'Branch': {
-        'validate': 'ksa_compliance.standard_doctypes.branch.validate_branch',
+    "Branch": {
+        "validate": "ksa_compliance.standard_doctypes.branch.validate_branch",
     },
-    'Unreconcile Payment': {
-        'validate': 'ksa_compliance.standard_doctypes.unreconcile_payment.prevent_un_reconcile_advance_payments',
+    "Unreconcile Payment": {
+        "validate": "ksa_compliance.standard_doctypes.unreconcile_payment.prevent_un_reconcile_advance_payments",
     },
 }
 
 # Scheduled Tasks
 # ---------------
 
-scheduler_events = {'hourly_long': ['ksa_compliance.background_jobs.sync_e_invoices']}
+scheduler_events = {"hourly_long": ["ksa_compliance.background_jobs.sync_e_invoices"]}
 # "all": [
 # "ksa_compliance.tasks.all"
 # ],
@@ -190,15 +191,13 @@ scheduler_events = {'hourly_long': ['ksa_compliance.background_jobs.sync_e_invoi
 # -------
 
 # before_tests = "ksa_compliance.install.before_tests"
-before_tests = [
-    "ksa_compliance.utils.test_setup.custom_erpnext_setup"
-]
+before_tests = ["ksa_compliance.utils.test_setup.custom_erpnext_setup"]
 
 # Overriding Methods
 # ------------------------------
 #
 override_whitelisted_methods = {
-  "erpnext.accounts.doctype.sales_invoice.sales_invoice.make_sales_return": "ksa_compliance.utils.make_sales_return.make_sales_return"
+    "erpnext.accounts.doctype.sales_invoice.sales_invoice.make_sales_return": "ksa_compliance.utils.make_sales_return.make_sales_return"
 }
 
 #

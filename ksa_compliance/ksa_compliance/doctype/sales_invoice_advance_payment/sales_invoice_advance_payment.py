@@ -4,5 +4,6 @@
 # import frappe
 from frappe.model.document import Document
 
+
 class SalesInvoiceAdvancePayment(Document):
-	pass
+    pass

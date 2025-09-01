@@ -9,15 +9,15 @@ def generate_xml_file(data: dict):
     env.lstrip_blocks = True
     env.trim_blocks = True
     try:
-        template = env.get_template('ksa_compliance/templates/e_invoice.xml')
+        template = env.get_template("ksa_compliance/templates/e_invoice.xml")
         return template.render(
             {
-                'invoice': data.get('invoice'),
-                'seller_details': data.get('seller_details'),
-                'buyer_details': data.get('buyer_details'),
-                'business_settings': data.get('business_settings'),
-                "prepayment_invoices": data.get('prepayment_invoices'),
-                "prepaid_amount": data.get('prepaid_amount'),
+                "invoice": data.get("invoice"),
+                "seller_details": data.get("seller_details"),
+                "buyer_details": data.get("buyer_details"),
+                "business_settings": data.get("business_settings"),
+                "prepayment_invoices": data.get("prepayment_invoices"),
+                "prepaid_amount": data.get("prepaid_amount"),
             }
         )
     finally:

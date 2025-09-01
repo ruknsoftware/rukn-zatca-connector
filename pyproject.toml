@@ -24,15 +24,13 @@ build-backend = "flit_core.buildapi"
 # These dependencies are only installed when developer mode is enabled
 [tool.bench.dev-dependencies]
 # package_name = "~=1.1.0"
-ruff = "~=0.7.2"
+
 pre-commit = "~=4.0.1"
 mypy = "~=1.13.0"
 
-[tool.ruff]
-line-length = 120
+[tool.black]
+line-length = 99
 
-[tool.ruff.lint]
-typing-modules = ['frappe.types.DF']
-
-[tool.ruff.format]
-quote-style = 'single'
+[tool.isort]
+profile = "black"
+line_length = 99
