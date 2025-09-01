@@ -7,6 +7,11 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.51.1
+* Fix Return Zero Qty
+
+## 0.51.0
+* Fix Make Custom Property Setter On VERSION 14
 ## 0.50.9
 * Install Payments Before Run App Tests
 
