@@ -186,3 +186,37 @@ function filter_company_address(frm) {
         },
     });
 }
+
+function add_other_ids_if_new(frm) {
+    // TODO: update permissions for child doctype
+    if (frm.doc.other_ids.length === 0) {
+        var seller_id_list = [];
+        seller_id_list.push(
+            {
+                type_name: "Commercial Registration Number",
+                type_code: "CRN",
+            },
+            {
+                type_name: "MOMRAH License",
+                type_code: "MOM",
+            },
+            {
+                type_name: "MHRSD License",
+                type_code: "MLS",
+            },
+            {
+                type_name: "700 Number",
+                type_code: "700",
+            },
+            {
+                type_name: "MISA License",
+                type_code: "SAG",
+            },
+            {
+                type_name: "Other ID",
+                type_code: "OTH",
+            }
+        );
+        frm.set_value("other_ids", seller_id_list);
+    }
+}
