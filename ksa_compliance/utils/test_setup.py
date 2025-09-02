@@ -55,11 +55,12 @@ def setup_compliance_check_data(company_name, business_settings_id):
             "is_default": 1,
             "company": company_name,
             "tax_category": tax_category_name,
-            "Sales Taxes and Charges": [
+            "taxes": [
                 {
                     "charge_type": "On Net Total",
                     "account_head": f"Miscellaneous Expenses - {frappe.get_cached_value('Company', company_name, 'abbr')}",
                     "rate": 15,
+                    "description": "Miscellaneous Expenses",
                 }
             ],
         }
@@ -205,8 +206,6 @@ def custom_erpnext_setup():
         frappe.db.set_value("Country", "Saudi Arabia", "code", "SA")
 
     frappe.db.sql("delete from `tabItem Price`")
-
-    frappe.msgprint("now ⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐")
 
     business_settings_id = setup_zatca_business_settings(company_name, country, currency)
     setup_compliance_check_data(company_name, business_settings_id)
