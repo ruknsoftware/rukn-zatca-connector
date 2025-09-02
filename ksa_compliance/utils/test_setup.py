@@ -1,6 +1,7 @@
 import frappe
 from frappe.utils import now_datetime
-
+from ksa_compliance.compliance_checks import perform_compliance_checks
+from ksa_compliance.zatca_cli import setup as zatca_cli_setup
 
 def setup_compliance_check_data(company_name, business_settings_id):
 
@@ -67,8 +68,7 @@ def setup_compliance_check_data(company_name, business_settings_id):
     )
     tax_template.insert(ignore_permissions=True)
 
-    frappe.call(
-        "ksa_compliance.compliance_checks.perform_compliance_checks",
+    perform_compliance_checks(
         business_settings_id=business_settings_id,
         simplified_customer_id=simplified_customer_name,
         standard_customer_id=standard_customer_name,
@@ -150,14 +150,10 @@ def setup_zatca_business_settings(company_name, country, currency):
     db_settings.update_additional_ids(id_values_to_set)
 
     if db_settings.cli_setup == "Automatic":
-        response = frappe.call(
-            "ksa_compliance.zatca_cli.setup",
-            override_cli_download_url="",
-            override_jre_download_url="",
-        )
-        if response:
-            db_settings.zatca_cli_path = response.get("cli_path")
-            db_settings.java_home = response.get("jre_path")
+        zatca_cli_response = zatca_cli_setup('','')
+        if zatca_cli_response:
+            db_settings.zatca_cli_path = zatca_cli_response.get("cli_path")
+            db_settings.java_home = zatca_cli_response.get("jre_path")
             db_settings.save(ignore_permissions=True)
 
     otp = "123456"
