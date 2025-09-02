@@ -44,7 +44,7 @@ def setup_compliance_check_data(company_name, business_settings_id):
             "address_title": customer_address_title,
             "address_type": "Billing",
             "address_line1": "Main Street 123",
-            "city": "Riyadh", 
+            "city": "Riyadh",
             "country": "Saudi Arabia",
             "is_primary_address": 1,
             "links": [{"link_doctype": "Customer", "link_name": standard_customer_name}],
