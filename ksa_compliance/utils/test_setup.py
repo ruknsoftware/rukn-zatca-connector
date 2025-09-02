@@ -10,6 +10,7 @@ def setup_compliance_check_data(company_name, business_settings_id):
     simplified_customer_name = "simplified ZATCA Customer"
     item_name = "ZATCA Test Item"
     tax_template_name = "VAT 15 %"
+    customer_address_title = f"{standard_customer_name} Address"
 
     for doctype, name in [
         ("Customer", standard_customer_name),
@@ -34,6 +35,19 @@ def setup_compliance_check_data(company_name, business_settings_id):
             "tax_id": "311609596400003",
             "custom_vat_registration_number": "311609596400003",
             "tax_category": tax_category_name,
+        }
+    ).insert(ignore_permissions=True)
+
+    frappe.get_doc(
+        {
+            "doctype": "Address",
+            "address_title": customer_address_title,
+            "address_type": "Billing",
+            "address_line1": "Main Street 123",
+            "city": "Riyadh", 
+            "country": "Saudi Arabia",
+            "is_primary_address": 1,
+            "links": [{"link_doctype": "Customer", "link_name": standard_customer_name}],
         }
     ).insert(ignore_permissions=True)
 
