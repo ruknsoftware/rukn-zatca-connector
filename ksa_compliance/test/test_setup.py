@@ -70,7 +70,7 @@ def setup_compliance_check_data(company_name):
         "item": item,
         "tax_category": tax_category_name,
     }
-    
+
 def _update_customer_address(customer_name):
     customer = frappe.get_doc("Customer", customer_name)
     address_title = f"{customer_name} Address"
@@ -108,7 +108,7 @@ def _create_standard_customer(tax_category_name):
 def _create_simplified_customer():
 
     simplified_customer_name = "simplified ZATCA Customer"
-    
+
     frappe.get_doc({
         "doctype": "Customer",
         "customer_name": simplified_customer_name,
@@ -273,9 +273,9 @@ def test_compliance_check_messages(business_settings_id,simplified_customer,stan
     standard_customer = standard_customer
     item = item
     tax_category = tax_category
-    
+
     frappe.clear_messages()
-    
+
     _perform_compliance_checks(
         business_settings_id=business_settings_id,
         simplified_customer_id=simplified_customer,
@@ -283,23 +283,23 @@ def test_compliance_check_messages(business_settings_id,simplified_customer,stan
         item_id=item,
         tax_category_id=tax_category,
     )
-    
+
     messages = frappe.get_message_log()
 
-    print("\n--- Compliance Check Results (from test case) ---")
+    print(_("\n--- Compliance Check Results (from test case) ---"))
     if messages:
         for msg in messages:
             title = msg.get("title")
             message_content = msg.get("message")
             if title:
-                print(f"\nTitle: {title}\n")
+                print(_(f"\nTitle: {title}\n"))
             if message_content:
                 formatted = format_message(message_content)
-                print(formatted)
-            print("-" * 30)
+                print(_(formatted))
+            print(_("-" * 30))
     else:
-        print("No messages were generated.")
-    print("--- End of test printout ---\n")
+        print(_("No messages were generated."))
+    print(_("--- End of test printout ---\n"))
 
 
 
