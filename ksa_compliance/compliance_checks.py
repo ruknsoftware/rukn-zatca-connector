@@ -163,7 +163,10 @@ def _perform_compliance_checks(
             message += simplified_result.format(ft("Simplified"))
         if standard_result:
             message += standard_result.format(ft("Standard"))
-        frappe.msgprint(message, realtime=True)
+        if frappe.flags.get("in_test"):
+            frappe.msgprint(message, realtime=False)
+        else:
+            frappe.msgprint(message, realtime=True)
     except Exception as e:
         has_error = True
         error_log = frappe.log_error(title="Compliance error")
