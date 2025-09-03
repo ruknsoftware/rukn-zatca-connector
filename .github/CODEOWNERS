@@ -3,4 +3,4 @@
 # Format: path/to/file @username
 
 # Global owners - the repository owner will be automatically requested for all PRs
-* @$GITHUB_REPOSITORY_OWNER
+* @alaa-alsalehi
