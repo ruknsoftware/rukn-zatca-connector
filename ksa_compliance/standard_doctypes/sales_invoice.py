@@ -335,6 +335,8 @@ def create_payment_entry_for_advance_payment_invoice(
     payment_entry.cost_center = self.cost_center
     payment_entry.paid_amount = abs(self.grand_total)
     payment_entry.mode_of_payment = self.mode_of_payment
+    payment_entry.reference_no = self.reference_no
+    payment_entry.reference_date = self.reference_date
 
     payment_entry.is_advance_payment = True
     payment_entry.invoice_doctype = self.doctype
