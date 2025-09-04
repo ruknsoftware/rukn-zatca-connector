@@ -59,10 +59,10 @@ def setup_compliance_check_data(company_name):
     simplified_customer = _create_simplified_customer()
     item = _create_test_item()
     _create_tax_template(company_name, tax_category_name)
-    _create_customer_address(standard_customer_name)
-    _create_customer_address(simplified_customer)
-    _update_customer_address(standard_customer_name)
-    _update_customer_address(simplified_customer)
+    standard_address = _create_customer_address(standard_customer_name)
+    simplified_address = _create_customer_address(simplified_customer)
+    _update_customer_address(standard_customer_name,standard_address)
+    _update_customer_address(simplified_customer,simplified_address)
 
     return {
         "simplified_customer": simplified_customer,
@@ -71,13 +71,9 @@ def setup_compliance_check_data(company_name):
         "tax_category": tax_category_name,
     }
 
-def _update_customer_address(customer_name):
+def _update_customer_address(customer_name, address):
     customer = frappe.get_doc("Customer", customer_name)
-    address_title = f"{customer_name} Address"
-    address_name = f"{address_title}-Billing"
-
-    address = frappe.get_doc("Address", address_name)
-    customer.customer_primary_address = address
+    customer.customer_primary_address = address.name
     customer.save(ignore_permissions=True)
 
 def _create_tax_category():
@@ -120,7 +116,7 @@ def _create_simplified_customer():
 def _create_customer_address(customer_name):
     address_title = f"{customer_name} Address"
 
-    frappe.get_doc({
+    address = frappe.get_doc({
         "doctype": "Address",
         "address_title": address_title,
         "address_type": "Billing",
@@ -139,6 +135,7 @@ def _create_customer_address(customer_name):
         ],
     }).insert(ignore_permissions=True)
 
+    return address
 
 def _create_test_item():
     item_name = "ZATCA Test Item"
@@ -268,11 +265,6 @@ def setup_zatca_business_settings(company_name, country, currency):
     return doc_name
 
 def test_compliance_check_messages(business_settings_id,simplified_customer,standard_customer,item,tax_category):
-    business_settings_id = business_settings_id
-    simplified_customer = simplified_customer
-    standard_customer = standard_customer
-    item = item
-    tax_category = tax_category
 
     frappe.clear_messages()
 
