@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.51.4
+* Added defualt bussnies settings data in setup for dev
+
 ## 0.51.3
 * Fix Default Other IDs by moving logic to clint-side
 
