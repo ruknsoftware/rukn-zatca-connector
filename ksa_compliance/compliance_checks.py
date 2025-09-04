@@ -157,13 +157,14 @@ def _perform_compliance_checks(
         # Submitting the above invoices results in a number of messages about payment reconciliation and the like,
         # and we don't to show those with the result of the compliance check
         frappe.clear_messages()
+        in_test = frappe.flags.get("in_test")
 
         message = ""
         if simplified_result:
             message += simplified_result.format(ft("Simplified"))
         if standard_result:
             message += standard_result.format(ft("Standard"))
-        frappe.msgprint(message, realtime=True)
+        frappe.msgprint(message, realtime=not in_test)
     except Exception as e:
         has_error = True
         error_log = frappe.log_error(title="Compliance error")
@@ -174,7 +175,7 @@ def _perform_compliance_checks(
             title=ft("Compliance Error"),
             msg=f"{str(e)}.\nError log link: {error_link}",
             indicator="red",
-            realtime=True,
+            realtime=not in_test,
         )
     finally:
         # If an error occurs, we hide the progress before showing it, so no need to do it here
