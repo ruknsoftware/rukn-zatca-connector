@@ -11,7 +11,7 @@ app_license = "Copyright (c) 2023 LavaLoon"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/ksa_compliance/css/ksa_compliance.css"
-# app_include_js = "/assets/ksa_compliance/js/ksa_compliance.js"
+app_include_js = "/assets/ksa_compliance/js/accounts.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/ksa_compliance/css/ksa_compliance.css"
@@ -191,7 +191,10 @@ scheduler_events = {"hourly_long": ["ksa_compliance.background_jobs.sync_e_invoi
 # -------
 
 # before_tests = "ksa_compliance.install.before_tests"
-before_tests = ["ksa_compliance.utils.test_setup.custom_erpnext_setup"]
+before_tests = [
+    "ksa_compliance.test.test_setup.custom_erpnext_setup",
+    "ksa_compliance.test.test_setup.runing_test",
+]
 
 # Overriding Methods
 # ------------------------------

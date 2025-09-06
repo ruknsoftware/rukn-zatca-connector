@@ -30,7 +30,23 @@ frappe.require("/assets/ksa_compliance/js/update_invoice_mode_of_payment.js").th
         customer: function(frm) {
             frm.trigger("apply_advance_payments");
         },
-
+        mode_of_payment: function(frm){
+            frappe.db.get_value(
+                "Mode of Payment",
+                { mode_of_payment: frm.doc.mode_of_payment },
+                "type"
+            ).then(response => {
+                const type = response.message.type;
+                if (type === "Bank"){
+                    frm.set_df_property("reference_no", "read_only", 0);
+                    frm.toggle_reqd("reference_no", 1);
+                    frm.set_df_property("reference_date", "read_only", 0);
+                    frm.toggle_reqd("reference_date", 1);
+                    frm.refresh_field("reference_no");
+                    frm.refresh_field("reference_date");
+                }
+            });
+        },
         apply_advance_payments: function (frm){
             if (frm.doc.customer) {
                 frappe.call({
