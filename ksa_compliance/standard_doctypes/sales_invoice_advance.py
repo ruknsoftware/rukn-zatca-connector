@@ -147,7 +147,7 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
     settings = ZATCABusinessSettings.for_company(company)
     if not settings or not settings.auto_apply_advance_payments:
         return []
-    if invoice_has_advance_item(self, settings):
+    if invoice_has_advance_item(self, settings) or self.get("is_return"):
         return []
     customer = self.get("customer")
     party_account = get_party_account(party_type="Customer", party=customer, company=company)
