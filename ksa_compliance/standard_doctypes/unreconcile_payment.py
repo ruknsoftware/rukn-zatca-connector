@@ -4,7 +4,39 @@ from frappe import _
 from ksa_compliance.standard_doctypes.sales_invoice_advance import get_invoice_advance_payments
 
 
+def unreconcile_from_advance_payment(
+    company, voucher_type, voucher_no, against_voucher_type, against_voucher_no, allocated_amount
+):
+    unrecon = frappe.new_doc("Unreconcile Payment")
+    unrecon.company = company
+    unrecon.voucher_type = voucher_type
+    unrecon.voucher_no = voucher_no
+    unrecon.add_references()
+
+    # remove unselected references
+    unrecon.allocations = [
+        x
+        for x in unrecon.allocations
+        if x.reference_doctype == against_voucher_type and x.reference_name == against_voucher_no
+    ]
+    new_allocations = []
+    for allocation in unrecon.allocations:
+        if (
+            allocation.reference_doctype == against_voucher_type
+            and allocation.reference_name == against_voucher_no
+        ):
+            allocation.allocated_amount = allocated_amount
+            new_allocations.append(allocation)
+
+    unrecon.allocations = new_allocations
+    setattr(unrecon, "enable_unreconcile_from_advance_payment", True)
+    unrecon.save().submit()
+
+
 def prevent_un_reconcile_advance_payments(self, method):
+    if hasattr(self, "enable_unreconcile_from_advance_payment"):
+        setattr(self, "enable_unreconcile_from_advance_payment", False)
+        return
     valid = True
     if self.voucher_type == "Payment Entry":
         payment_entry = frappe.get_doc(self.voucher_type, self.voucher_no)
