@@ -91,7 +91,7 @@ class CustomUnreconcilePayment(UnreconcilePayment):
         # todo: more granular unreconciliation
         for alloc in self.allocations:
             doc = frappe.get_doc(alloc.reference_doctype, alloc.reference_name)
-            unlink_ref_doc_from_payment_entries(doc, self.voucher_no)
+            unlink_ref_doc_from_payment_entries(doc, self.voucher_no, alloc.allocated_amount)
             cancel_exchange_gain_loss_journal(doc, self.voucher_type, self.voucher_no)
 
             # update outstanding amounts
