@@ -2,10 +2,12 @@ import frappe
 from erpnext.accounts.doctype.unreconcile_payment.unreconcile_payment import UnreconcilePayment
 from erpnext.accounts.utils import (
     cancel_exchange_gain_loss_journal,
-    unlink_ref_doc_from_payment_entries,
+    remove_ref_doc_link_from_jv,
+    remove_ref_doc_link_from_pe,
+    update_accounting_ledgers_after_reference_removal,
     update_voucher_outstanding,
 )
-from frappe import _
+from frappe import _, qb
 
 from ksa_compliance.standard_doctypes.sales_invoice_advance import get_invoice_advance_payments
 
@@ -101,3 +103,18 @@ class CustomUnreconcilePayment(UnreconcilePayment):
             )
 
             frappe.db.set_value("Unreconcile Payment Entries", alloc.name, "unlinked", True)
+
+
+def remove_ref_from_advance_section(ref_doc: object = None):
+    # TODO: this might need some testing
+    if ref_doc.doctype in ("Sales Invoice", "Purchase Invoice"):
+        ref_doc.set("advances", [])
+        adv_type = qb.DocType(f"{ref_doc.doctype} Advance")
+        qb.from_(adv_type).delete().where(adv_type.parent == ref_doc.name).run()
+
+
+def unlink_ref_doc_from_payment_entries(ref_doc: object = None, payment_name: str | None = None):
+    remove_ref_doc_link_from_jv(ref_doc.doctype, ref_doc.name, payment_name)
+    remove_ref_doc_link_from_pe(ref_doc.doctype, ref_doc.name, payment_name)
+    update_accounting_ledgers_after_reference_removal(ref_doc.doctype, ref_doc.name, payment_name)
+    remove_ref_from_advance_section(ref_doc)
