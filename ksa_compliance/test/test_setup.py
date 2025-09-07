@@ -4,8 +4,6 @@ from frappe import _
 from ksa_compliance.zatca_cli import setup as zatca_cli_setup
 from ksa_compliance.compliance_checks import _perform_compliance_checks
 
-import re
-import html
 
 company_name =   "RUKN"
 country = "Saudi Arabia"
@@ -264,11 +262,12 @@ def setup_zatca_business_settings(company_name, country, currency):
 
     return doc_name
 
-def test_compliance_check_messages(business_settings_id,simplified_customer,standard_customer,item,tax_category):
+def test_compliance_check_messages(business_settings_id, simplified_customer, standard_customer, item, tax_category):
 
-    frappe.clear_messages()
+    frappe.flags.in_test = True
+    expected_status = "Invoice sent to ZATCA. Integration status: Accepted"
 
-    _perform_compliance_checks(
+    simplified_result, standard_result = _perform_compliance_checks(
         business_settings_id=business_settings_id,
         simplified_customer_id=simplified_customer,
         standard_customer_id=standard_customer,
@@ -276,34 +275,39 @@ def test_compliance_check_messages(business_settings_id,simplified_customer,stan
         tax_category_id=tax_category,
     )
 
-    messages = frappe.get_message_log()
+    if simplified_result:
+        (result, details, credit_note_result,
+         credit_note_details, debit_note_result,
+         debit_note_details, error_log) = simplified_result
 
-    print(_("\n--- Compliance Check Results (from test case) ---"))
-    if messages:
-        for msg in messages:
-            title = msg.get("title")
-            message_content = msg.get("message")
-            if title:
-                print(_(f"\nTitle: {title}\n"))
-            if message_content:
-                formatted = format_message(message_content)
-                print(_(formatted))
-            print(_("-" * 30))
-    else:
-        print(_("No messages were generated."))
-    print(_("--- End of test printout ---\n"))
+        print(_("\n=== Simplified Invoice Test Results ==="))
+        print(_(f"Invoice Status: {result}"))
+        print(_(f"Credit Note Status: {credit_note_result}"))
+        print(_(f"Debit Note Status: {debit_note_result}"))
 
+        assert result == expected_status, f"Simplified invoice validation failed: {details}"
+        assert credit_note_result == expected_status, f"Simplified credit note validation failed: {credit_note_details}"
+        assert debit_note_result == expected_status, f"Simplified debit note validation failed: {debit_note_details}"
 
+    if standard_result:
+        (result, details, credit_note_result,
+         credit_note_details, debit_note_result,
+         debit_note_details, error_log) = standard_result
 
-def format_message(msg_html):
-    text = html.unescape(msg_html)
+        print(_("\n=== Standard Invoice Test Results ==="))
+        print(_(f"Invoice Status: {result}"))
+        print(_(f"Credit Note Status: {credit_note_result}"))
+        print(_(f"Debit Note Status: {debit_note_result}"))
 
-    text = re.sub(r'<li>(.*?)</li>', r'  - \1', text, flags=re.DOTALL)
+        assert result == expected_status, f"Standard invoice validation failed: {details}"
+        assert credit_note_result == expected_status, f"Standard credit note validation failed: {credit_note_details}"
+        assert debit_note_result == expected_status, f"Standard debit note validation failed: {debit_note_details}"
 
-    text = re.sub(r'<p>(.*?)</p>', r'\n\1\n', text, flags=re.DOTALL)
+    if simplified_customer and not simplified_result:
+        raise AssertionError("Simplified invoice test was expected but not performed")
+    if standard_customer and not standard_result:
+        raise AssertionError("Standard invoice test was expected but not performed")
 
-    text = re.sub(r'<strong>(.*?)</strong>', r'\n\1\n', text, flags=re.DOTALL)
+    print(_("\n ✅✅✅ Everything is good! All ZATCA compliance tests passed like a hot knife through butter 🧈🔪 ✅✅✅"))
 
-    text = re.sub(r'<.*?>', '', text)
-
-    return text.strip()
+    print(_("\n=== All ZATCA compliance tests completed successfully ==="))
