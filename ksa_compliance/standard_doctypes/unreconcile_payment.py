@@ -8,6 +8,7 @@ from erpnext.accounts.utils import (
     update_voucher_outstanding,
 )
 from frappe import _, qb
+from frappe.utils import flt
 
 from ksa_compliance.standard_doctypes.sales_invoice_advance import get_invoice_advance_payments
 
@@ -105,16 +106,47 @@ class CustomUnreconcilePayment(UnreconcilePayment):
             frappe.db.set_value("Unreconcile Payment Entries", alloc.name, "unlinked", True)
 
 
-def remove_ref_from_advance_section(ref_doc: object = None):
+def remove_ref_from_advance_section(
+    ref_doc: object = None, payment_name=None, allocated_amount=None
+):
     # TODO: this might need some testing
     if ref_doc.doctype in ("Sales Invoice", "Purchase Invoice"):
+        advances = ref_doc.advances
         ref_doc.set("advances", [])
         adv_type = qb.DocType(f"{ref_doc.doctype} Advance")
-        qb.from_(adv_type).delete().where(adv_type.parent == ref_doc.name).run()
+        for advance in advances:
+            if advance.reference_name != payment_name:
+                continue
+            elif advance.allocated_amount != allocated_amount:
+                updated_allocated_amount = round(
+                    abs(advance.allocated_amount - allocated_amount), 2
+                )
+
+                query = (
+                    qb.update(adv_type)
+                    .set(adv_type.allocated_amount, updated_allocated_amount)
+                    .where(
+                        (adv_type.parent == ref_doc.name)
+                        & (adv_type.reference_name == payment_name)
+                    )
+                )
+                query.run()
+            elif flt(advance.allocated_amount) == flt(allocated_amount):
+                query = (
+                    qb.from_(adv_type)
+                    .delete()
+                    .where(
+                        (adv_type.parent == ref_doc.name)
+                        & (adv_type.reference_name == payment_name)
+                    )
+                )
+                query.run()
 
 
-def unlink_ref_doc_from_payment_entries(ref_doc: object = None, payment_name: str | None = None):
+def unlink_ref_doc_from_payment_entries(
+    ref_doc: object = None, payment_name: str | None = None, allocated_amount=None
+):
     remove_ref_doc_link_from_jv(ref_doc.doctype, ref_doc.name, payment_name)
     remove_ref_doc_link_from_pe(ref_doc.doctype, ref_doc.name, payment_name)
     update_accounting_ledgers_after_reference_removal(ref_doc.doctype, ref_doc.name, payment_name)
-    remove_ref_from_advance_section(ref_doc)
+    remove_ref_from_advance_section(ref_doc, payment_name, allocated_amount)
