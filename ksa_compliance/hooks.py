@@ -127,7 +127,8 @@ after_migrate = "ksa_compliance.install.after_migrate"
 # Override standard doctype classes
 
 override_doctype_class = {
-    "Payment Reconciliation": "ksa_compliance.standard_doctypes.payment_reconciliation.CustomPaymentReconciliation"
+    "Payment Reconciliation": "ksa_compliance.standard_doctypes.payment_reconciliation.CustomPaymentReconciliation",
+    "Unreconcile Payment": "ksa_compliance.standard_doctypes.unreconcile_payment.CustomUnreconcilePayment",
 }
 
 # Document Events
