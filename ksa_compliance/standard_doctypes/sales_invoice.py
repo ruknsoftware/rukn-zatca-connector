@@ -47,6 +47,7 @@ from ksa_compliance.standard_doctypes.sales_invoice_advance import (
 from ksa_compliance.translation import ft
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
 from ksa_compliance.utils.return_invoice_paid_from_advance_payment import (
+    get_return_against_advance_payments,
     settle_return_invoice_paid_from_advance_payment,
 )
 
@@ -233,6 +234,10 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                     indicator="red",
                 )
                 valid = False
+            advance_payments = get_return_against_advance_payments(
+                return_against, abs(self.get("grand_total"))
+            )
+
         self.advance_payment_invoices = []
         if advance_payments:
             if self.doctype == "POS Invoice":
