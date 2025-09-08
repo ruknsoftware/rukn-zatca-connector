@@ -263,17 +263,6 @@ def _perform_compliance_for_invoice_type(
         f"{debit_note_details}\n",
     )
 
-    if frappe.flags.get("in_test"):
-        return (
-            result,
-            details,
-            credit_note_result,
-            credit_note_details,
-            debit_note_result,
-            debit_note_details,
-            error_log,
-        )
-
     return _ComplianceResult(
         result,
         details,

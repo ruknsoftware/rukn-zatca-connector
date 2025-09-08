@@ -276,32 +276,24 @@ def test_compliance_check_messages(business_settings_id, simplified_customer, st
     )
 
     if simplified_result:
-        (result, details, credit_note_result,
-         credit_note_details, debit_note_result,
-         debit_note_details, error_log) = simplified_result
-
         print(_("\n=== Simplified Invoice Test Results ==="))
-        print(_(f"Invoice Status: {result}"))
-        print(_(f"Credit Note Status: {credit_note_result}"))
-        print(_(f"Debit Note Status: {debit_note_result}"))
+        print(_(f"Invoice Status: {simplified_result.invoice_result}"))
+        print(_(f"Credit Note Status: {simplified_result.credit_note_result}"))
+        print(_(f"Debit Note Status: {simplified_result.debit_note_result}"))
 
-        assert result == expected_status, f"Simplified invoice validation failed: {details}"
-        assert credit_note_result == expected_status, f"Simplified credit note validation failed: {credit_note_details}"
-        assert debit_note_result == expected_status, f"Simplified debit note validation failed: {debit_note_details}"
+        assert simplified_result.invoice_result == expected_status, f"Simplified invoice validation failed: {simplified_result.invoice_details}"
+        assert simplified_result.credit_note_result == expected_status, f"Simplified credit note validation failed: {simplified_result.credit_note_details}"
+        assert simplified_result.debit_note_result == expected_status, f"Simplified debit note validation failed: {simplified_result.debit_note_details}"
 
     if standard_result:
-        (result, details, credit_note_result,
-         credit_note_details, debit_note_result,
-         debit_note_details, error_log) = standard_result
-
         print(_("\n=== Standard Invoice Test Results ==="))
-        print(_(f"Invoice Status: {result}"))
-        print(_(f"Credit Note Status: {credit_note_result}"))
-        print(_(f"Debit Note Status: {debit_note_result}"))
+        print(_(f"Invoice Status: {standard_result.invoice_result}"))
+        print(_(f"Credit Note Status: {standard_result.credit_note_result}"))
+        print(_(f"Debit Note Status: {standard_result.debit_note_result}"))
 
-        assert result == expected_status, f"Standard invoice validation failed: {details}"
-        assert credit_note_result == expected_status, f"Standard credit note validation failed: {credit_note_details}"
-        assert debit_note_result == expected_status, f"Standard debit note validation failed: {debit_note_details}"
+        assert standard_result.invoice_result == expected_status, f"Standard invoice validation failed: {standard_result.invoice_details}"
+        assert standard_result.credit_note_result == expected_status, f"Standard credit note validation failed: {standard_result.credit_note_details}"
+        assert standard_result.debit_note_result == expected_status, f"Standard debit note validation failed: {standard_result.debit_note_details}"
 
     if simplified_customer and not simplified_result:
         raise AssertionError("Simplified invoice test was expected but not performed")
