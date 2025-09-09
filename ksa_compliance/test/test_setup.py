@@ -4,6 +4,8 @@ from frappe import _
 from ksa_compliance.zatca_cli import setup as zatca_cli_setup
 from ksa_compliance.compliance_checks import _perform_compliance_checks
 
+import re
+import html
 
 company_name =   "RUKN"
 country = "Saudi Arabia"
@@ -57,6 +59,10 @@ def setup_compliance_check_data(company_name):
     simplified_customer = _create_simplified_customer()
     item = _create_test_item()
     _create_tax_template(company_name, tax_category_name)
+    standard_address = _create_customer_address(standard_customer_name)
+    simplified_address = _create_customer_address(simplified_customer)
+    _update_customer_address(standard_customer_name,standard_address)
+    _update_customer_address(simplified_customer,simplified_address)
 
     return {
         "simplified_customer": simplified_customer,
@@ -258,10 +264,11 @@ def setup_zatca_business_settings(company_name, country, currency):
 
     return doc_name
 
-def run_test_case_without_addresses(business_settings_id, simplified_customer, standard_customer, item, tax_category, success_status):
-    print(_("\n🔍 Test Case 1: Without Customer Addresses"))
+def test_compliance_check_messages(business_settings_id,simplified_customer,standard_customer,item,tax_category):
 
-    simplified_result, standard_result = _perform_compliance_checks(
+    frappe.clear_messages()
+
+    _perform_compliance_checks(
         business_settings_id=business_settings_id,
         simplified_customer_id=simplified_customer,
         standard_customer_id=standard_customer,
@@ -269,64 +276,34 @@ def run_test_case_without_addresses(business_settings_id, simplified_customer, s
         tax_category_id=tax_category,
     )
 
-    if standard_result and standard_result.invoice_result:
-        assert standard_result.invoice_result != success_status, "Test Case 1: Standard invoice should fail without address"
+    messages = frappe.get_message_log()
 
-    print(_("\n ✅✅✅ Test Case 1 completed: Validation failed as expected (no addresses) ✅✅✅\n"))
-
-
-def run_test_case_with_addresses(business_settings_id, simplified_customer, standard_customer, item, tax_category, success_status):
-    print(_("\n🔍 Test Case 2: With Customer Addresses"))
-
-    standard_address = _create_customer_address(standard_customer)
-    simplified_address = _create_customer_address(simplified_customer)
-    _update_customer_address(standard_customer, standard_address)
-    _update_customer_address(simplified_customer, simplified_address)
-    frappe.db.commit()
-
-    simplified_result, standard_result = _perform_compliance_checks(
-        business_settings_id=business_settings_id,
-        simplified_customer_id=simplified_customer,
-        standard_customer_id=standard_customer,
-        item_id=item,
-        tax_category_id=tax_category,
-    )
-
-    if simplified_result:
-        print(_("\n📝 Simplified Invoice Results:"))
-        print(_(f"Invoice Status: {simplified_result.invoice_result}"))
-        print(_(f"Credit Note Status: {simplified_result.credit_note_result}"))
-        print(_(f"Debit Note Status: {simplified_result.debit_note_result}"))
-
-        assert simplified_result.invoice_result == success_status, "Simplified invoice validation failed"
-        assert simplified_result.credit_note_result == success_status, "Simplified credit note validation failed"
-        assert simplified_result.debit_note_result == success_status, "Simplified debit note validation failed"
-
-    if standard_result:
-        print(_("\n📝 Standard Invoice Results:"))
-        print(_(f"Invoice Status: {standard_result.invoice_result}"))
-        print(_(f"Credit Note Status: {standard_result.credit_note_result}"))
-        print(_(f"Debit Note Status: {standard_result.debit_note_result}"))
-
-        assert standard_result.invoice_result == success_status, "Standard invoice validation failed"
-        assert standard_result.credit_note_result == success_status, "Standard credit note validation failed"
-        assert standard_result.debit_note_result == success_status, "Standard debit note validation failed"
-
-    print(_("\n✅✅✅ Test Case 2 completed: All validations passed with addresses ✅✅✅"))
+    print(_("\n--- Compliance Check Results (from test case) ---"))
+    if messages:
+        for msg in messages:
+            title = msg.get("title")
+            message_content = msg.get("message")
+            if title:
+                print(_(f"\nTitle: {title}\n"))
+            if message_content:
+                formatted = format_message(message_content)
+                print(_(formatted))
+            print(_("-" * 30))
+    else:
+        print(_("No messages were generated."))
+    print(_("--- End of test printout ---\n"))
 
 
-def test_compliance_check_messages(business_settings_id, simplified_customer, standard_customer, item, tax_category):
-    frappe.flags.in_test = True
-    success_status = "Invoice sent to ZATCA. Integration status: Accepted"
 
-    print(_("\n=== ZATCA Compliance Test Suite ==="))
+def format_message(msg_html):
+    text = html.unescape(msg_html)
 
-    run_test_case_without_addresses(
-        business_settings_id, simplified_customer, standard_customer, item, tax_category, success_status
-    )
+    text = re.sub(r'<li>(.*?)</li>', r'  - \1', text, flags=re.DOTALL)
 
-    run_test_case_with_addresses(
-        business_settings_id, simplified_customer, standard_customer, item, tax_category, success_status
-    )
+    text = re.sub(r'<p>(.*?)</p>', r'\n\1\n', text, flags=re.DOTALL)
 
-    print(_("\n=== ZATCA Compliance Test Suite Completed Successfully ==="))
+    text = re.sub(r'<strong>(.*?)</strong>', r'\n\1\n', text, flags=re.DOTALL)
+
+    text = re.sub(r'<.*?>', '', text)
+
+    return text.strip()

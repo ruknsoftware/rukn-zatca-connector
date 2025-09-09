@@ -63,7 +63,7 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
     ).run(as_dict=True)
 
 
-def set_advance_payment_invoice_settling_gl_entries(advance_payment):
+def set_advance_payment_invoice_settling_gl_entries(advance_payment, is_return=False):
     advance_payment_invoice = frappe.get_doc(
         "Sales Invoice", advance_payment.advance_payment_invoice
     )
@@ -91,16 +91,24 @@ def set_advance_payment_invoice_settling_gl_entries(advance_payment):
             continue
         advance_gl_entry = gl_entry.copy()
 
-        if advance_gl_entry.debit != 0.0:
-            advance_gl_entry["debit"] = 0.0
-            advance_gl_entry["debit_in_account_currency"] = 0.0
-            advance_gl_entry["credit"] = amount
-            advance_gl_entry["credit_in_account_currency"] = amount
+        if is_return:
+            if advance_gl_entry.debit != 0.0:
+                advance_gl_entry["debit"] = amount
+                advance_gl_entry["debit_in_account_currency"] = amount
+            else:
+                advance_gl_entry["credit"] = amount
+                advance_gl_entry["credit_in_account_currency"] = amount
         else:
-            advance_gl_entry["debit"] = amount
-            advance_gl_entry["debit_in_account_currency"] = amount
-            advance_gl_entry["credit"] = 0.0
-            advance_gl_entry["credit_in_account_currency"] = 0.0
+            if advance_gl_entry.debit != 0.0:
+                advance_gl_entry["debit"] = 0.0
+                advance_gl_entry["debit_in_account_currency"] = 0.0
+                advance_gl_entry["credit"] = amount
+                advance_gl_entry["credit_in_account_currency"] = amount
+            else:
+                advance_gl_entry["debit"] = amount
+                advance_gl_entry["debit_in_account_currency"] = amount
+                advance_gl_entry["credit"] = 0.0
+                advance_gl_entry["credit_in_account_currency"] = 0.0
         advance_gl_entries.append(advance_gl_entry)
     advance_payment_invoice.make_gl_entries(advance_gl_entries)
 
@@ -139,7 +147,7 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
     settings = ZATCABusinessSettings.for_company(company)
     if not settings or not settings.auto_apply_advance_payments:
         return []
-    if invoice_has_advance_item(self, settings):
+    if invoice_has_advance_item(self, settings) or self.get("is_return"):
         return []
     customer = self.get("customer")
     party_account = get_party_account(party_type="Customer", party=customer, company=company)

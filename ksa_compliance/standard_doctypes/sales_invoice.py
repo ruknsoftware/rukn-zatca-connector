@@ -46,6 +46,10 @@ from ksa_compliance.standard_doctypes.sales_invoice_advance import (
 )
 from ksa_compliance.translation import ft
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
+from ksa_compliance.utils.return_invoice_paid_from_advance_payment import (
+    get_return_against_advance_payments,
+    settle_return_invoice_paid_from_advance_payment,
+)
 
 IGNORED_INVOICES = set()
 
@@ -112,10 +116,14 @@ def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoi
             )
             set_advance_payment_invoice_settling_gl_entries(advance_payment)
             set_advance_payment_entry_settling_gl_entries(payment_entry)
+    if self.is_return:
+        if not is_advance_invoice:
+            settle_return_invoice_paid_from_advance_payment(self)
+    else:
+        advance_payments = get_invoice_advance_payments(self)
+        for advance_payment in advance_payments:
+            set_advance_payment_invoice_settling_gl_entries(advance_payment)
 
-    advance_payments = get_invoice_advance_payments(self)
-    for advance_payment in advance_payments:
-        set_advance_payment_invoice_settling_gl_entries(advance_payment)
     if is_live_sync:
         # We're running in the context of invoice submission (on_submit hook). We only want to run our ZATCA logic if
         # the invoice submits successfully after on_submit is run successfully from all apps.
@@ -217,15 +225,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
         advance_payments = get_invoice_advance_payments(self)
         if self.is_return:
             return_against = frappe.get_doc(self.doctype, self.return_against)
-            return_against_advance_payments = get_invoice_advance_payments(return_against)
-            if advance_payments or return_against_advance_payments:
-                frappe.msgprint(
-                    msg=_("Cant Return Invoice Having Advance Payment"),
-                    title=_("Validation Error"),
-                    indicator="red",
-                )
-                valid = False
-            if abs(self.grand_total) > return_against.outstanding_amount:
+            if is_advance_invoice and abs(self.grand_total) > return_against.outstanding_amount:
                 frappe.msgprint(
                     _("Cant Return exceeds the outstanding amount {0} of Advance Invoice").format(
                         return_against.outstanding_amount
@@ -234,6 +234,10 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                     indicator="red",
                 )
                 valid = False
+            advance_payments = get_return_against_advance_payments(
+                return_against, abs(self.get("grand_total"))
+            )
+
         self.advance_payment_invoices = []
         if advance_payments:
             if self.doctype == "POS Invoice":
