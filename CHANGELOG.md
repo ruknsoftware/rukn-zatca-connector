@@ -7,6 +7,8 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.51.8
+* Fix Prevent missing ZATCA Business Settings on sales return 
 ## 0.51.7
 * Enhanced ZATCA compliance checks with improved test feedback
 * Improved compliance test output formatting for both simplified and standard invoices
