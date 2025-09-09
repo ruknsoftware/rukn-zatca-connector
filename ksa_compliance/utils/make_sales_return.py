@@ -19,10 +19,10 @@ from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_ite
 def make_sales_return(source_name, target_doc=None):
     sales_invoice = frappe.get_doc("Sales Invoice", source_name)
     settings = ZATCABusinessSettings.for_company(sales_invoice.company)
-    if not invoice_has_advance_item(sales_invoice, settings):
-        return erpnext_make_return_doc("Sales Invoice", source_name, target_doc)
+    if settings and invoice_has_advance_item(sales_invoice, settings):
+        return make_return_doc("Sales Invoice", source_name, target_doc)
 
-    return make_return_doc("Sales Invoice", source_name, target_doc)
+    return erpnext_make_return_doc("Sales Invoice", source_name, target_doc)
 
 
 def make_return_doc(
