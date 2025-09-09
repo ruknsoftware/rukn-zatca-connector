@@ -258,15 +258,10 @@ def setup_zatca_business_settings(company_name, country, currency):
 
     return doc_name
 
-def test_compliance_check_messages(business_settings_id, simplified_customer, standard_customer, item, tax_category):
-
-    frappe.flags.in_test = True
-    expected_status = "Invoice sent to ZATCA. Integration status: Accepted"
-
-    print(_("\n=== ZATCA Compliance Test Suite ==="))
-
+def run_test_case_without_addresses(business_settings_id, simplified_customer, standard_customer, item, tax_category, expected_status):
     print(_("\n🔍 Test Case 1: Without Customer Addresses"))
-    simplified_result_1, standard_result_1 = _perform_compliance_checks(
+
+    simplified_result, standard_result = _perform_compliance_checks(
         business_settings_id=business_settings_id,
         simplified_customer_id=simplified_customer,
         standard_customer_id=standard_customer,
@@ -274,11 +269,13 @@ def test_compliance_check_messages(business_settings_id, simplified_customer, st
         tax_category_id=tax_category,
     )
 
-    if standard_result_1 and standard_result_1.invoice_result:
-        assert standard_result_1.invoice_result != expected_status, "Test Case 1: Standard invoice should fail without address"
+    if standard_result and standard_result.invoice_result:
+        assert standard_result.invoice_result != expected_status, "Test Case 1: Standard invoice should fail without address"
 
     print(_("\n ✅✅✅ Test Case 1 completed: Validation failed as expected (no addresses) ✅✅✅\n"))
 
+
+def run_test_case_with_addresses(business_settings_id, simplified_customer, standard_customer, item, tax_category, expected_status):
     print(_("\n🔍 Test Case 2: With Customer Addresses"))
 
     standard_address = _create_customer_address(standard_customer)
@@ -287,7 +284,7 @@ def test_compliance_check_messages(business_settings_id, simplified_customer, st
     _update_customer_address(simplified_customer, simplified_address)
     frappe.db.commit()
 
-    simplified_result_2, standard_result_2 = _perform_compliance_checks(
+    simplified_result, standard_result = _perform_compliance_checks(
         business_settings_id=business_settings_id,
         simplified_customer_id=simplified_customer,
         standard_customer_id=standard_customer,
@@ -295,25 +292,41 @@ def test_compliance_check_messages(business_settings_id, simplified_customer, st
         tax_category_id=tax_category,
     )
 
-    if simplified_result_2:
+    if simplified_result:
         print(_("\n📝 Simplified Invoice Results:"))
-        print(_(f"Invoice Status: {simplified_result_2.invoice_result}"))
-        print(_(f"Credit Note Status: {simplified_result_2.credit_note_result}"))
-        print(_(f"Debit Note Status: {simplified_result_2.debit_note_result}"))
+        print(_(f"Invoice Status: {simplified_result.invoice_result}"))
+        print(_(f"Credit Note Status: {simplified_result.credit_note_result}"))
+        print(_(f"Debit Note Status: {simplified_result.debit_note_result}"))
 
-        assert simplified_result_2.invoice_result == expected_status, "Simplified invoice validation failed"
-        assert simplified_result_2.credit_note_result == expected_status, "Simplified credit note validation failed"
-        assert simplified_result_2.debit_note_result == expected_status, "Simplified debit note validation failed"
+        assert simplified_result.invoice_result == expected_status, "Simplified invoice validation failed"
+        assert simplified_result.credit_note_result == expected_status, "Simplified credit note validation failed"
+        assert simplified_result.debit_note_result == expected_status, "Simplified debit note validation failed"
 
-    if standard_result_2:
+    if standard_result:
         print(_("\n📝 Standard Invoice Results:"))
-        print(_(f"Invoice Status: {standard_result_2.invoice_result}"))
-        print(_(f"Credit Note Status: {standard_result_2.credit_note_result}"))
-        print(_(f"Debit Note Status: {standard_result_2.debit_note_result}"))
+        print(_(f"Invoice Status: {standard_result.invoice_result}"))
+        print(_(f"Credit Note Status: {standard_result.credit_note_result}"))
+        print(_(f"Debit Note Status: {standard_result.debit_note_result}"))
 
-        assert standard_result_2.invoice_result == expected_status, "Standard invoice validation failed"
-        assert standard_result_2.credit_note_result == expected_status, "Standard credit note validation failed"
-        assert standard_result_2.debit_note_result == expected_status, "Standard debit note validation failed"
+        assert standard_result.invoice_result == expected_status, "Standard invoice validation failed"
+        assert standard_result.credit_note_result == expected_status, "Standard credit note validation failed"
+        assert standard_result.debit_note_result == expected_status, "Standard debit note validation failed"
 
     print(_("\n✅✅✅ Test Case 2 completed: All validations passed with addresses ✅✅✅"))
+
+
+def test_compliance_check_messages(business_settings_id, simplified_customer, standard_customer, item, tax_category):
+    frappe.flags.in_test = True
+    expected_status = "Invoice sent to ZATCA. Integration status: Accepted"
+
+    print(_("\n=== ZATCA Compliance Test Suite ==="))
+
+    run_test_case_without_addresses(
+        business_settings_id, simplified_customer, standard_customer, item, tax_category, expected_status
+    )
+
+    run_test_case_with_addresses(
+        business_settings_id, simplified_customer, standard_customer, item, tax_category, expected_status
+    )
+
     print(_("\n=== ZATCA Compliance Test Suite Completed Successfully ==="))
