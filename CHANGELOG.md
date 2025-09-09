@@ -7,9 +7,18 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
-## 0.51.6
+## 0.51.7
 * Enhanced ZATCA compliance checks with improved test feedback
 * Improved compliance test output formatting for both simplified and standard invoices
+## 0.51.6
+* Enable return invoice paid from advance payment
+* Settlement process
+  * Get advance payments allocated to the original (return_against) invoice. 
+  * Create GL entries to reflect settlement for the advance invoice. 
+  * Unreconcile the advance payment from the Payment Entry. 
+  * Create GL entries for settlement for the return_against invoice. 
+  * Reconcile any difference in allocated amounts.
+* Fix Remove advances from Sales Invoice on Unreconcile by remove unliked payment or update allocated_amount
 
 ## 0.51.5
 * Add Reference No And Reference Date for Advance Payment Invoice On Mode of Payment is Bank
