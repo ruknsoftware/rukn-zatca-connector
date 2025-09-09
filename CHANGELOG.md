@@ -7,6 +7,10 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.51.6
+* Enhanced ZATCA compliance checks with improved test feedback
+* Improved compliance test output formatting for both simplified and standard invoices
+
 ## 0.51.5
 * Add Reference No And Reference Date for Advance Payment Invoice On Mode of Payment is Bank
 * Fix Call Read Mode of Payment Account on VERSION 15 controller
