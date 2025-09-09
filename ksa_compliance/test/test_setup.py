@@ -274,7 +274,7 @@ def test_compliance_check_messages(business_settings_id, simplified_customer, st
         item_id=item,
         tax_category_id=tax_category,
     )
-    
+
     if simplified_result:
         print(_("\n=== Simplified Invoice Test Results ==="))
         print(_(f"Invoice Status: {simplified_result.invoice_result}"))
