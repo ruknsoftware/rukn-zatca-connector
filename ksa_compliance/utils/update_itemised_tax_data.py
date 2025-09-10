@@ -37,6 +37,7 @@ def update_itemised_tax_data(doc):
 
     is_export = determine_if_export(doc)
     included_in_print_rate = any(tax.included_in_print_rate for tax in doc.get("taxes", []))
+    doc.total_taxes_and_charges = 0.0
     for row in doc.items:
         tax_rate, tax_amount = 0.0, 0.0
         # dont even bother checking in item tax template as it contains both input and output accounts - double the tax rate
@@ -62,3 +63,4 @@ def update_itemised_tax_data(doc):
         row.tax_rate = flt(tax_rate, row.precision("tax_rate"))
         row.tax_amount = flt(tax_amount, row.precision("tax_amount"))
         row.total_amount = flt((row.net_amount + row.tax_amount), row.precision("total_amount"))
+        doc.total_taxes_and_charges = doc.total_taxes_and_charges + row.tax_amount
