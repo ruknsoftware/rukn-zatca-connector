@@ -36,7 +36,7 @@ def update_itemised_tax_data(doc):
         return False
 
     is_export = determine_if_export(doc)
-
+    included_in_print_rate = any(tax.included_in_print_rate for tax in doc.get("taxes", []))
     for row in doc.items:
         tax_rate, tax_amount = 0.0, 0.0
         # dont even bother checking in item tax template as it contains both input and output accounts - double the tax rate
@@ -44,8 +44,15 @@ def update_itemised_tax_data(doc):
         if itemised_tax.get(item_code):
             for tax in itemised_tax.get(item_code).values():
                 _tax_rate = flt(tax.get("tax_rate", 0), row.precision("tax_rate"))
-                tax_amount += flt((row.net_amount * _tax_rate) / 100, row.precision("tax_amount"))
                 tax_rate += _tax_rate
+                if included_in_print_rate:
+                    amount = flt(row.amount, row.precision("amount"))
+                    net_from_gross = amount / (1 + (_tax_rate / 100))
+                    tax_amount += flt(amount - net_from_gross, row.precision("tax_amount"))
+                else:
+                    tax_amount += flt(
+                        (row.net_amount * _tax_rate) / 100, row.precision("tax_amount")
+                    )
 
         if not tax_rate or row.get("is_zero_rated"):
             row.is_zero_rated = is_export or frappe.get_cached_value(
