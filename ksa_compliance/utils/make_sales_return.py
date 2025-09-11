@@ -212,9 +212,15 @@ def make_return_doc(
 
             # OUR UPDATE
             # CALCULATE ITEM ADVANCE RATE DEPENDING ON OUTSTANDING AMOUNT
-            target_doc.rate = round(
-                source_parent.outstanding_amount / (1 + source_doc.tax_rate / 100), 2
+            included_in_print_rate = any(
+                tax.included_in_print_rate for tax in source_parent.get("taxes", [])
             )
+            if not included_in_print_rate:
+                target_doc.rate = round(
+                    source_parent.outstanding_amount / (1 + source_doc.tax_rate / 100), 2
+                )
+            else:
+                target_doc.rate = source_parent.outstanding_amount
             # END OF UPDATE
 
             returned_qty_map = get_returned_qty_map_for_row(

@@ -7,6 +7,11 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.51.9
+* Fix Calculate Item Tax Amount depends on Tax included in Basic Rate
+* Calculate Total Tax and Charges Amount from Items Tax Amounts
+* Return Advance Item Rate depends on Tax included in Basic Rate
+
 ## 0.51.8
 * Fix Prevent missing ZATCA Business Settings on sales return 
 ## 0.51.7

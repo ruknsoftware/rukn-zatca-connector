@@ -268,3 +268,9 @@ override_whitelisted_methods = {
 # Auto generate type annotations for doctypes
 # Reference: https://github.com/frappe/frappe/pull/21776
 export_python_type_annotations = True
+
+regional_overrides = {
+    "Saudi Arabia": {
+        "erpnext.controllers.taxes_and_totals.update_itemised_tax_data": "ksa_compliance.utils.update_itemised_tax_data.update_itemised_tax_data"
+    }
+}
