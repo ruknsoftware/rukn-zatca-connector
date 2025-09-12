@@ -6,14 +6,43 @@ on:
     branches:
       - develop
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - "**.css"
+      - "**.js"
+      - "**.md"
+      - "**.html"
+      - "**.csv"
+  schedule:
+    # Run everday at midnight UTC / 5:30 IST
+    - cron: "0 0 * * *"
 
 concurrency:
   group: develop-ksa_compliance-${{ github.event.number }}
   cancel-in-progress: true
 
 jobs:
+  check-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    outputs:
+      approved: ${{ steps.check-reviews.outputs.approved }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - uses: actions/github-script@v6
+        id: check-reviews
+        with:
+          script: |
+            const checkReviews = require('./.github/scripts/check-reviews.js');
+            await checkReviews({ github, context, core });
+
   tests:
     runs-on: ubuntu-latest
+    needs: check-review
+    if: |
+      github.event_name == 'push' || 
+      (github.event_name == 'pull_request' && needs.check-review.outputs.approved == 'true')
     strategy:
       fail-fast: false
     name: Server

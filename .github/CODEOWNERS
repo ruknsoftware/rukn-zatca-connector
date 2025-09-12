@@ -1,0 +1,6 @@
+# This file defines code owners for the ksa_compliance project
+# Code owners will be automatically requested for review when PRs are opened
+# Format: path/to/file @username
+
+# Global owners - the repository owner will be automatically requested for all PRs
+* @alaa-alsalehi

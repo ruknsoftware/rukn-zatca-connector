@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.52.0
+* Feat Run Github Actions only after Code Review
+
 ## 0.51.9
 * Fix Calculate Item Tax Amount depends on Tax included in Basic Rate
 * Calculate Total Tax and Charges Amount from Items Tax Amounts
