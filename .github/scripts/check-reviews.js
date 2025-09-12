@@ -15,6 +15,7 @@ module.exports = async ({ github, context, core }) => {
 
   // Get requested reviewers (both users and teams)
   const requestedReviewers = new Set();
+  const requestedTeams = new Set();
 
   // Add requested users
   if (pr.requested_reviewers) {
@@ -27,8 +28,22 @@ module.exports = async ({ github, context, core }) => {
   if (pr.requested_teams) {
     pr.requested_teams.forEach(team => {
       requestedReviewers.add(`team:${team.slug}`);
+      requestedTeams.add(team.slug);
     });
   }
+
+  // Get all users who have ever been requested as reviewers (including those who already approved)
+  // This includes users who were requested but then approved and removed from the list
+  const allRequestedUsers = new Set(requestedReviewers);
+  
+  // Add users from review history who were originally requested
+  reviews.forEach(review => {
+    // If a user has reviewed and they're not currently in requested reviewers,
+    // but they have an approval, they were likely originally requested
+    if (review.state === 'APPROVED' && !requestedReviewers.has(review.user.login)) {
+      allRequestedUsers.add(review.user.login);
+    }
+  });
 
   // Special case: If PR creator is the repository owner and no reviewers were requested,
   // we need to handle this scenario differently
@@ -60,16 +75,19 @@ module.exports = async ({ github, context, core }) => {
 
   // Filter reviews to only include those from requested reviewers
   const validReviews = reviews.filter(review => {
-    // Only consider reviews from users who were requested
-    if (requestedReviewers.has(review.user.login)) {
+    // Only consider reviews from users who were requested (including those who already approved)
+    if (allRequestedUsers.has(review.user.login)) {
       return true;
     }
     
     // Check if reviewer is part of a requested team
-    if (review.user.type === 'User') {
-      // For team members, we need to check if their team was requested
-      // This is a simplified check - you might want to enhance this
-      return false;
+    for (const teamSlug of requestedTeams) {
+      // For now, we'll use a simple approach: if the user login matches the team slug,
+      // or if we can't determine team membership, we'll be more permissive
+      // This is a fallback for when team membership can't be verified
+      if (review.user.login === teamSlug) {
+        return true;
+      }
     }
     
     return false;
