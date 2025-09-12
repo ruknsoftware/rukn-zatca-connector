@@ -31,7 +31,9 @@ jobs:
       - uses: actions/github-script@v6
         id: check-reviews
         with:
-          script-path: .github/scripts/check-reviews.js
+          script: |
+            const checkReviews = require('./.github/scripts/check-reviews.js');
+            await checkReviews({ github, context, core });
 
   tests:
     runs-on: ubuntu-latest
