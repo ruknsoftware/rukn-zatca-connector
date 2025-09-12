@@ -31,7 +31,7 @@ jobs:
       - uses: actions/github-script@v6
         id: check-reviews
         with:
-          script: ${{ github.workspace }}/.github/scripts/check-reviews.js
+          script-path: .github/scripts/check-reviews.js
 
   tests:
     runs-on: ubuntu-latest
