@@ -112,9 +112,20 @@ module.exports = async ({ github, context, core }) => {
   const hasEnoughApprovals = approvedReviews.length >= requiredApprovals;
 
   // Check if PR has been reviewed by requested maintainers/admins
-  const maintainerReviews = approvedReviews.filter(review => 
-    ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(review.author_association)
-  );
+  const maintainerReviews = approvedReviews.filter(review => {
+    // Standard maintainer associations
+    if (['OWNER', 'MEMBER', 'COLLABORATOR'].includes(review.author_association)) {
+      return true;
+    }
+    
+    // Special case: If the reviewer is from a requested team/user, 
+    // we'll accept 'NONE' association as well (common for teams/bots)
+    if (review.author_association === 'NONE' && allRequestedUsers.has(review.user.login)) {
+      return true;
+    }
+    
+    return false;
+  });
 
   const isApproved = hasEnoughApprovals && maintainerReviews.length > 0;
 
