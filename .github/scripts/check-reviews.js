@@ -45,6 +45,16 @@ module.exports = async ({ github, context, core }) => {
     }
   });
 
+  // For teams, we need to be more permissive since we can't easily verify team membership
+  // If a team was requested and there are approvals, we'll consider all approvers as valid
+  if (requestedTeams.size > 0) {
+    reviews.forEach(review => {
+      if (review.state === 'APPROVED') {
+        allRequestedUsers.add(review.user.login);
+      }
+    });
+  }
+
   // Special case: If PR creator is the repository owner and no reviewers were requested,
   // we need to handle this scenario differently
   const isOwnerPR = pr.user.login === context.repo.owner;
@@ -76,21 +86,7 @@ module.exports = async ({ github, context, core }) => {
   // Filter reviews to only include those from requested reviewers
   const validReviews = reviews.filter(review => {
     // Only consider reviews from users who were requested (including those who already approved)
-    if (allRequestedUsers.has(review.user.login)) {
-      return true;
-    }
-    
-    // Check if reviewer is part of a requested team
-    for (const teamSlug of requestedTeams) {
-      // For now, we'll use a simple approach: if the user login matches the team slug,
-      // or if we can't determine team membership, we'll be more permissive
-      // This is a fallback for when team membership can't be verified
-      if (review.user.login === teamSlug) {
-        return true;
-      }
-    }
-    
-    return false;
+    return allRequestedUsers.has(review.user.login);
   });
 
   // Get approved reviews from requested reviewers only
