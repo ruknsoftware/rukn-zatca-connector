@@ -28,6 +28,8 @@ jobs:
     outputs:
       approved: ${{ steps.check-reviews.outputs.approved }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
       - uses: actions/github-script@v6
         id: check-reviews
         with:
