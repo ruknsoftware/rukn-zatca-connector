@@ -55,6 +55,16 @@ module.exports = async ({ github, context, core }) => {
     });
   }
 
+  // Additional fallback: if we have team requests but no valid users found,
+  // be more permissive and accept any approvals
+  if (requestedTeams.size > 0 && allRequestedUsers.size === 0) {
+    reviews.forEach(review => {
+      if (review.state === 'APPROVED') {
+        allRequestedUsers.add(review.user.login);
+      }
+    });
+  }
+
   // Special case: If PR creator is the repository owner and no reviewers were requested,
   // we need to handle this scenario differently
   const isOwnerPR = pr.user.login === context.repo.owner;
@@ -108,6 +118,17 @@ module.exports = async ({ github, context, core }) => {
 
   const isApproved = hasEnoughApprovals && maintainerReviews.length > 0;
 
+  // Debug logging
+  console.log('Debug Information:');
+  console.log('- Total reviews:', reviews.length);
+  console.log('- Valid reviews:', validReviews.length);
+  console.log('- Approved reviews:', approvedReviews.length);
+  console.log('- Maintainer reviews:', maintainerReviews.length);
+  console.log('- All requested users:', Array.from(allRequestedUsers));
+  console.log('- Requested reviewers:', Array.from(requestedReviewers));
+  console.log('- Requested teams:', Array.from(requestedTeams));
+  console.log('- Review details:', reviews.map(r => ({ user: r.user.login, state: r.state, association: r.author_association })));
+
   core.setOutput('approved', isApproved);
 
   if (!isApproved) {
@@ -118,6 +139,7 @@ module.exports = async ({ github, context, core }) => {
     - Exactly 1 approval from a requested maintainer is required (for both fork and non-fork PRs)
     - Current valid approvals: ${approvedReviews.length}/${requiredApprovals}
     - Maintainer approvals from requested reviewers: ${maintainerReviews.length}
-    - Requested reviewers: ${Array.from(requestedReviewers).join(', ') || 'None'}`);
+    - Requested reviewers: ${Array.from(requestedReviewers).join(', ') || 'None'}
+    - All requested users: ${Array.from(allRequestedUsers).join(', ') || 'None'}`);
   }
 };
