@@ -7,8 +7,33 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
-## 0.51.3
-* Feat Run Github Actions only after Code Review
+## 0.51.9
+* Fix Calculate Item Tax Amount depends on Tax included in Basic Rate
+* Calculate Total Tax and Charges Amount from Items Tax Amounts
+* Return Advance Item Rate depends on Tax included in Basic Rate
+
+## 0.51.8
+* Fix Prevent missing ZATCA Business Settings on sales return 
+## 0.51.7
+* Enhanced ZATCA compliance checks with improved test feedback
+* Improved compliance test output formatting for both simplified and standard invoices
+
+## 0.51.6
+* Enable return invoice paid from advance payment
+* Settlement process
+  * Get advance payments allocated to the original (return_against) invoice. 
+  * Create GL entries to reflect settlement for the advance invoice. 
+  * Unreconcile the advance payment from the Payment Entry. 
+  * Create GL entries for settlement for the return_against invoice. 
+  * Reconcile any difference in allocated amounts.
+* Fix Remove advances from Sales Invoice on Unreconcile by remove unliked payment or update allocated_amount
+
+## 0.51.5
+* Add Reference No And Reference Date for Advance Payment Invoice On Mode of Payment is Bank
+* Fix Call Read Mode of Payment Account on VERSION 15 controller
+
+## 0.51.4
+* Added defualt bussnies settings data in setup for dev
 
 ## 0.51.3
 * Fix Default Other IDs by moving logic to clint-side

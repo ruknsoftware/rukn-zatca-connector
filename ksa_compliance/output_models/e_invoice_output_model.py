@@ -25,6 +25,9 @@ from ksa_compliance.standard_doctypes.sales_invoice_advance import (
 from ksa_compliance.standard_doctypes.tax_category import map_tax_category
 from ksa_compliance.throw import fthrow
 from ksa_compliance.translation import ft
+from ksa_compliance.utils.return_invoice_paid_from_advance_payment import (
+    get_return_against_advance_payments,
+)
 
 
 def append_tax_details_into_item_lines(item_lines: list, is_tax_included: bool) -> list:
@@ -1051,7 +1054,13 @@ class Einvoice:
     def prepayment_invoice(self):
         sales_invoice_doc = self.sales_invoice_doc
         advance_idx = len(sales_invoice_doc.items)
-        advance_payments = get_invoice_advance_payments(sales_invoice_doc)
+        if sales_invoice_doc.is_return:
+            return_against_doc = frappe.get_doc("Sales Invoice", sales_invoice_doc.return_against)
+            advance_payments = get_return_against_advance_payments(
+                return_against_doc, abs(self.sales_invoice_doc.grand_total)
+            )
+        else:
+            advance_payments = get_invoice_advance_payments(sales_invoice_doc)
         for advance_payment in advance_payments:
 
             advance_payment_invoice = frappe.get_doc(

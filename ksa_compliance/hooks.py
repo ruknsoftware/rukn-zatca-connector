@@ -11,7 +11,7 @@ app_license = "Copyright (c) 2023 LavaLoon"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/ksa_compliance/css/ksa_compliance.css"
-# app_include_js = "/assets/ksa_compliance/js/ksa_compliance.js"
+app_include_js = "/assets/ksa_compliance/js/accounts.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/ksa_compliance/css/ksa_compliance.css"
@@ -127,7 +127,8 @@ after_migrate = "ksa_compliance.install.after_migrate"
 # Override standard doctype classes
 
 override_doctype_class = {
-    "Payment Reconciliation": "ksa_compliance.standard_doctypes.payment_reconciliation.CustomPaymentReconciliation"
+    "Payment Reconciliation": "ksa_compliance.standard_doctypes.payment_reconciliation.CustomPaymentReconciliation",
+    "Unreconcile Payment": "ksa_compliance.standard_doctypes.unreconcile_payment.CustomUnreconcilePayment",
 }
 
 # Document Events
@@ -191,7 +192,10 @@ scheduler_events = {"hourly_long": ["ksa_compliance.background_jobs.sync_e_invoi
 # -------
 
 # before_tests = "ksa_compliance.install.before_tests"
-before_tests = ["ksa_compliance.utils.test_setup.custom_erpnext_setup"]
+before_tests = [
+    "ksa_compliance.test.test_setup.custom_erpnext_setup",
+    "ksa_compliance.test.test_setup.runing_test",
+]
 
 # Overriding Methods
 # ------------------------------
@@ -264,3 +268,9 @@ override_whitelisted_methods = {
 # Auto generate type annotations for doctypes
 # Reference: https://github.com/frappe/frappe/pull/21776
 export_python_type_annotations = True
+
+regional_overrides = {
+    "Saudi Arabia": {
+        "erpnext.controllers.taxes_and_totals.update_itemised_tax_data": "ksa_compliance.utils.update_itemised_tax_data.update_itemised_tax_data"
+    }
+}
