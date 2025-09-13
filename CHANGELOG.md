@@ -7,6 +7,8 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.52.1
+* Settling Advance Payment Entry from Payment References on return Advance Payment invoice
 ## 0.52.0
 * Feat Run Github Actions only after Code Review
 

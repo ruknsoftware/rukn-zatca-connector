@@ -36,7 +36,7 @@ from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_preco
     ZATCAPrecomputedInvoice,
 )
 from ksa_compliance.standard_doctypes.payment_entry import (
-    set_advance_payment_entry_settling_gl_entries,
+    set_advance_payment_entry_settling_references,
 )
 from ksa_compliance.standard_doctypes.sales_invoice_advance import (
     calculate_advance_payment_tax_amount,
@@ -115,7 +115,7 @@ def create_sales_invoice_additional_fields_doctype(self: SalesInvoice | POSInvoi
                 advance_payment_invoice=self.return_against,
             )
             set_advance_payment_invoice_settling_gl_entries(advance_payment)
-            set_advance_payment_entry_settling_gl_entries(payment_entry)
+            set_advance_payment_entry_settling_references(payment_entry)
     if self.is_return:
         if not is_advance_invoice:
             settle_return_invoice_paid_from_advance_payment(self)

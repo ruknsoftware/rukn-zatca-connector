@@ -55,7 +55,7 @@ def get_taxes_and_charges_details(payment_entry):
     return taxes
 
 
-def set_advance_payment_entry_settling_gl_entries(payment_entry):
+def set_advance_payment_entry_settling_references(payment_entry):
     advance_payment_entry = frappe.get_value(
         "Payment Entry",
         {
@@ -65,44 +65,20 @@ def set_advance_payment_entry_settling_gl_entries(payment_entry):
     )
     advance_payment_entry_doc = frappe.get_doc("Payment Entry", advance_payment_entry)
 
-    if advance_payment_entry_doc.payment_type in (
-        "Receive",
-        "Pay",
-    ) and not advance_payment_entry_doc.get("party_account_field"):
-        advance_payment_entry_doc.setup_party_account_field()
-
-    frappe_version = frappe.__version__
-    if frappe_version.startswith("15"):
-        advance_payment_entry_doc.set_transaction_currency_and_rate()
-
-    payment_entry_gls = []
-
-    party_gl_entries = []
-    advance_payment_entry_doc.add_party_gl_entries(party_gl_entries)
-    payment_entry_gls.append(party_gl_entries[-1])
-
-    bank_gl_entries = []
-    advance_payment_entry_doc.add_bank_gl_entries(bank_gl_entries)
-    payment_entry_gls.extend(bank_gl_entries)
-
-    payment_entry_gls = process_gl_map(payment_entry_gls)
-
-    advance_gl_entries = []
-    for gl_entry in payment_entry_gls:
-        advance_gl_entry = gl_entry.copy()
-
-        if advance_gl_entry.debit != 0.0:
-            advance_gl_entry["debit"] = 0.0
-            advance_gl_entry["debit_in_account_currency"] = 0.0
-            advance_gl_entry["credit"] = payment_entry.paid_amount
-            advance_gl_entry["credit_in_account_currency"] = payment_entry.paid_amount
-        else:
-            advance_gl_entry["debit"] = payment_entry.paid_amount
-            advance_gl_entry["debit_in_account_currency"] = payment_entry.paid_amount
-            advance_gl_entry["credit"] = 0.0
-            advance_gl_entry["credit_in_account_currency"] = 0.0
-        advance_gl_entries.append(advance_gl_entry)
-    make_gl_entries(advance_gl_entries)
+    for reference in payment_entry.references:
+        advance_payment_entry_reference = reference.as_dict().copy()
+        advance_payment_entry_reference.reference_doctype = payment_entry.doctype
+        advance_payment_entry_reference.reference_name = payment_entry.name
+        advance_payment_entry_reference.total_amount = abs(
+            advance_payment_entry_reference.total_amount
+        )
+        advance_payment_entry_reference.outstanding_amount = (
+            -advance_payment_entry_reference.outstanding_amount
+        )
+        advance_payment_entry_reference.allocated_amount = abs(
+            advance_payment_entry_reference.allocated_amount
+        )
+        advance_payment_entry_doc.append("references", advance_payment_entry_reference)
 
     advance_payment_entry_doc.total_allocated_amount += payment_entry.paid_amount
     advance_payment_entry_doc.base_total_allocated_amount += payment_entry.paid_amount
