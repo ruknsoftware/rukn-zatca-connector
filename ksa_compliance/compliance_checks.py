@@ -159,6 +159,9 @@ def _perform_compliance_checks(
         frappe.clear_messages()
         in_test = frappe.flags.get("in_test")
 
+        if frappe.flags.get("in_test"):
+            return simplified_result, standard_result
+
         message = ""
         if simplified_result:
             message += simplified_result.format(ft("Simplified"))

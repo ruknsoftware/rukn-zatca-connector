@@ -19,10 +19,10 @@ from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_ite
 def make_sales_return(source_name, target_doc=None):
     sales_invoice = frappe.get_doc("Sales Invoice", source_name)
     settings = ZATCABusinessSettings.for_company(sales_invoice.company)
-    if not invoice_has_advance_item(sales_invoice, settings):
-        return erpnext_make_return_doc("Sales Invoice", source_name, target_doc)
+    if settings and invoice_has_advance_item(sales_invoice, settings):
+        return make_return_doc("Sales Invoice", source_name, target_doc)
 
-    return make_return_doc("Sales Invoice", source_name, target_doc)
+    return erpnext_make_return_doc("Sales Invoice", source_name, target_doc)
 
 
 def make_return_doc(
@@ -212,9 +212,15 @@ def make_return_doc(
 
             # OUR UPDATE
             # CALCULATE ITEM ADVANCE RATE DEPENDING ON OUTSTANDING AMOUNT
-            target_doc.rate = round(
-                source_parent.outstanding_amount / (1 + source_doc.tax_rate / 100), 2
+            included_in_print_rate = any(
+                tax.included_in_print_rate for tax in source_parent.get("taxes", [])
             )
+            if not included_in_print_rate:
+                target_doc.rate = round(
+                    source_parent.outstanding_amount / (1 + source_doc.tax_rate / 100), 2
+                )
+            else:
+                target_doc.rate = source_parent.outstanding_amount
             # END OF UPDATE
 
             returned_qty_map = get_returned_qty_map_for_row(

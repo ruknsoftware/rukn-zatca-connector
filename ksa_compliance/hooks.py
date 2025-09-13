@@ -127,7 +127,8 @@ after_migrate = "ksa_compliance.install.after_migrate"
 # Override standard doctype classes
 
 override_doctype_class = {
-    "Payment Reconciliation": "ksa_compliance.standard_doctypes.payment_reconciliation.CustomPaymentReconciliation"
+    "Payment Reconciliation": "ksa_compliance.standard_doctypes.payment_reconciliation.CustomPaymentReconciliation",
+    "Unreconcile Payment": "ksa_compliance.standard_doctypes.unreconcile_payment.CustomUnreconcilePayment",
 }
 
 # Document Events
@@ -267,3 +268,9 @@ override_whitelisted_methods = {
 # Auto generate type annotations for doctypes
 # Reference: https://github.com/frappe/frappe/pull/21776
 export_python_type_annotations = True
+
+regional_overrides = {
+    "Saudi Arabia": {
+        "erpnext.controllers.taxes_and_totals.update_itemised_tax_data": "ksa_compliance.utils.update_itemised_tax_data.update_itemised_tax_data"
+    }
+}
