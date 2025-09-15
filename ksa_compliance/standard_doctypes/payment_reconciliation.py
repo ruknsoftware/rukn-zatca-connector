@@ -122,11 +122,17 @@ class CustomPaymentReconciliation(PaymentReconciliation):
         if voucher_type == "Sales Invoice":
             settings = ZATCABusinessSettings.for_company(self.company)
             sales_invoice_item = frappe.qb.DocType("Sales Invoice Item")
-            self.return_invoices_query = self.return_invoices_query.join(sales_invoice_item).on(
-                sales_invoice_item.parent == doc.name
+            siap = qb.DocType("Sales Invoice Advance Payment")
+
+            self.return_invoices_query = (
+                self.return_invoices_query.join(sales_invoice_item)
+                .on(sales_invoice_item.parent == doc.name)
+                .left_join(siap)
+                .on(siap.parent == doc.name)
             )
             self.return_invoices_query = self.return_invoices_query.where(
-                sales_invoice_item.item_code != settings.advance_payment_item
+                (sales_invoice_item.item_code != settings.advance_payment_item)
+                & (siap.name.isnull())
             )
 
         if self.payment_limit:
