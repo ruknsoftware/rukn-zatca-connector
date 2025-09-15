@@ -13,18 +13,20 @@ on:
       - "**.md"
       - "**.html"
       - "**.csv"
+  pull_request_review:
+    types: [submitted, edited, dismissed]
   schedule:
     # Run everday at midnight UTC / 5:30 IST
     - cron: "0 0 * * *"
 
 concurrency:
-  group: develop-ksa_compliance-${{ github.event.number }}
+  group: develop-ksa_compliance-${{ github.event.pull_request.number || github.event.number }}
   cancel-in-progress: true
 
 jobs:
   check-review:
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
     outputs:
       approved: ${{ steps.check-reviews.outputs.approved }}
     steps:
@@ -42,7 +44,7 @@ jobs:
     needs: check-review
     if: |
       github.event_name == 'push' || 
-      (github.event_name == 'pull_request' && needs.check-review.outputs.approved == 'true')
+      ((github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && needs.check-review.outputs.approved == 'true')
     strategy:
       fail-fast: false
     name: Server
