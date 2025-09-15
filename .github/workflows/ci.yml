@@ -32,7 +32,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - uses: actions/github-script@v6
+      - name: Check Reviews
+        uses: actions/github-script@v6
         id: check-reviews
         with:
           script: |
