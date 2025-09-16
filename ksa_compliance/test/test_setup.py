@@ -3,6 +3,7 @@ from frappe.utils import now_datetime
 from frappe import _
 from ksa_compliance.zatca_cli import setup as zatca_cli_setup
 from ksa_compliance.compliance_checks import _perform_compliance_checks
+from unittest.mock import patch, MagicMock
 
 
 company_name =   "RUKN"
@@ -43,35 +44,6 @@ def create_mock_zatca_response(status="Accepted", warnings=None, errors=None):
         errors=error_objects,
         raw_response=f'{{"status": "{status}", "invoiceHash": "test-hash-{status.lower().replace(" ", "-")}-12345"}}'
     )
-
-def _setup_currency_exchange_rates():
-    """Setup currency exchange rates for testing"""
-    # Create exchange rates for common currencies to SAR
-    exchange_rates = [
-        {"from_currency": "USD", "to_currency": "SAR", "exchange_rate": 3.75},
-        {"from_currency": "EUR", "to_currency": "SAR", "exchange_rate": 4.10},
-        {"from_currency": "GBP", "to_currency": "SAR", "exchange_rate": 4.80},
-        {"from_currency": "OMR", "to_currency": "SAR", "exchange_rate": 9.75},
-        {"from_currency": "AED", "to_currency": "SAR", "exchange_rate": 1.02},
-        {"from_currency": "KWD", "to_currency": "SAR", "exchange_rate": 12.20},
-    ]
-    
-    for rate in exchange_rates:
-        # Check if exchange rate already exists
-        existing = frappe.db.exists("Currency Exchange", {
-            "from_currency": rate["from_currency"],
-            "to_currency": rate["to_currency"],
-            "date": frappe.utils.today()
-        })
-        
-        if not existing:
-            frappe.get_doc({
-                "doctype": "Currency Exchange",
-                "from_currency": rate["from_currency"],
-                "to_currency": rate["to_currency"],
-                "exchange_rate": rate["exchange_rate"],
-                "date": frappe.utils.today(),
-            }).insert(ignore_permissions=True)
 
 def custom_erpnext_setup():
     frappe.clear_cache()
