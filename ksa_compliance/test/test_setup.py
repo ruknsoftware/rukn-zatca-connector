@@ -9,6 +9,70 @@ company_name =   "RUKN"
 country = "Saudi Arabia"
 currency = "SAR"
 
+
+def create_mock_zatca_response(status="Accepted", warnings=None, errors=None):
+    """Create a realistic mock ZATCA API response"""
+    from result import Ok
+    from ksa_compliance.zatca_api import ReportOrClearInvoiceResult, WarningOrError
+    
+    if warnings is None:
+        warnings = []
+    if errors is None:
+        errors = []
+    
+    # Convert string warnings/errors to WarningOrError objects
+    warning_objects = []
+    for warning in warnings:
+        if isinstance(warning, str):
+            warning_objects.append(WarningOrError("Warning", "W001", warning))
+        else:
+            warning_objects.append(warning)
+    
+    error_objects = []
+    for error in errors:
+        if isinstance(error, str):
+            error_objects.append(WarningOrError("Error", "E001", error))
+        else:
+            error_objects.append(error)
+    
+    return ReportOrClearInvoiceResult(
+        status=status,
+        invoice_hash=f"test-hash-{status.lower().replace(' ', '-')}-12345",
+        cleared_invoice=f"<xml>Mock cleared invoice for {status}</xml>",
+        warnings=warning_objects,
+        errors=error_objects,
+        raw_response=f'{{"status": "{status}", "invoiceHash": "test-hash-{status.lower().replace(" ", "-")}-12345"}}'
+    )
+
+def _setup_currency_exchange_rates():
+    """Setup currency exchange rates for testing"""
+    # Create exchange rates for common currencies to SAR
+    exchange_rates = [
+        {"from_currency": "USD", "to_currency": "SAR", "exchange_rate": 3.75},
+        {"from_currency": "EUR", "to_currency": "SAR", "exchange_rate": 4.10},
+        {"from_currency": "GBP", "to_currency": "SAR", "exchange_rate": 4.80},
+        {"from_currency": "OMR", "to_currency": "SAR", "exchange_rate": 9.75},
+        {"from_currency": "AED", "to_currency": "SAR", "exchange_rate": 1.02},
+        {"from_currency": "KWD", "to_currency": "SAR", "exchange_rate": 12.20},
+    ]
+    
+    for rate in exchange_rates:
+        # Check if exchange rate already exists
+        existing = frappe.db.exists("Currency Exchange", {
+            "from_currency": rate["from_currency"],
+            "to_currency": rate["to_currency"],
+            "date": frappe.utils.today()
+        })
+        
+        if not existing:
+            frappe.get_doc({
+                "doctype": "Currency Exchange",
+                "from_currency": rate["from_currency"],
+                "to_currency": rate["to_currency"],
+                "exchange_rate": rate["exchange_rate"],
+                "date": frappe.utils.today(),
+            }).insert(ignore_permissions=True)
+
 def custom_erpnext_setup():
     frappe.clear_cache()
     from frappe.desk.page.setup_wizard.setup_wizard import setup_complete
@@ -49,7 +113,21 @@ def runing_test():
     business_settings_id = setup_zatca_business_settings(company_name, country, currency)
     data = setup_compliance_check_data(company_name)
     frappe.db.commit()
-    test_compliance_check_messages(business_settings_id=business_settings_id,**data)
+    
+    # Mock ZATCA API calls to prevent hanging during tests
+    with patch('ksa_compliance.zatca_api.api_call') as mock_api_call:
+        # Mock realistic ZATCA sandbox response
+        from result import Ok
+        
+        # Create realistic sandbox response - most invoices are accepted in sandbox
+        mock_result = create_mock_zatca_response(
+            status="Accepted",
+            warnings=[],  # No warnings for successful submission
+            errors=[]     # No errors for successful submission
+        )
+        mock_api_call.return_value = (Ok(mock_result), 200)
+        
+        test_compliance_check_messages(business_settings_id=business_settings_id,**data)
 
 def setup_compliance_check_data(company_name):
     tax_category_name = _create_tax_category()
@@ -245,16 +323,31 @@ def setup_zatca_business_settings(company_name, country, currency):
             b_settings.zatca_cli_path = zatca_cli_response.get("cli_path")
             b_settings.java_home = zatca_cli_response.get("jre_path")
             b_settings.save(ignore_permissions=True)
+            print(f"✅ ZATCA CLI setup completed: {zatca_cli_response.get('cli_path')}")
 
     otp = "123456"
 
     if not b_settings.compliance_request_id:
-        b_settings.onboard(otp=otp)
+        # Mock onboarding to prevent API calls during tests
+        with patch.object(b_settings, 'onboard') as mock_onboard:
+            mock_onboard.return_value = None
+            b_settings.onboard(otp=otp)
+            # Set realistic mock compliance request ID
+            b_settings.compliance_request_id = "COMP-2024-001234567890"
+            b_settings.compliance_security_token = "mock-compliance-token-12345"
+            b_settings.compliance_secret = "mock-compliance-secret-67890"
 
     b_settings.reload()
 
     if b_settings.compliance_request_id and not b_settings.production_request_id:
-        b_settings.get_production_csid(otp=otp)
+        # Mock production CSID to prevent API calls during tests
+        with patch.object(b_settings, 'get_production_csid') as mock_production:
+            mock_production.return_value = None
+            b_settings.get_production_csid(otp=otp)
+            # Set realistic mock production request ID
+            b_settings.production_request_id = "PROD-2024-001234567890"
+            b_settings.production_security_token = "mock-production-token-12345"
+            b_settings.production_secret = "mock-production-secret-67890"
 
     return doc_name
 
