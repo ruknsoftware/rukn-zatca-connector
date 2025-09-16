@@ -151,10 +151,11 @@ def _update_customer_address(customer_name, address):
 def _create_tax_category():
     tax_category_name = "ZATCA Test Tax Category"
 
-    frappe.get_doc({
-        "doctype": "Tax Category",
-        "title": tax_category_name
-    }).insert(ignore_permissions=True)
+    if not frappe.db.exists("Tax Category", tax_category_name):
+        frappe.get_doc({
+            "doctype": "Tax Category",
+            "title": tax_category_name
+        }).insert(ignore_permissions=True)
 
     return tax_category_name
 
@@ -162,14 +163,17 @@ def _create_standard_customer(tax_category_name):
 
     standard_customer_name = "standard ZATCA Customer"
 
-    frappe.get_doc({
-        "doctype": "Customer",
-        "customer_name": standard_customer_name,
-        "customer_type": "Company",
-        "tax_id": "311609596400003",
-        "custom_vat_registration_number": "311609596400003",
-        "tax_category": tax_category_name,
-    }).insert(ignore_permissions=True)
+    if not frappe.db.exists("Customer", standard_customer_name):
+        frappe.get_doc({
+            "doctype": "Customer",
+            "customer_name": standard_customer_name,
+            "customer_type": "Company",
+            "customer_group": "All Customer Groups",
+            "territory": "All Territories",
+            "tax_id": "311609596400003",
+            "custom_vat_registration_number": "311609596400003",
+            "tax_category": tax_category_name,
+        }).insert(ignore_permissions=True)
 
     return standard_customer_name
 
@@ -177,11 +181,14 @@ def _create_simplified_customer():
 
     simplified_customer_name = "simplified ZATCA Customer"
 
-    frappe.get_doc({
-        "doctype": "Customer",
-        "customer_name": simplified_customer_name,
-        "customer_type": "Individual",
-    }).insert(ignore_permissions=True)
+    if not frappe.db.exists("Customer", simplified_customer_name):
+        frappe.get_doc({
+            "doctype": "Customer",
+            "customer_name": simplified_customer_name,
+            "customer_type": "Individual",
+            "customer_group": "All Customer Groups",
+            "territory": "All Territories",
+        }).insert(ignore_permissions=True)
 
     return simplified_customer_name
 
@@ -212,12 +219,13 @@ def _create_customer_address(customer_name):
 def _create_test_item():
     item_name = "ZATCA Test Item"
 
-    frappe.get_doc({
-        "doctype": "Item",
-        "item_code": item_name,
-        "item_group": "Products",
-        "is_stock_item": 1
-    }).insert(ignore_permissions=True)
+    if not frappe.db.exists("Item", item_name):
+        frappe.get_doc({
+            "doctype": "Item",
+            "item_code": item_name,
+            "item_group": "Products",
+            "is_stock_item": 1
+        }).insert(ignore_permissions=True)
 
     return item_name
 
@@ -225,26 +233,32 @@ def _create_tax_template(company_name, tax_category_name):
 
     tax_template_name = "VAT 15 %"
     company_abbr = frappe.get_cached_value('Company', company_name, 'abbr')
+    full_template_name = f"{tax_template_name} - {company_abbr}"
 
-    tax_template = frappe.get_doc({
-        "doctype": "Sales Taxes and Charges Template",
-        "title": tax_template_name,
-        "is_default": 1,
-        "company": company_name,
-        "tax_category": tax_category_name,
-        "taxes": [{
-            "charge_type": "On Net Total",
-            "account_head": f"Miscellaneous Expenses - {company_abbr}",
-            "rate": 15,
-            "description": "Miscellaneous Expenses",
-        }],
-    })
-    tax_template.insert(ignore_permissions=True)
+    if not frappe.db.exists("Sales Taxes and Charges Template", full_template_name):
+        tax_template = frappe.get_doc({
+            "doctype": "Sales Taxes and Charges Template",
+            "title": tax_template_name,
+            "is_default": 1,
+            "company": company_name,
+            "tax_category": tax_category_name,
+            "taxes": [{
+                "charge_type": "On Net Total",
+                "account_head": f"Miscellaneous Expenses - {company_abbr}",
+                "rate": 15,
+                "description": "Miscellaneous Expenses",
+            }],
+        })
+        tax_template.insert(ignore_permissions=True)
 
     return tax_template_name
 
 def setup_zatca_business_settings(company_name, country, currency):
     doc_name = f"{company_name}-{country}-{currency}"
+
+    # Ensure company exists before creating address
+    if not frappe.db.exists("Company", company_name):
+        frappe.throw(f"Company {company_name} does not exist. Please run custom_erpnext_setup() first.")
 
     if not frappe.db.exists("ZATCA Business Settings", doc_name):
         address_title = "السلمانية الأمير عبد العزيز بن مساعد بن جلوي"
