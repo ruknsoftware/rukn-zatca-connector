@@ -7,7 +7,7 @@ from frappe.utils.logger import get_logger
 try:
     logger = get_logger("zatca", max_size=1_000_000)
     logger.setLevel(logging.INFO)
-except (FileNotFoundError, OSError) as e:
+except (FileNotFoundError, OSError):
     logger = logging.getLogger("zatca")
     logger.setLevel(logging.INFO)
     if not logger.handlers:
