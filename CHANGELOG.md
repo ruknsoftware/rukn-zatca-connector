@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.52.5
+* Fix issue for logger on version 14
+
 ## 0.52.4
 * Link Party Party type  with Advance payment account in advance invoice Ledger
 
