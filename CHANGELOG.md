@@ -10,11 +10,15 @@ to a section with the version name.
 ## 0.52.4
 * Link Party Party type  with Advance payment account in advance invoice Ledger
 
+## 0.52.3
+* Fix github action approval first befor test
+
 ## 0.52.2
 * Prevent Show Return Invoice Against Paid From Advance Payment
 
 ## 0.52.1
 * Settling Advance Payment Entry from Payment References on return Advance Payment invoice
+
 ## 0.52.0
 * Feat Run Github Actions only after Code Review
 

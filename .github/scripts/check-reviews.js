@@ -113,8 +113,8 @@ module.exports = async ({ github, context, core }) => {
 
   // Check if PR has been reviewed by requested maintainers/admins
   const maintainerReviews = approvedReviews.filter(review => {
-    // Standard maintainer associations
-    if (['OWNER', 'MEMBER', 'COLLABORATOR'].includes(review.author_association)) {
+    // Standard maintainer associations (including CONTRIBUTOR)
+    if (['OWNER', 'MEMBER', 'COLLABORATOR', 'CONTRIBUTOR'].includes(review.author_association)) {
       return true;
     }
     
@@ -127,7 +127,19 @@ module.exports = async ({ github, context, core }) => {
     return false;
   });
 
-  const isApproved = hasEnoughApprovals && maintainerReviews.length > 0;
+  // If no reviewers were requested, be more permissive and accept any maintainer approval
+  let isApproved;
+  if (requestedReviewers.size === 0 && requestedTeams.size === 0) {
+    // No specific reviewers requested - accept any approval from maintainers
+    const anyMaintainerApproval = reviews.filter(review => 
+      review.state === 'APPROVED' && 
+      ['OWNER', 'MEMBER', 'COLLABORATOR', 'CONTRIBUTOR'].includes(review.author_association)
+    );
+    isApproved = anyMaintainerApproval.length >= requiredApprovals;
+  } else {
+    // Specific reviewers were requested - use the strict logic
+    isApproved = hasEnoughApprovals && maintainerReviews.length > 0;
+  }
 
   // Debug logging
   console.log('Debug Information:');
@@ -138,19 +150,31 @@ module.exports = async ({ github, context, core }) => {
   console.log('- All requested users:', Array.from(allRequestedUsers));
   console.log('- Requested reviewers:', Array.from(requestedReviewers));
   console.log('- Requested teams:', Array.from(requestedTeams));
+  console.log('- No specific reviewers requested:', requestedReviewers.size === 0 && requestedTeams.size === 0);
   console.log('- Review details:', reviews.map(r => ({ user: r.user.login, state: r.state, association: r.author_association })));
 
   core.setOutput('approved', isApproved);
 
   if (!isApproved) {
-    core.setFailed(`This pull request requires proper code review before tests can run.
+    const hasNoRequestedReviewers = requestedReviewers.size === 0 && requestedTeams.size === 0;
     
-    Requirements:
-    - Only approvals from REQUESTED reviewers are considered
-    - Exactly 1 approval from a requested maintainer is required (for both fork and non-fork PRs)
-    - Current valid approvals: ${approvedReviews.length}/${requiredApprovals}
-    - Maintainer approvals from requested reviewers: ${maintainerReviews.length}
-    - Requested reviewers: ${Array.from(requestedReviewers).join(', ') || 'None'}
-    - All requested users: ${Array.from(allRequestedUsers).join(', ') || 'None'}`);
+    if (hasNoRequestedReviewers) {
+      core.setFailed(`This pull request requires proper code review before tests can run.
+      
+      Requirements (No specific reviewers requested):
+      - At least 1 approval from a maintainer (OWNER, MEMBER, COLLABORATOR, or CONTRIBUTOR)
+      - Current maintainer approvals: ${reviews.filter(r => r.state === 'APPROVED' && ['OWNER', 'MEMBER', 'COLLABORATOR', 'CONTRIBUTOR'].includes(r.author_association)).length}/${requiredApprovals}
+      - All reviews: ${reviews.map(r => `${r.user.login} (${r.state}, ${r.author_association})`).join(', ')}`);
+    } else {
+      core.setFailed(`This pull request requires proper code review before tests can run.
+      
+      Requirements (Specific reviewers requested):
+      - Only approvals from REQUESTED reviewers are considered
+      - Exactly 1 approval from a requested maintainer is required (for both fork and non-fork PRs)
+      - Current valid approvals: ${approvedReviews.length}/${requiredApprovals}
+      - Maintainer approvals from requested reviewers: ${maintainerReviews.length}
+      - Requested reviewers: ${Array.from(requestedReviewers).join(', ') || 'None'}
+      - All requested users: ${Array.from(allRequestedUsers).join(', ') || 'None'}`);
+    }
   }
 };
