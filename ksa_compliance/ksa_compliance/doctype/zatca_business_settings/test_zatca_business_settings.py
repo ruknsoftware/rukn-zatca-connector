@@ -11,13 +11,13 @@ class TestZATCABusinessSettings(FrappeTestCase):
         """Set up test class"""
         print("\n🚀 Starting TestZATCABusinessSettings test suite...")
         super().setUpClass()
-    
+
     @classmethod
     def tearDownClass(cls):
         """Clean up test class"""
         print("🏁 TestZATCABusinessSettings test suite completed\n")
         super().tearDownClass()
-    
+
     def test_basic_setup(self):
         """Test basic ZATCA Business Settings setup"""
         print("🧪 Running test_basic_setup...")
