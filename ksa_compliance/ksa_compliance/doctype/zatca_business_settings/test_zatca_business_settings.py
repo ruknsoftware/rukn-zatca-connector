@@ -68,4 +68,6 @@ class TestZATCABusinessSettings(FrappeTestCase):
         self.assertEqual(settings.company, "RUKN")
         self.assertEqual(settings.currency, "SAR")
         self.assertEqual(settings.country, "Saudi Arabia")
-        print("✅ test_zatca_business_settings_creation completed - Settings validation passed")
+        print(
+            f"✅ test_zatca_business_settings_exists completed - Settings {settings_name} exists"
+        )
