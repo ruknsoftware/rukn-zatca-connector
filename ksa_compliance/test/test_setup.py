@@ -47,13 +47,13 @@ def create_mock_zatca_response(status="Accepted", warnings=None, errors=None):
 
 def custom_erpnext_setup():
     frappe.clear_cache()
-    from frappe.desk.page.setup_wizard.setup_wizard import setup_complete
+    from erpnext.setup.setup_wizard.setup_wizard import setup_complete
 
 
     if not frappe.db.exists("Company", company_name):
         current_year = now_datetime().year
         setup_complete(
-            {
+            frappe._dict({
                 "currency": currency,
                 "company_name": company_name,
                 "country": country,
@@ -68,7 +68,7 @@ def custom_erpnext_setup():
                 "email": "test@example.com",
                 "password": "test",
                 "chart_of_accounts": "Standard",
-            }
+            })
         )
 
     if frappe.db.exists("Country", "Saudi Arabia"):
