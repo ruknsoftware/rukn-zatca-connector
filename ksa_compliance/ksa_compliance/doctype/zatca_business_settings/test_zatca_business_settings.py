@@ -10,7 +10,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
         """Test basic ZATCA Business Settings setup"""
         # This is a simple test to verify the test framework is working
         self.assertTrue(True, "Basic test framework is working")
-        
+
     def test_company_exists(self):
         """Test that the test company exists"""
         company_name = "RUKN"
@@ -18,7 +18,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
             frappe.db.exists("Company", company_name),
             f"Test company {company_name} should exist"
         )
-        
+
     def test_zatca_business_settings_exists(self):
         """Test that ZATCA Business Settings exists"""
         settings_name = "RUKN-Saudi Arabia-SAR"
@@ -26,7 +26,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
             frappe.db.exists("ZATCA Business Settings", settings_name),
             f"ZATCA Business Settings {settings_name} should exist"
         )
-        
+
     def test_zatca_business_settings_creation(self):
         """Test creating a new ZATCA Business Settings"""
         # Test creating a new settings document
@@ -40,10 +40,10 @@ class TestZATCABusinessSettings(FrappeTestCase):
             "enable_zatca_integration": 0,  # Disabled for testing
             "fatoora_server": "Sandbox",
         })
-        
+
         # Test validation
         settings.validate()
-        
+
         # Test that required fields are set
         self.assertEqual(settings.company, "RUKN")
         self.assertEqual(settings.currency, "SAR")
