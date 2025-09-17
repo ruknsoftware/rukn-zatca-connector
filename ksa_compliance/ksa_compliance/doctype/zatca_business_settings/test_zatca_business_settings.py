@@ -42,7 +42,9 @@ class TestZATCABusinessSettings(FrappeTestCase):
             frappe.db.exists("ZATCA Business Settings", settings_name),
             f"ZATCA Business Settings {settings_name} should exist",
         )
-        print(f"✅ test_zatca_business_settings_exists completed - Settings {settings_name} exists")
+        print(
+            f"✅ test_zatca_business_settings_exists completed - Settings {settings_name} exists"
+        )
 
     def test_zatca_business_settings_creation(self):
         """Test creating a new ZATCA Business Settings"""
