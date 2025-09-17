@@ -165,6 +165,9 @@ doc_events = {
     "Unreconcile Payment": {
         "validate": "ksa_compliance.standard_doctypes.unreconcile_payment.prevent_un_reconcile_advance_payments",
     },
+    "GL Entry": {
+        "validate": "ksa_compliance.standard_doctypes.gl_entry.set_party_details_on_advance_invoice",
+    },
 }
 
 # Scheduled Tasks
