@@ -15,12 +15,12 @@ def create_mock_zatca_response(status="Accepted", warnings=None, errors=None):
     """Create a realistic mock ZATCA API response"""
     from result import Ok
     from ksa_compliance.zatca_api import ReportOrClearInvoiceResult, WarningOrError
-    
+
     if warnings is None:
         warnings = []
     if errors is None:
         errors = []
-    
+
     # Convert string warnings/errors to WarningOrError objects
     warning_objects = []
     for warning in warnings:
@@ -28,14 +28,14 @@ def create_mock_zatca_response(status="Accepted", warnings=None, errors=None):
             warning_objects.append(WarningOrError("Warning", "W001", warning))
         else:
             warning_objects.append(warning)
-    
+
     error_objects = []
     for error in errors:
         if isinstance(error, str):
             error_objects.append(WarningOrError("Error", "E001", error))
         else:
             error_objects.append(error)
-    
+
     return ReportOrClearInvoiceResult(
         status=status,
         invoice_hash=f"test-hash-{status.lower().replace(' ', '-')}-12345",
@@ -85,12 +85,12 @@ def runing_test():
     business_settings_id = setup_zatca_business_settings(company_name, country, currency)
     data = setup_compliance_check_data(company_name)
     frappe.db.commit()
-    
+
     # Mock ZATCA API calls to prevent hanging during tests
     with patch('ksa_compliance.zatca_api.api_call') as mock_api_call:
         # Mock realistic ZATCA sandbox response
         from result import Ok
-        
+
         # Create realistic sandbox response - most invoices are accepted in sandbox
         mock_result = create_mock_zatca_response(
             status="Accepted",
@@ -98,7 +98,7 @@ def runing_test():
             errors=[]     # No errors for successful submission
         )
         mock_api_call.return_value = (Ok(mock_result), 200)
-        
+
         test_compliance_check_messages(business_settings_id=business_settings_id,**data)
 
 def setup_compliance_check_data(company_name):
