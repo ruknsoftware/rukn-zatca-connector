@@ -82,6 +82,15 @@ def custom_erpnext_setup():
             company_doc.save(ignore_permissions=True)
 
     frappe.db.sql("delete from `tabItem Price`")
+    # Create currency exchange rate for USD-SAR to avoid E-Commerce validation errors
+    if not frappe.db.exists("Currency Exchange", {"from_currency": "USD", "to_currency": "SAR"}):
+        frappe.get_doc({
+            "doctype": "Currency Exchange",
+            "from_currency": "USD",
+            "to_currency": "SAR",
+            "exchange_rate": 3.75,  # Approximate SAR to USD rate
+            "date": now_datetime().date()
+        }).insert(ignore_permissions=True)
 
 
     setup_zatca_business_settings(company_name, country, currency)
