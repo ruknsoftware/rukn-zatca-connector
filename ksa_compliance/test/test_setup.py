@@ -74,12 +74,10 @@ def custom_erpnext_setup():
     if frappe.db.exists("Country", "Saudi Arabia"):
         frappe.db.set_value("Country", "Saudi Arabia", "code", "SA")
 
-    # Add Arabic name to company for Saudi Arabia compliance
+    # Add Arabic name and Tax ID to company for Saudi Arabia compliance
     if frappe.db.exists("Company", company_name):
-        company_doc = frappe.get_doc("Company", company_name)
-        if not company_doc.get("arabic_name"):
-            company_doc.arabic_name = "شركة ركن للاختبار"
-            company_doc.save(ignore_permissions=True)
+        frappe.db.set_value("Company", company_name, "company_name_in_arabic", "شركة ركن للاختبار")
+        frappe.db.set_value("Company", company_name, "tax_id", "399999999900003")
 
     frappe.db.sql("delete from `tabItem Price`")
     # Create currency exchange rate for USD-SAR to avoid E-Commerce validation errors
