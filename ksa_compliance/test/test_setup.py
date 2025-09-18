@@ -266,6 +266,7 @@ def setup_zatca_business_settings(company_name, country, currency):
                     "item_name": item_code,
                     "item_group": "Services",
                     "is_stock_item": 0,
+                    "stock_uom": "Nos",
                 }
             ).insert(ignore_permissions=True)
 
