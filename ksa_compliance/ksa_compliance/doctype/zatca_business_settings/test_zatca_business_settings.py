@@ -93,7 +93,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
         from ksa_compliance.test.test_setup import setup_compliance_check_data
 
         data = setup_compliance_check_data(TEST_COMPANY_NAME)
-        frappe.db.commit()
+        frappe.db.commit()  # nosemgrep - Required to persist test data for compliance checks
 
         success_status = SUCCESS_STATUS
 
@@ -119,7 +119,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
         from ksa_compliance.test.test_setup import setup_compliance_check_data
 
         data = setup_compliance_check_data(TEST_COMPANY_NAME)
-        frappe.db.commit()
+        frappe.db.commit()  # nosemgrep - Required to persist test data for compliance checks
 
         success_status = SUCCESS_STATUS
 
@@ -166,7 +166,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
             standard_customer_doc.customer_primary_address = None
             standard_customer_doc.save(ignore_permissions=True)
 
-        frappe.db.commit()
+        frappe.db.commit()  # nosemgrep - Required to persist address clearing for test isolation
 
         # Verify customers don't have addresses
         simplified_customer_doc.reload()
@@ -197,9 +197,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
                 )
 
         frappe.logger().info(
-            _(
-                "\n ✅✅✅ Test Case 1 completed: Validation failed as expected (no addresses) ✅✅✅\n"
-            )
+            "\n ✅✅✅ Test Case 1 completed: Validation failed as expected (no addresses) ✅✅✅\n"
         )
 
     def _run_test_case_with_addresses(
@@ -218,7 +216,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
         simplified_address = self._create_customer_address(simplified_customer)
         self._update_customer_address(standard_customer, standard_address)
         self._update_customer_address(simplified_customer, simplified_address)
-        frappe.db.commit()
+        frappe.db.commit()  # nosemgrep - Required to persist address creation for test validation
 
         simplified_result, standard_result = _perform_compliance_checks(
             business_settings_id=business_settings_id,
@@ -267,7 +265,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
                 )
 
         frappe.logger().info(
-            _("\n✅✅✅ Test Case 2 completed: All validations passed with addresses ✅✅✅")
+            "\n✅✅✅ Test Case 2 completed: All validations passed with addresses ✅✅✅"
         )
 
     def _create_customer_address(self, customer_name):
@@ -400,7 +398,7 @@ def setup_zatca_business_settings(company_name, country, currency):
         b_settings.compliance_request_id = None
         b_settings.production_request_id = None
         b_settings.save(ignore_permissions=True)
-        frappe.db.commit()
+        frappe.db.commit()  # nosemgrep - Required to persist mock ID clearing for fresh onboarding
 
     if b_settings.cli_setup == "Automatic":
         zatca_cli_response = zatca_cli_setup("", "")
