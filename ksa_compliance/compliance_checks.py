@@ -124,6 +124,7 @@ def _perform_compliance_checks(
     progress = 0.0
 
     has_error = False
+    in_test = frappe.flags.get("in_test")
     try:
         settings = cast(
             ZATCABusinessSettings, frappe.get_doc("ZATCA Business Settings", business_settings_id)
@@ -157,7 +158,6 @@ def _perform_compliance_checks(
         # Submitting the above invoices results in a number of messages about payment reconciliation and the like,
         # and we don't to show those with the result of the compliance check
         frappe.clear_messages()
-        in_test = frappe.flags.get("in_test")
 
         if frappe.flags.get("in_test"):
             return simplified_result, standard_result
@@ -180,6 +180,9 @@ def _perform_compliance_checks(
             indicator="red",
             realtime=not in_test,
         )
+        # Return None values for both results in case of error
+        if in_test:
+            raise e
     finally:
         # If an error occurs, we hide the progress before showing it, so no need to do it here
         if not has_error:
