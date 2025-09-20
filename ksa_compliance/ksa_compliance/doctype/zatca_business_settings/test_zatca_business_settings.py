@@ -7,7 +7,6 @@ from frappe import _
 from ksa_compliance.zatca_cli import setup as zatca_cli_setup
 from ksa_compliance.compliance_checks import _perform_compliance_checks
 from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, SUCCESS_STATUS
-from ksa_compliance.test.test_setup import setup_compliance_check_data
 
 
 class TestZATCABusinessSettings(FrappeTestCase):
@@ -81,6 +80,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info("🧪 Running test_compliance_without_addresses...")
 
         business_settings_id = setup_zatca_business_settings(TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY)
+        from ksa_compliance.test.test_setup import setup_compliance_check_data
         data = setup_compliance_check_data(TEST_COMPANY_NAME)
         frappe.db.commit()
 
@@ -103,6 +103,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info("🧪 Running test_compliance_with_addresses...")
 
         business_settings_id = setup_zatca_business_settings(TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY)
+        from ksa_compliance.test.test_setup import setup_compliance_check_data
         data = setup_compliance_check_data(TEST_COMPANY_NAME)
         frappe.db.commit()
 
