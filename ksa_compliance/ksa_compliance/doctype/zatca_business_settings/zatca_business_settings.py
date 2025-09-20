@@ -114,14 +114,14 @@ class ZATCABusinessSettings(Document):
                 "ZATCA Phase 1 Business Settings",
                 {"company": self.company},
                 ["name", "status"],
-                as_dict=True
+                as_dict=True,
             )
             if phase_1_settings and phase_1_settings.status == "Active":
                 link = get_link_to_form("ZATCA Phase 1 Business Settings", phase_1_settings.name)
                 frappe.throw(
-                    _("ZATCA Phase 1 Business Settings already enabled for company {0}: {1}").format(
-                        self.company, link
-                    ),
+                    _(
+                        "ZATCA Phase 1 Business Settings already enabled for company {0}: {1}"
+                    ).format(self.company, link),
                     title=_("Another Setting Already Enabled"),
                 )
 

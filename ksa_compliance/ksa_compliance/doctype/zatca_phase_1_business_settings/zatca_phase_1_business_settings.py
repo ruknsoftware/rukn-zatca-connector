@@ -33,13 +33,18 @@ class ZATCAPhase1BusinessSettings(Document):
                 "name"
             )
             if business_settings_id:
-                business_settings_doc = frappe.get_doc("ZATCA Business Settings", business_settings_id)
-                if business_settings_doc.enable_zatca_integration or business_settings_doc.has_production_csid:
+                business_settings_doc = frappe.get_doc(
+                    "ZATCA Business Settings", business_settings_id
+                )
+                if (
+                    business_settings_doc.enable_zatca_integration
+                    or business_settings_doc.has_production_csid
+                ):
                     link = get_link_to_form("ZATCA Business Settings", business_settings_id)
                     frappe.throw(
-                        _("ZATCA Phase 2 Business Settings is enabled or has production CSID configured for company {0}: {1}").format(
-                            self.company, link
-                        ),
+                        _(
+                            "ZATCA Phase 2 Business Settings is enabled or has production CSID configured for company {0}: {1}"
+                        ).format(self.company, link),
                         title=_("Another Setting Already Enabled"),
                     )
 
