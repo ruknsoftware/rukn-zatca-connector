@@ -28,8 +28,8 @@ class ZATCAPhase1BusinessSettings(Document):
     def validate(self):
         if self.status == "Active":
             business_settings_id = frappe.get_value(
-                "ZATCA Business Settings", 
-                {"company": self.company}, 
+                "ZATCA Business Settings",
+                {"company": self.company},
                 "name"
             )
             if business_settings_id:

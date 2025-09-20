@@ -111,9 +111,9 @@ class ZATCABusinessSettings(Document):
     def validate(self):
         if self.enable_zatca_integration:
             phase_1_settings = frappe.get_value(
-                "ZATCA Phase 1 Business Settings", 
-                {"company": self.company}, 
-                ["name", "status"], 
+                "ZATCA Phase 1 Business Settings",
+                {"company": self.company},
+                ["name", "status"],
                 as_dict=True
             )
             if phase_1_settings and phase_1_settings.status == "Active":
