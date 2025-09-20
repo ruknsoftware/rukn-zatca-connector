@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.52.7
+* Refactor Test and Move Logic to Buissness ZATCA Phase 2
+
 ## 0.52.6
 * Allow Activate Phase 1 if Phase 2 not Active and Vise Versa
 
