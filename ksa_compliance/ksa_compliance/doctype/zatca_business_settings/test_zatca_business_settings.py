@@ -4,6 +4,7 @@
 import frappe
 from frappe import _
 from frappe.tests.utils import FrappeTestCase
+
 from ksa_compliance.compliance_checks import _perform_compliance_checks
 from ksa_compliance.test.test_constants import (
     SAUDI_COUNTRY,
