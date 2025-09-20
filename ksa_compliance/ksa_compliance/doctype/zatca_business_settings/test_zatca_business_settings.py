@@ -83,9 +83,9 @@ class TestZATCABusinessSettings(FrappeTestCase):
         business_settings_id = setup_zatca_business_settings(TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY)
         data = setup_compliance_check_data(TEST_COMPANY_NAME)
         frappe.db.commit()
-        
+
         success_status = SUCCESS_STATUS
-        
+
         # Run test case without addresses
         self._run_test_case_without_addresses(
             business_settings_id=business_settings_id,
@@ -95,19 +95,19 @@ class TestZATCABusinessSettings(FrappeTestCase):
             tax_category=data["tax_category"],
             success_status=success_status
         )
-        
+
         print("✅ test_compliance_without_addresses completed successfully")
 
     def test_compliance_with_addresses(self):
         """Test ZATCA compliance validation with customer addresses"""
         print("🧪 Running test_compliance_with_addresses...")
-        
+
         business_settings_id = setup_zatca_business_settings(TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY)
         data = setup_compliance_check_data(TEST_COMPANY_NAME)
         frappe.db.commit()
-        
+
         success_status = SUCCESS_STATUS
-        
+
         # Run test case with addresses
         self._run_test_case_with_addresses(
             business_settings_id=business_settings_id,
@@ -117,30 +117,30 @@ class TestZATCABusinessSettings(FrappeTestCase):
             tax_category=data["tax_category"],
             success_status=success_status
         )
-        
+
         print("✅ test_compliance_with_addresses completed successfully")
 
     def _run_test_case_without_addresses(self, business_settings_id, simplified_customer, standard_customer, item, tax_category, success_status):
         """Helper method: Test case without customer addresses"""
         print(_("\n🔍 Test Case 1: Without Customer Addresses"))
-        
+
         # Ensure customers don't have addresses for this test
         simplified_customer_doc = frappe.get_doc("Customer", simplified_customer)
         standard_customer_doc = frappe.get_doc("Customer", standard_customer)
-        
+
         # Clear any existing addresses
         if simplified_customer_doc.customer_primary_address:
             print(f"🔄 Clearing address for simplified customer: {simplified_customer_doc.customer_primary_address}")
             simplified_customer_doc.customer_primary_address = None
             simplified_customer_doc.save(ignore_permissions=True)
-        
+
         if standard_customer_doc.customer_primary_address:
             print(f"🔄 Clearing address for standard customer: {standard_customer_doc.customer_primary_address}")
             standard_customer_doc.customer_primary_address = None
             standard_customer_doc.save(ignore_permissions=True)
-        
+
         frappe.db.commit()
-        
+
         # Verify customers don't have addresses
         simplified_customer_doc.reload()
         standard_customer_doc.reload()
@@ -320,10 +320,10 @@ def setup_zatca_business_settings(company_name, country, currency):
         settings.insert(ignore_permissions=True)
 
     b_settings = frappe.get_doc("ZATCA Business Settings", doc_name)
-    
+
     print(f"🔍 Current compliance_request_id: {b_settings.compliance_request_id}")
     print(f"🔍 Current production_request_id: {b_settings.production_request_id}")
-    
+
     # Clear any existing mock IDs to force fresh onboarding
     if b_settings.compliance_request_id and "COMP-2024-001234567890" in b_settings.compliance_request_id:
         print("🔄 Clearing mock compliance_request_id to force fresh onboarding")
