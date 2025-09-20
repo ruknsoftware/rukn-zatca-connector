@@ -17,6 +17,7 @@ from erpnext.accounts.doctype.tax_category.tax_category import TaxCategory
 # noinspection PyProtectedMember
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils.data import get_link_to_form
 from pathvalidate import sanitize_filename
 from result import is_err
 
@@ -106,6 +107,23 @@ class ZATCABusinessSettings(Document):
             "Zero rated goods || Supply of qualified military goods",
         ]
     # end: auto-generated types
+
+    def validate(self):
+        if self.enable_zatca_integration:
+            phase_1_settings = frappe.get_value(
+                "ZATCA Phase 1 Business Settings",
+                {"company": self.company},
+                ["name", "status"],
+                as_dict=True,
+            )
+            if phase_1_settings and phase_1_settings.status == "Active":
+                link = get_link_to_form("ZATCA Phase 1 Business Settings", phase_1_settings.name)
+                frappe.throw(
+                    _(
+                        "ZATCA Phase 1 Business Settings already enabled for company {0}: {1}"
+                    ).format(self.company, link),
+                    title=_("Another Setting Already Enabled"),
+                )
 
     def after_insert(self):
         invoice_counting_doc = frappe.new_doc("ZATCA Invoice Counting Settings")
