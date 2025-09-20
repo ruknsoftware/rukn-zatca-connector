@@ -360,5 +360,3 @@ def setup_zatca_business_settings(company_name, country, currency):
         b_settings.reload()
 
     return doc_name
-
-

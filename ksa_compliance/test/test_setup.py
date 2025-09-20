@@ -156,5 +156,3 @@ def _create_tax_template(company_name, tax_category_name):
         tax_template.insert(ignore_permissions=True)
 
     return tax_template_name
-
-
