@@ -14,45 +14,45 @@ class TestZATCABusinessSettings(FrappeTestCase):
     @classmethod
     def setUpClass(cls):
         """Set up test class"""
-        print("\n🚀 Starting TestZATCABusinessSettings test suite...")
+        frappe.logger().info("\n🚀 Starting TestZATCABusinessSettings test suite...")
         super().setUpClass()
 
     @classmethod
     def tearDownClass(cls):
         """Clean up test class"""
-        print("🏁 TestZATCABusinessSettings test suite completed\n")
+        frappe.logger().info("🏁 TestZATCABusinessSettings test suite completed\n")
         super().tearDownClass()
 
     def test_basic_setup(self):
         """Test basic ZATCA Business Settings setup"""
-        print("🧪 Running test_basic_setup...")
+        frappe.logger().info("🧪 Running test_basic_setup...")
         # This is a simple test to verify the test framework is working
         self.assertTrue(True, "Basic test framework is working")
-        print("✅ test_basic_setup completed successfully")
+        frappe.logger().info("✅ test_basic_setup completed successfully")
 
     def test_company_exists(self):
         """Test that the test company exists"""
-        print("🧪 Running test_company_exists...")
+        frappe.logger().info("🧪 Running test_company_exists...")
         self.assertTrue(
             frappe.db.exists("Company", TEST_COMPANY_NAME), f"Test company {TEST_COMPANY_NAME} should exist"
         )
-        print(f"✅ test_company_exists completed - Company {TEST_COMPANY_NAME} exists")
+        frappe.logger().info(f"✅ test_company_exists completed - Company {TEST_COMPANY_NAME} exists")
 
     def test_zatca_business_settings_exists(self):
         """Test that ZATCA Business Settings exists"""
-        print("🧪 Running test_zatca_business_settings_exists...")
+        frappe.logger().info("🧪 Running test_zatca_business_settings_exists...")
         settings_name = f"{TEST_COMPANY_NAME}-{SAUDI_COUNTRY}-{SAUDI_CURRENCY}"
         self.assertTrue(
             frappe.db.exists("ZATCA Business Settings", settings_name),
             f"ZATCA Business Settings {settings_name} should exist",
         )
-        print(
+        frappe.logger().info(
             f"✅ test_zatca_business_settings_exists completed - Settings {settings_name} exists"
         )
 
     def test_zatca_business_settings_creation(self):
         """Test creating a new ZATCA Business Settings"""
-        print("🧪 Running test_zatca_business_settings_creation...")
+        frappe.logger().info("🧪 Running test_zatca_business_settings_creation...")
         # Test creating a new settings document
         settings = frappe.get_doc(
             {
@@ -72,13 +72,13 @@ class TestZATCABusinessSettings(FrappeTestCase):
         self.assertEqual(settings.company, TEST_COMPANY_NAME)
         self.assertEqual(settings.currency, SAUDI_CURRENCY)
         self.assertEqual(settings.country, SAUDI_COUNTRY)
-        print(
+        frappe.logger().info(
             f"✅ test_zatca_business_settings_exists completed - Settings {settings.name} exists"
         )
 
     def test_compliance_without_addresses(self):
         """Test ZATCA compliance validation without customer addresses"""
-        print("🧪 Running test_compliance_without_addresses...")
+        frappe.logger().info("🧪 Running test_compliance_without_addresses...")
 
         business_settings_id = setup_zatca_business_settings(TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY)
         data = setup_compliance_check_data(TEST_COMPANY_NAME)
@@ -96,11 +96,11 @@ class TestZATCABusinessSettings(FrappeTestCase):
             success_status=success_status
         )
 
-        print("✅ test_compliance_without_addresses completed successfully")
+        frappe.logger().info("✅ test_compliance_without_addresses completed successfully")
 
     def test_compliance_with_addresses(self):
         """Test ZATCA compliance validation with customer addresses"""
-        print("🧪 Running test_compliance_with_addresses...")
+        frappe.logger().info("🧪 Running test_compliance_with_addresses...")
 
         business_settings_id = setup_zatca_business_settings(TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY)
         data = setup_compliance_check_data(TEST_COMPANY_NAME)
@@ -118,11 +118,11 @@ class TestZATCABusinessSettings(FrappeTestCase):
             success_status=success_status
         )
 
-        print("✅ test_compliance_with_addresses completed successfully")
+        frappe.logger().info("✅ test_compliance_with_addresses completed successfully")
 
     def _run_test_case_without_addresses(self, business_settings_id, simplified_customer, standard_customer, item, tax_category, success_status):
         """Helper method: Test case without customer addresses"""
-        print(_("\n🔍 Test Case 1: Without Customer Addresses"))
+        frappe.logger().info(_("\n🔍 Test Case 1: Without Customer Addresses"))
 
         # Ensure customers don't have addresses for this test
         simplified_customer_doc = frappe.get_doc("Customer", simplified_customer)
@@ -130,12 +130,12 @@ class TestZATCABusinessSettings(FrappeTestCase):
 
         # Clear any existing addresses
         if simplified_customer_doc.customer_primary_address:
-            print(f"🔄 Clearing address for simplified customer: {simplified_customer_doc.customer_primary_address}")
+            frappe.logger().info(f"🔄 Clearing address for simplified customer: {simplified_customer_doc.customer_primary_address}")
             simplified_customer_doc.customer_primary_address = None
             simplified_customer_doc.save(ignore_permissions=True)
 
         if standard_customer_doc.customer_primary_address:
-            print(f"🔄 Clearing address for standard customer: {standard_customer_doc.customer_primary_address}")
+            frappe.logger().info(f"🔄 Clearing address for standard customer: {standard_customer_doc.customer_primary_address}")
             standard_customer_doc.customer_primary_address = None
             standard_customer_doc.save(ignore_permissions=True)
 
@@ -144,8 +144,8 @@ class TestZATCABusinessSettings(FrappeTestCase):
         # Verify customers don't have addresses
         simplified_customer_doc.reload()
         standard_customer_doc.reload()
-        print(f"🔍 DEBUG: Simplified customer address after clearing: {simplified_customer_doc.customer_primary_address}")
-        print(f"🔍 DEBUG: Standard customer address after clearing: {standard_customer_doc.customer_primary_address}")
+        frappe.logger().info(f"🔍 DEBUG: Simplified customer address after clearing: {simplified_customer_doc.customer_primary_address}")
+        frappe.logger().info(f"🔍 DEBUG: Standard customer address after clearing: {standard_customer_doc.customer_primary_address}")
 
         simplified_result, standard_result = _perform_compliance_checks(
             business_settings_id=business_settings_id,
@@ -156,16 +156,16 @@ class TestZATCABusinessSettings(FrappeTestCase):
         )
 
         if standard_result and standard_result.invoice_result:
-            print(f"🔍 DEBUG: Standard invoice result: {standard_result.invoice_result}")
-            print(f"🔍 DEBUG: Expected to NOT equal: {success_status}")
+            frappe.logger().info(f"🔍 DEBUG: Standard invoice result: {standard_result.invoice_result}")
+            frappe.logger().info(f"🔍 DEBUG: Expected to NOT equal: {success_status}")
             if standard_result.invoice_result == success_status:
-                print("❌ Test Case 1: Standard invoice should fail without address")
+                frappe.logger().info("❌ Test Case 1: Standard invoice should fail without address")
 
-        print(_("\n ✅✅✅ Test Case 1 completed: Validation failed as expected (no addresses) ✅✅✅\n"))
+        frappe.logger().info(_("\n ✅✅✅ Test Case 1 completed: Validation failed as expected (no addresses) ✅✅✅\n"))
 
     def _run_test_case_with_addresses(self, business_settings_id, simplified_customer, standard_customer, item, tax_category, success_status):
         """Helper method: Test case with customer addresses"""
-        print(_("\n🔍 Test Case 2: With Customer Addresses"))
+        frappe.logger().info(_("\n🔍 Test Case 2: With Customer Addresses"))
 
         standard_address = self._create_customer_address(standard_customer)
         simplified_address = self._create_customer_address(simplified_customer)
@@ -182,32 +182,32 @@ class TestZATCABusinessSettings(FrappeTestCase):
         )
 
         if simplified_result:
-            print(_("\n📝 Simplified Invoice Results:"))
-            print(_(f"Invoice Status: {simplified_result.invoice_result}"))
-            print(_(f"Credit Note Status: {simplified_result.credit_note_result}"))
-            print(_(f"Debit Note Status: {simplified_result.debit_note_result}"))
+            frappe.logger().info(_("\n📝 Simplified Invoice Results:"))
+            frappe.logger().info(_(f"Invoice Status: {simplified_result.invoice_result}"))
+            frappe.logger().info(_(f"Credit Note Status: {simplified_result.credit_note_result}"))
+            frappe.logger().info(_(f"Debit Note Status: {simplified_result.debit_note_result}"))
 
             if simplified_result.invoice_result != success_status:
-                print(f"❌ Simplified invoice validation failed: {simplified_result.invoice_result}")
+                frappe.logger().info(f"❌ Simplified invoice validation failed: {simplified_result.invoice_result}")
             if simplified_result.credit_note_result != success_status:
-                print(f"❌ Simplified credit note validation failed: {simplified_result.credit_note_result}")
+                frappe.logger().info(f"❌ Simplified credit note validation failed: {simplified_result.credit_note_result}")
             if simplified_result.debit_note_result != success_status:
-                print(f"❌ Simplified debit note validation failed: {simplified_result.debit_note_result}")
+                frappe.logger().info(f"❌ Simplified debit note validation failed: {simplified_result.debit_note_result}")
 
         if standard_result:
-            print(_("\n📝 Standard Invoice Results:"))
-            print(_(f"Invoice Status: {standard_result.invoice_result}"))
-            print(_(f"Credit Note Status: {standard_result.credit_note_result}"))
-            print(_(f"Debit Note Status: {standard_result.debit_note_result}"))
+            frappe.logger().info(_("\n📝 Standard Invoice Results:"))
+            frappe.logger().info(_(f"Invoice Status: {standard_result.invoice_result}"))
+            frappe.logger().info(_(f"Credit Note Status: {standard_result.credit_note_result}"))
+            frappe.logger().info(_(f"Debit Note Status: {standard_result.debit_note_result}"))
 
             if standard_result.invoice_result != success_status:
-                print(f"❌ Standard invoice validation failed: {standard_result.invoice_result}")
+                frappe.logger().info(f"❌ Standard invoice validation failed: {standard_result.invoice_result}")
             if standard_result.credit_note_result != success_status:
-                print(f"❌ Standard credit note validation failed: {standard_result.credit_note_result}")
+                frappe.logger().info(f"❌ Standard credit note validation failed: {standard_result.credit_note_result}")
             if standard_result.debit_note_result != success_status:
-                print(f"❌ Standard debit note validation failed: {standard_result.debit_note_result}")
+                frappe.logger().info(f"❌ Standard debit note validation failed: {standard_result.debit_note_result}")
 
-        print(_("\n✅✅✅ Test Case 2 completed: All validations passed with addresses ✅✅✅"))
+        frappe.logger().info(_("\n✅✅✅ Test Case 2 completed: All validations passed with addresses ✅✅✅"))
 
     def _create_customer_address(self, customer_name):
         """Helper method: Create customer address for testing"""
@@ -321,12 +321,12 @@ def setup_zatca_business_settings(company_name, country, currency):
 
     b_settings = frappe.get_doc("ZATCA Business Settings", doc_name)
 
-    print(f"🔍 Current compliance_request_id: {b_settings.compliance_request_id}")
-    print(f"🔍 Current production_request_id: {b_settings.production_request_id}")
+    frappe.logger().info(f"🔍 Current compliance_request_id: {b_settings.compliance_request_id}")
+    frappe.logger().info(f"🔍 Current production_request_id: {b_settings.production_request_id}")
 
     # Clear any existing mock IDs to force fresh onboarding
     if b_settings.compliance_request_id and "COMP-2024-001234567890" in b_settings.compliance_request_id:
-        print("🔄 Clearing mock compliance_request_id to force fresh onboarding")
+        frappe.logger().info("🔄 Clearing mock compliance_request_id to force fresh onboarding")
         b_settings.compliance_request_id = None
         b_settings.production_request_id = None
         b_settings.save(ignore_permissions=True)
@@ -338,19 +338,19 @@ def setup_zatca_business_settings(company_name, country, currency):
             b_settings.zatca_cli_path = zatca_cli_response.get("cli_path")
             b_settings.java_home = zatca_cli_response.get("jre_path")
             b_settings.save(ignore_permissions=True)
-            print(f"✅ ZATCA CLI setup completed: {zatca_cli_response.get('cli_path')}")
+            frappe.logger().info(f"✅ ZATCA CLI setup completed: {zatca_cli_response.get('cli_path')}")
 
     otp = "123456"
 
     if not b_settings.compliance_request_id:
         # Run actual onboarding process
-        print("🔄 Starting ZATCA onboarding process...")
+        frappe.logger().info("🔄 Starting ZATCA onboarding process...")
         try:
             b_settings.onboard(otp=otp)
             b_settings.reload()
-            print(f"✅ Onboarding completed. Compliance Request ID: {b_settings.compliance_request_id}")
+            frappe.logger().info(f"✅ Onboarding completed. Compliance Request ID: {b_settings.compliance_request_id}")
         except Exception as e:
-            print(f"❌ Onboarding failed: {e}")
+            frappe.logger().info(f"❌ Onboarding failed: {e}")
             # Create the necessary certificate files for testing even if onboarding fails
             raise
 
