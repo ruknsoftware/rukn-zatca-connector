@@ -3,7 +3,7 @@ from frappe.utils import now_datetime
 from frappe import _
 from ksa_compliance.compliance_checks import _perform_compliance_checks
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.test_zatca_business_settings import setup_zatca_business_settings
-from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, TEST_TAX_CATEGORY_NAME, TEST_STANDARD_CUSTOMER_NAME, TEST_SIMPLIFIED_CUSTOMER_NAME
+from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, TEST_TAX_CATEGORY_NAME, TEST_STANDARD_CUSTOMER_NAME, TEST_SIMPLIFIED_CUSTOMER_NAME, TEST_TAX_TEMPLATE_NAME
 
 def custom_erpnext_setup():
     frappe.clear_cache()
@@ -69,13 +69,14 @@ def setup_compliance_check_data(company_name):
     standard_customer_name = _create_standard_customer(tax_category_name)
     simplified_customer = _create_simplified_customer()
     item = _create_test_item()
-    _create_tax_template(company_name, tax_category_name)
+    tax_template_name = _create_tax_template(company_name, tax_category_name)
 
     return {
         "simplified_customer": simplified_customer,
         "standard_customer": standard_customer_name,
         "item": item,
         "tax_category": tax_category_name,
+        "tax_template": tax_template_name,
     }
 
 
@@ -133,14 +134,13 @@ def _create_test_item():
 
 def _create_tax_template(company_name, tax_category_name):
 
-    tax_template_name = "VAT 15 %"
     company_abbr = frappe.get_cached_value('Company', company_name, 'abbr')
-    full_template_name = f"{tax_template_name} - {company_abbr}"
+    full_template_name = f"{TEST_TAX_TEMPLATE_NAME} - {company_abbr}"
 
     if not frappe.db.exists("Sales Taxes and Charges Template", full_template_name):
         tax_template = frappe.get_doc({
             "doctype": "Sales Taxes and Charges Template",
-            "title": tax_template_name,
+            "title": TEST_TAX_TEMPLATE_NAME,
             "is_default": 1,
             "company": company_name,
             "tax_category": tax_category_name,
@@ -153,7 +153,7 @@ def _create_tax_template(company_name, tax_category_name):
         })
         tax_template.insert(ignore_permissions=True)
 
-    return tax_template_name
+    return full_template_name
 
 def _create_gender_records():
     """Create Gender records for test data"""

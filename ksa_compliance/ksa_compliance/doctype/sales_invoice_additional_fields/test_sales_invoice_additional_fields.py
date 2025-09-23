@@ -8,7 +8,6 @@ from unittest.mock import patch, MagicMock
 from result import Ok, Err
 
 from ksa_compliance.test.test_constants import (
-    SAUDI_COUNTRY,
     SAUDI_CURRENCY,
     TEST_COMPANY_NAME,
     TEST_SINV_NAMING_SERIES,
@@ -16,6 +15,7 @@ from ksa_compliance.test.test_constants import (
     TEST_TAX_CATEGORY_NAME,
     TEST_STANDARD_CUSTOMER_NAME,
     TEST_SIMPLIFIED_CUSTOMER_NAME,
+    TEST_TAX_TEMPLATE_NAME,
 )
 
 
@@ -40,13 +40,13 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         
         # Create test customers, item, tax template, POS profile, and ZATCA settings
         self._create_test_item()
-        self._create_test_tax_template()
         self._create_test_pos_profile()
 
         frappe.logger().info("✅ Test setup completed")
 
     def tearDown(self):      
         frappe.logger().info("✅ Test cleanup completed")
+
     def _create_test_item(self):
         """Create test item for both Sales Invoice and POS Invoice tests"""
         if not frappe.db.exists("Item", self.item_name):
@@ -59,25 +59,6 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
                 "stock_uom": "Nos",
             })
             item.insert(ignore_permissions=True)
-
-    def _create_test_tax_template(self):
-        """Create test Sales Taxes and Charges Template"""
-        template_name = f"Test Tax Template"
-        if not frappe.db.exists("Sales Taxes and Charges Template", f"{template_name} - {TEST_COMPANY_NAME}"):
-            template = frappe.get_doc({
-                "doctype": "Sales Taxes and Charges Template",
-                "title": template_name,
-                "custom_zatca_category": "Standard rate",
-                "company": TEST_COMPANY_NAME,
-                "taxes": [{
-                    "charge_type": "On Net Total",
-                    "account_head": f"VAT 15% - {TEST_COMPANY_NAME}",
-                    "description": "VAT 15%",
-                    "rate": 15.0,
-                }],
-            })
-            template.insert(ignore_permissions=True)
-        return template_name
 
     def _create_test_pos_profile(self):
         """Create test POS profile for POS Invoice tests"""
@@ -105,7 +86,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
 
     def _create_test_sales_invoice(self):
         """Create a test sales invoice for testing"""
-        tax_template_name = f"Test Tax Template - {TEST_COMPANY_NAME}"
+        tax_template_name = f"{TEST_TAX_TEMPLATE_NAME} - {TEST_COMPANY_NAME}"
         sales_invoice = frappe.new_doc("Sales Invoice")
         sales_invoice.customer = TEST_STANDARD_CUSTOMER_NAME
         sales_invoice.company = TEST_COMPANY_NAME
@@ -142,7 +123,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
 
     def _create_test_pos_invoice(self):
         """Create a test POS invoice for testing"""
-        tax_template_name = f"Test Tax Template - {TEST_COMPANY_NAME}"
+        tax_template_name = f"{TEST_TAX_TEMPLATE_NAME} - {TEST_COMPANY_NAME}"
         pos_invoice = frappe.new_doc("POS Invoice")
         pos_invoice.customer = TEST_SIMPLIFIED_CUSTOMER_NAME
         pos_invoice.company = TEST_COMPANY_NAME
