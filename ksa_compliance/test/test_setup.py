@@ -3,7 +3,7 @@ from frappe.utils import now_datetime
 from frappe import _
 from ksa_compliance.compliance_checks import _perform_compliance_checks
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.test_zatca_business_settings import setup_zatca_business_settings
-from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, TEST_TAX_CATEGORY_NAME
+from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, TEST_TAX_CATEGORY_NAME, TEST_STANDARD_CUSTOMER_NAME, TEST_SIMPLIFIED_CUSTOMER_NAME
 
 def custom_erpnext_setup():
     frappe.clear_cache()
@@ -90,12 +90,10 @@ def _create_tax_category():
 
 def _create_standard_customer(tax_category_name):
 
-    standard_customer_name = "standard ZATCA Customer"
-
-    if not frappe.db.exists("Customer", standard_customer_name):
+    if not frappe.db.exists("Customer", TEST_STANDARD_CUSTOMER_NAME):
         frappe.get_doc({
             "doctype": "Customer",
-            "customer_name": standard_customer_name,
+            "customer_name": TEST_STANDARD_CUSTOMER_NAME,
             "customer_type": "Company",
             "customer_group": "All Customer Groups",
             "territory": "All Territories",
@@ -104,22 +102,20 @@ def _create_standard_customer(tax_category_name):
             "tax_category": tax_category_name,
         }).insert(ignore_permissions=True)
 
-    return standard_customer_name
+    return TEST_STANDARD_CUSTOMER_NAME
 
 def _create_simplified_customer():
 
-    simplified_customer_name = "simplified ZATCA Customer"
-
-    if not frappe.db.exists("Customer", simplified_customer_name):
+    if not frappe.db.exists("Customer", TEST_SIMPLIFIED_CUSTOMER_NAME):
         frappe.get_doc({
             "doctype": "Customer",
-            "customer_name": simplified_customer_name,
+            "customer_name": TEST_SIMPLIFIED_CUSTOMER_NAME,
             "customer_type": "Individual",
             "customer_group": "All Customer Groups",
             "territory": "All Territories",
         }).insert(ignore_permissions=True)
 
-    return simplified_customer_name
+    return TEST_SIMPLIFIED_CUSTOMER_NAME
 
 
 def _create_test_item():

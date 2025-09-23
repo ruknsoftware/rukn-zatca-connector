@@ -14,15 +14,12 @@ from ksa_compliance.test.test_constants import (
     TEST_SINV_NAMING_SERIES,
     TEST_POS_NAMING_SERIES,
     TEST_TAX_CATEGORY_NAME,
-)
-from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import (
-    SalesInvoiceAdditionalFields,
+    TEST_STANDARD_CUSTOMER_NAME,
+    TEST_SIMPLIFIED_CUSTOMER_NAME,
 )
 
 
 class TestSalesInvoiceAdditionalFields(FrappeTestCase):
-    customer_name = "Test Customer"
-    pos_customer_name = "Test Customer for POS"
     item_name = "Test Item"
 
     @classmethod
@@ -42,7 +39,6 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         frappe.logger().info("🧪 Setting up test...")
         
         # Create test customers, item, tax template, POS profile, and ZATCA settings
-        self._create_test_customers()
         self._create_test_item()
         self._create_test_tax_template()
         self._create_test_pos_profile()
@@ -51,31 +47,6 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
 
     def tearDown(self):      
         frappe.logger().info("✅ Test cleanup completed")
-
-    def _create_test_customers(self):
-        """Create test customers for both Sales Invoice and POS Invoice tests"""
-        # Create customer for Sales Invoice tests
-        if not frappe.db.exists("Customer", self.customer_name):
-            customer = frappe.get_doc({
-                "doctype": "Customer",
-                "customer_name": self.customer_name,
-                "customer_type": "Individual",
-                "customer_group": "All Customer Groups",
-                "territory": "All Territories",
-            })
-            customer.insert(ignore_permissions=True)
-
-        # Create customer for POS Invoice tests
-        if not frappe.db.exists("Customer", self.pos_customer_name):
-            pos_customer = frappe.get_doc({
-                "doctype": "Customer",
-                "customer_name": self.pos_customer_name,
-                "customer_type": "Individual",
-                "customer_group": "All Customer Groups",
-                "territory": "All Territories",
-            })
-            pos_customer.insert(ignore_permissions=True)
-
     def _create_test_item(self):
         """Create test item for both Sales Invoice and POS Invoice tests"""
         if not frappe.db.exists("Item", self.item_name):
@@ -136,7 +107,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         """Create a test sales invoice for testing"""
         tax_template_name = f"Test Tax Template - {TEST_COMPANY_NAME}"
         sales_invoice = frappe.new_doc("Sales Invoice")
-        sales_invoice.customer = self.customer_name
+        sales_invoice.customer = TEST_STANDARD_CUSTOMER_NAME
         sales_invoice.company = TEST_COMPANY_NAME
         sales_invoice.currency = SAUDI_CURRENCY
         sales_invoice.taxes_and_charges = tax_template_name
@@ -173,7 +144,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         """Create a test POS invoice for testing"""
         tax_template_name = f"Test Tax Template - {TEST_COMPANY_NAME}"
         pos_invoice = frappe.new_doc("POS Invoice")
-        pos_invoice.customer = self.pos_customer_name
+        pos_invoice.customer = TEST_SIMPLIFIED_CUSTOMER_NAME
         pos_invoice.company = TEST_COMPANY_NAME
         pos_invoice.currency = SAUDI_CURRENCY
         pos_invoice.pos_profile = "Test POS Profile"
