@@ -121,7 +121,13 @@ jobs:
       - name: Install
         working-directory: /home/runner/frappe-bench
         run: |
-          bench get-app ksa_compliance https://github.com/ruknsoftware/rukn-zatca-connector.git --branch develop
+          # Use the PR branch for pull requests and pull request reviews, otherwise use develop
+          if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "pull_request_review" ]; then
+            BRANCH_NAME="${{ github.head_ref }}"
+          else
+            BRANCH_NAME="develop"
+          fi
+          bench get-app ksa_compliance https://github.com/ruknsoftware/rukn-zatca-connector.git --branch $BRANCH_NAME
           bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
           bench get-app erpnext --branch version-15
