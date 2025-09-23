@@ -354,7 +354,7 @@ def create_payment_entry_for_advance_payment_invoice(
         cost_center=payment_entry.cost_center,
     )
 
-    bank = get_bank_cash_account(
+    bank = self.mode_of_payment_account or get_bank_cash_account(
         mode_of_payment=payment_entry.mode_of_payment, company=payment_entry.company
     ).get("account")
     bank_account_currency = get_account_currency(bank)
