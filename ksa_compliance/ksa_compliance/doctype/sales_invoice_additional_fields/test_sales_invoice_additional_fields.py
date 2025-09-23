@@ -11,6 +11,9 @@ from ksa_compliance.test.test_constants import (
     SAUDI_COUNTRY,
     SAUDI_CURRENCY,
     TEST_COMPANY_NAME,
+    TEST_SINV_NAMING_SERIES,
+    TEST_POS_NAMING_SERIES,
+    TEST_TAX_CATEGORY_NAME,
 )
 from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import (
     SalesInvoiceAdditionalFields,

@@ -3,7 +3,7 @@ from frappe.utils import now_datetime
 from frappe import _
 from ksa_compliance.compliance_checks import _perform_compliance_checks
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.test_zatca_business_settings import setup_zatca_business_settings
-from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY
+from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, TEST_TAX_CATEGORY_NAME
 
 def custom_erpnext_setup():
     frappe.clear_cache()
@@ -80,15 +80,13 @@ def setup_compliance_check_data(company_name):
 
 
 def _create_tax_category():
-    tax_category_name = "ZATCA Test Tax Category"
-
-    if not frappe.db.exists("Tax Category", tax_category_name):
+    if not frappe.db.exists("Tax Category", TEST_TAX_CATEGORY_NAME):
         frappe.get_doc({
             "doctype": "Tax Category",
-            "title": tax_category_name
+            "title": TEST_TAX_CATEGORY_NAME
         }).insert(ignore_permissions=True)
 
-    return tax_category_name
+    return TEST_TAX_CATEGORY_NAME
 
 def _create_standard_customer(tax_category_name):
 
