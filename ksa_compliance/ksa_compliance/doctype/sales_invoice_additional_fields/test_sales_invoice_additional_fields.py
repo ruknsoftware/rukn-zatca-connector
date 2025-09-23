@@ -1,4 +1,4 @@
- # Copyright (c) 2024, Lavaloon and Contributors
+# Copyright (c) 2024, Lavaloon and Contributors
 # See license.txt
 
 import frappe
@@ -34,29 +34,22 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
     @classmethod
     def tearDownClass(cls):
         """Clean up test class"""
-        frappe.logger().info("🏁 TestSalesInvoiceAdditionalFields test suite completed\n")
+        frappe.logger().info("🏁 TestSalesInvoiceAdditionalFields test suite completed\n")     
         super().tearDownClass()
 
     def setUp(self):
         """Set up each test"""
         frappe.logger().info("🧪 Setting up test...")
         
-        # Create test customers, item, and POS profile
+        # Create test customers, item, tax template, POS profile, and ZATCA settings
         self._create_test_customers()
         self._create_test_item()
+        self._create_test_tax_template()
         self._create_test_pos_profile()
 
         frappe.logger().info("✅ Test setup completed")
 
-    def tearDown(self):
-        """Clean up after each test"""
-        frappe.logger().info("🧹 Cleaning up test...")
-        # Clean up test data
-        if hasattr(self, 'test_sales_invoice') and self.test_sales_invoice:
-            try:
-                frappe.delete_doc("Sales Invoice", self.test_sales_invoice.name, force=True)
-            except:
-                pass
+    def tearDown(self):      
         frappe.logger().info("✅ Test cleanup completed")
 
     def _create_test_customers(self):
@@ -96,6 +89,25 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
             })
             item.insert(ignore_permissions=True)
 
+    def _create_test_tax_template(self):
+        """Create test Sales Taxes and Charges Template"""
+        template_name = f"Test Tax Template"
+        if not frappe.db.exists("Sales Taxes and Charges Template", f"{template_name} - {TEST_COMPANY_NAME}"):
+            template = frappe.get_doc({
+                "doctype": "Sales Taxes and Charges Template",
+                "title": template_name,
+                "custom_zatca_category": "Standard rate",
+                "company": TEST_COMPANY_NAME,
+                "taxes": [{
+                    "charge_type": "On Net Total",
+                    "account_head": f"VAT 15% - {TEST_COMPANY_NAME}",
+                    "description": "VAT 15%",
+                    "rate": 15.0,
+                }],
+            })
+            template.insert(ignore_permissions=True)
+        return template_name
+
     def _create_test_pos_profile(self):
         """Create test POS profile for POS Invoice tests"""
         pos_profile_name = "Test POS Profile"
@@ -122,18 +134,35 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
 
     def _create_test_sales_invoice(self):
         """Create a test sales invoice for testing"""
-        sales_invoice = frappe.get_doc({
-            "doctype": "Sales Invoice",
-            "customer": self.customer_name,
-            "company": TEST_COMPANY_NAME,
-            "currency": SAUDI_CURRENCY,
-            "items": [{
-                "item_code": self.item_name,
-                "qty": 1,
-                "rate": 100,
-                "amount": 100,
-            }],
-            "taxes_and_charges": "",
+        tax_template_name = f"Test Tax Template - {TEST_COMPANY_NAME}"
+        sales_invoice = frappe.new_doc("Sales Invoice")
+        sales_invoice.customer = self.customer_name
+        sales_invoice.company = TEST_COMPANY_NAME
+        sales_invoice.currency = SAUDI_CURRENCY
+        sales_invoice.taxes_and_charges = tax_template_name
+        sales_invoice.tax_category = TEST_TAX_CATEGORY_NAME
+        
+        sales_invoice.naming_series = TEST_SINV_NAMING_SERIES
+        
+        sales_invoice.append("items", {
+            "item_code": self.item_name,
+            "qty": 1,
+            "rate": 100,
+            "income_account": f"Sales - {TEST_COMPANY_NAME}",
+            "expense_account": f"Cost of Goods Sold - {TEST_COMPANY_NAME}",
+            "cost_center": f"Main - {TEST_COMPANY_NAME}",
+        })
+        
+        sales_invoice.append("payments", {
+            "mode_of_payment": "Cash",
+            "amount": 100,
+        })
+        sales_invoice.append("taxes", {
+            "account_head": f"VAT 15% - {TEST_COMPANY_NAME}",
+            "charge_type": "On Net Total",
+            "cost_center": f"Main - {TEST_COMPANY_NAME}",
+            "description": "VAT 15%",
+            "rate": 15.0,
         })
         sales_invoice.insert(ignore_permissions=True)
         sales_invoice.submit()
@@ -142,24 +171,31 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
 
     def _create_test_pos_invoice(self):
         """Create a test POS invoice for testing"""
-        pos_invoice = frappe.get_doc({
-            "doctype": "POS Invoice",
-            "customer": self.pos_customer_name,
-            "company": TEST_COMPANY_NAME,
-            "currency": SAUDI_CURRENCY,
-            "pos_profile": "Test POS Profile",
-            "items": [{
-                "item_code": self.item_name,
-                "qty": 1,
-                "rate": 100,
-                "amount": 100,
-            }],
-            "payments": [{
-                "mode_of_payment": "Cash",
-                "amount": 100,
-            }],
-            "taxes_and_charges": "",
+        tax_template_name = f"Test Tax Template - {TEST_COMPANY_NAME}"
+        pos_invoice = frappe.new_doc("POS Invoice")
+        pos_invoice.customer = self.pos_customer_name
+        pos_invoice.company = TEST_COMPANY_NAME
+        pos_invoice.currency = SAUDI_CURRENCY
+        pos_invoice.pos_profile = "Test POS Profile"
+        pos_invoice.taxes_and_charges = tax_template_name
+        pos_invoice.tax_category = TEST_TAX_CATEGORY_NAME
+        
+        pos_invoice.naming_series = TEST_POS_NAMING_SERIES
+        
+        pos_invoice.append("items", {
+            "item_code": self.item_name,
+            "qty": 1,
+            "rate": 100,
+            "income_account": f"Sales - {TEST_COMPANY_NAME}",
+            "expense_account": f"Cost of Goods Sold - {TEST_COMPANY_NAME}",
+            "cost_center": f"Main - {TEST_COMPANY_NAME}",
         })
+        
+        pos_invoice.append("payments", {
+            "mode_of_payment": "Cash",
+            "amount": 100,
+        })
+        
         pos_invoice.insert(ignore_permissions=True)
         pos_invoice.submit()
         
@@ -218,8 +254,5 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         self.assertEqual(additional_fields.sales_invoice, pos_invoice.name)
         self.assertEqual(additional_fields.invoice_doctype, "POS Invoice")
         self.assertEqual(additional_fields.tax_currency, SAUDI_CURRENCY)
-        
-        # Clean up
-        frappe.delete_doc("POS Invoice", pos_invoice.name, force=True)
         
         frappe.logger().info("✅ test_automatic_creation_on_pos_invoice_submit completed successfully")
