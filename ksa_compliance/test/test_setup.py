@@ -40,6 +40,10 @@ def custom_erpnext_setup():
         frappe.db.set_value("Company", TEST_COMPANY_NAME, "tax_id", "399999999900003")
 
     frappe.db.sql("delete from `tabItem Price`")
+    
+    # Create Gender records for test data
+    _create_gender_records()
+    
     # Create currency exchange rate for USD-SAR to avoid E-Commerce validation errors
     if not frappe.db.exists("Currency Exchange", {"from_currency": "USD", "to_currency": "SAR"}):
         frappe.get_doc({
@@ -156,3 +160,17 @@ def _create_tax_template(company_name, tax_category_name):
         tax_template.insert(ignore_permissions=True)
 
     return tax_template_name
+
+def _create_gender_records():
+    """Create Gender records for test data"""
+    default_genders = [
+        "Male",
+        "Female",
+    ]
+    
+    for gender in default_genders:
+        if not frappe.db.exists("Gender", gender):
+            frappe.get_doc({
+                "doctype": "Gender",
+                "gender": gender
+            }).insert(ignore_permissions=True, ignore_if_duplicate=True)
