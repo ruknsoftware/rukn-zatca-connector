@@ -124,10 +124,19 @@ jobs:
           # Use the PR branch for pull requests and pull request reviews, otherwise use develop
           if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "pull_request_review" ]; then
             BRANCH_NAME="${{ github.head_ref }}"
+            # Check if PR is from a fork
+            if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+              # PR is from a fork, use the fork's repository
+              REPO_URL="https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git"
+            else
+              # PR is from the same repository
+              REPO_URL="https://github.com/ruknsoftware/rukn-zatca-connector.git"
+            fi
           else
             BRANCH_NAME="develop"
+            REPO_URL="https://github.com/ruknsoftware/rukn-zatca-connector.git"
           fi
-          bench get-app ksa_compliance https://github.com/ruknsoftware/rukn-zatca-connector.git --branch $BRANCH_NAME
+          bench get-app ksa_compliance $REPO_URL --branch $BRANCH_NAME
           bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
           bench get-app erpnext --branch version-15
