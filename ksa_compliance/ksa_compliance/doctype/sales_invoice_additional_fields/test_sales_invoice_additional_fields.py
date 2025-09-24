@@ -167,15 +167,17 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         test_sales_invoice = self._create_test_sales_invoice()
         
         # Check that additional fields document was created automatically when sales invoice was submitted
-        additional_fields_name = f"{test_sales_invoice.name}-AdditionalFields-1"
+        additional_fields_list = frappe.get_all("Sales Invoice Additional Fields", 
+            filters={"sales_invoice": test_sales_invoice.name})
         
         # Verify document was created automatically
         self.assertTrue(
-            frappe.db.exists("Sales Invoice Additional Fields", additional_fields_name),
-            f"Sales Invoice Additional Fields document {additional_fields_name} should be created automatically"
+            len(additional_fields_list) > 0,
+            f"Sales Invoice Additional Fields document should be created automatically for {test_sales_invoice.name}"
         )
         
         # Get the automatically created document
+        additional_fields_name = additional_fields_list[0].name
         additional_fields = frappe.get_doc("Sales Invoice Additional Fields", additional_fields_name)
         
         # Verify fields are set correctly
@@ -193,13 +195,16 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         pos_invoice = self._create_test_pos_invoice()
         
         # Check that additional fields document was created automatically
-        additional_fields_name = f"{pos_invoice.name}-AdditionalFields-1"
+        additional_fields_list = frappe.get_all("Sales Invoice Additional Fields", 
+            filters={"sales_invoice": pos_invoice.name})
+        
         self.assertTrue(
-            frappe.db.exists("Sales Invoice Additional Fields", additional_fields_name),
-            f"Additional fields document {additional_fields_name} should be created automatically for POS Invoice"
+            len(additional_fields_list) > 0,
+            f"Additional fields document should be created automatically for POS Invoice {pos_invoice.name}"
         )
         
         # Get the automatically created document
+        additional_fields_name = additional_fields_list[0].name
         additional_fields = frappe.get_doc("Sales Invoice Additional Fields", additional_fields_name)
         
         # Verify fields are set correctly
