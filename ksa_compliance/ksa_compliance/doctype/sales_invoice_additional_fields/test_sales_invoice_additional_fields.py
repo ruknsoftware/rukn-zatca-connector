@@ -1,20 +1,21 @@
 # Copyright (c) 2024, Lavaloon and Contributors
 # See license.txt
 
+from unittest.mock import MagicMock, patch
+
 import frappe
 from frappe import _
 from frappe.tests.utils import FrappeTestCase
-from unittest.mock import patch, MagicMock
-from result import Ok, Err
+from result import Err, Ok
 
 from ksa_compliance.test.test_constants import (
     SAUDI_CURRENCY,
     TEST_COMPANY_NAME,
-    TEST_SINV_NAMING_SERIES,
     TEST_POS_NAMING_SERIES,
-    TEST_TAX_CATEGORY_NAME,
-    TEST_STANDARD_CUSTOMER_NAME,
     TEST_SIMPLIFIED_CUSTOMER_NAME,
+    TEST_SINV_NAMING_SERIES,
+    TEST_STANDARD_CUSTOMER_NAME,
+    TEST_TAX_CATEGORY_NAME,
     TEST_TAX_TEMPLATE_NAME,
 )
 
