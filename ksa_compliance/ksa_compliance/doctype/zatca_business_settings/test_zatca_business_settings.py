@@ -262,6 +262,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
             "\n✅✅✅ Test Case 2 completed: All validations passed with addresses ✅✅✅"
         )
 
+
 def setup_zatca_business_settings(company_name, country, currency):
     """Setup ZATCA Business Settings with full onboarding process"""
     doc_name = f"{company_name}-{country}-{currency}"
