@@ -388,12 +388,12 @@ class SalesInvoiceAdditionalFields(Document):
     def _get_payment_means_type_code(self, invoice: SalesInvoice | POSInvoice) -> Optional[str]:
         # An invoice can have multiple modes of payment, but we currently only support one. Therefore, we retrieve the
         # first one if any
-        if not invoice.payments:
-            return None
-
+        if invoice.payments:
             mode_of_payment = invoice.payments[0].mode_of_payment
         else:
             mode_of_payment = invoice.mode_of_payment
+        if not mode_of_payment:
+            return None
         return frappe.get_value(
             "Mode of Payment", mode_of_payment, "custom_zatca_payment_means_code"
         )
