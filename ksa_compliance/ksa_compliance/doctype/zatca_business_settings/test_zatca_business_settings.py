@@ -101,7 +101,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
         self._run_test_case_without_addresses(
             business_settings_id=business_settings_id,
             simplified_customer=data["simplified_customer"],
-            standard_customer=data["standard_customer"],
+            standard_customer=data["standard_customer_without_address"],
             item=data["item"],
             tax_category=data["tax_category"],
             success_status=success_status,
@@ -212,12 +212,6 @@ class TestZATCABusinessSettings(FrappeTestCase):
         """Helper method: Test case with customer addresses"""
         frappe.logger().info(_("\n🔍 Test Case 2: With Customer Addresses"))
 
-        standard_address = self._create_customer_address(standard_customer)
-        simplified_address = self._create_customer_address(simplified_customer)
-        self._update_customer_address(standard_customer, standard_address)
-        self._update_customer_address(simplified_customer, simplified_address)
-        frappe.db.commit()  # nosemgrep - Required to persist address creation for test validation
-
         simplified_result, standard_result = _perform_compliance_checks(
             business_settings_id=business_settings_id,
             simplified_customer_id=simplified_customer,
@@ -267,37 +261,6 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info(
             "\n✅✅✅ Test Case 2 completed: All validations passed with addresses ✅✅✅"
         )
-
-    def _create_customer_address(self, customer_name):
-        """Helper method: Create customer address for testing"""
-        address_title = f"{customer_name} Address"
-
-        address = frappe.get_doc(
-            {
-                "doctype": "Address",
-                "address_title": address_title,
-                "address_type": "Billing",
-                "address_line1": "الرياض",
-                "address_line2": "طريق الملك فهد",
-                "city": "الرياض",
-                "pincode": "12344",
-                "country": "Saudi Arabia",
-                "custom_building_number": "1125",
-                "custom_area": "العليا",
-                "phone": "95233255",
-                "is_primary_address": 1,
-                "is_shipping_address": 1,
-                "links": [{"link_doctype": "Customer", "link_name": customer_name}],
-            }
-        ).insert(ignore_permissions=True)
-
-        return address
-
-    def _update_customer_address(self, customer_name, address):
-        """Helper method: Update customer with address"""
-        customer = frappe.get_doc("Customer", customer_name)
-        customer.customer_primary_address = address.name
-        customer.save(ignore_permissions=True)
 
 
 def setup_zatca_business_settings(company_name, country, currency):
@@ -389,16 +352,11 @@ def setup_zatca_business_settings(company_name, country, currency):
     frappe.logger().info(f"🔍 Current compliance_request_id: {b_settings.compliance_request_id}")
     frappe.logger().info(f"🔍 Current production_request_id: {b_settings.production_request_id}")
 
-    # Clear any existing mock IDs to force fresh onboarding
-    if (
-        b_settings.compliance_request_id
-        and "COMP-2024-001234567890" in b_settings.compliance_request_id
-    ):
-        frappe.logger().info("🔄 Clearing mock compliance_request_id to force fresh onboarding")
-        b_settings.compliance_request_id = None
-        b_settings.production_request_id = None
-        b_settings.save(ignore_permissions=True)
-        frappe.db.commit()  # nosemgrep - Required to persist mock ID clearing for fresh onboarding
+    frappe.logger().info("🔄 Clearing mock compliance_request_id to force fresh onboarding")
+    b_settings.compliance_request_id = None
+    b_settings.production_request_id = None
+    b_settings.save(ignore_permissions=True)
+    frappe.db.commit()  # nosemgrep - Required to persist mock ID clearing for fresh onboarding
 
     if b_settings.cli_setup == "Automatic":
         zatca_cli_response = zatca_cli_setup("", "")
