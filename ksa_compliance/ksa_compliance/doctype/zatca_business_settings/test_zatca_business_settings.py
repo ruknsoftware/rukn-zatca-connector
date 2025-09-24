@@ -352,15 +352,11 @@ def setup_zatca_business_settings(company_name, country, currency):
     frappe.logger().info(f"🔍 Current production_request_id: {b_settings.production_request_id}")
 
     # Clear any existing mock IDs to force fresh onboarding
-    if (
-        b_settings.compliance_request_id
-        and "COMP-2024-001234567890" in b_settings.compliance_request_id
-    ):
-        frappe.logger().info("🔄 Clearing mock compliance_request_id to force fresh onboarding")
-        b_settings.compliance_request_id = None
-        b_settings.production_request_id = None
-        b_settings.save(ignore_permissions=True)
-        frappe.db.commit()  # nosemgrep - Required to persist mock ID clearing for fresh onboarding
+    frappe.logger().info("🔄 Clearing mock compliance_request_id to force fresh onboarding")
+    b_settings.compliance_request_id = None
+    b_settings.production_request_id = None
+    b_settings.save(ignore_permissions=True)
+    frappe.db.commit()  # nosemgrep - Required to persist mock ID clearing for fresh onboarding
 
     if b_settings.cli_setup == "Automatic":
         zatca_cli_response = zatca_cli_setup("", "")
