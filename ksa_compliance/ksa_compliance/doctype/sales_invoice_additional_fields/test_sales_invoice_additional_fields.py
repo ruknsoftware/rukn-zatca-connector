@@ -17,6 +17,7 @@ from ksa_compliance.test.test_constants import (
     TEST_STANDARD_CUSTOMER_NAME,
     TEST_TAX_CATEGORY_NAME,
     TEST_TAX_TEMPLATE_NAME,
+    TEST_TAX_ACCOUNT_NAME,
 )
 
 
@@ -125,7 +126,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         sales_invoice.append(
             "taxes",
             {
-                "account_head": f"VAT 15% - {TEST_COMPANY_NAME}",
+                "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {TEST_COMPANY_NAME}",
                 "charge_type": "On Net Total",
                 "cost_center": f"Main - {TEST_COMPANY_NAME}",
                 "description": "VAT 15%",

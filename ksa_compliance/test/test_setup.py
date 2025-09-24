@@ -3,7 +3,7 @@ from frappe.utils import now_datetime
 from frappe import _
 from ksa_compliance.compliance_checks import _perform_compliance_checks
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.test_zatca_business_settings import setup_zatca_business_settings
-from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, TEST_TAX_CATEGORY_NAME, TEST_STANDARD_CUSTOMER_NAME, TEST_SIMPLIFIED_CUSTOMER_NAME, TEST_TAX_TEMPLATE_NAME, TEST_STANDARD_CUSTOMER_NAME_WITHOUT_ADDRESS
+from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, TEST_TAX_CATEGORY_NAME, TEST_STANDARD_CUSTOMER_NAME, TEST_SIMPLIFIED_CUSTOMER_NAME, TEST_TAX_TEMPLATE_NAME, TEST_STANDARD_CUSTOMER_NAME_WITHOUT_ADDRESS, TEST_TAX_ACCOUNT_NAME 
 
 def custom_erpnext_setup():
     frappe.clear_cache()
@@ -164,7 +164,7 @@ def _create_tax_template(company_name, tax_category_name):
             "tax_category": tax_category_name,
             "taxes": [{
                 "charge_type": "On Net Total",
-                "account_head": f"Miscellaneous Expenses - {company_abbr}",
+                "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {company_abbr}",
                 "rate": 15,
                 "description": "VAT 15%",
             }],
