@@ -119,9 +119,7 @@ jobs:
             ${{ runner.os }}-bench-
 
       - name: Install MariaDB Client
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y mariadb-client
+        run: sudo apt-get update && sudo apt-get install -y mariadb-client
 
       - name: Setup
         run: |
