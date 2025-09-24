@@ -34,10 +34,17 @@ def custom_erpnext_setup():
     if frappe.db.exists("Country", SAUDI_COUNTRY):
         frappe.db.set_value("Country", SAUDI_COUNTRY, "code", "SA")
 
-    # Add Arabic name and Tax ID to company for Saudi Arabia compliance
-    if frappe.db.exists("Company", TEST_COMPANY_NAME):
-        frappe.db.set_value("Company", TEST_COMPANY_NAME, "company_name_in_arabic", "شركة ركن للاختبار")
-        frappe.db.set_value("Company", TEST_COMPANY_NAME, "tax_id", "399999999900003")
+        # Add Arabic name and Tax ID to company for Saudi Arabia compliance
+        if frappe.db.exists("Company", TEST_COMPANY_NAME):
+            # Check if fields exist (version compatibility)
+            company_meta = frappe.get_meta("Company")
+            field_names = [field.fieldname for field in company_meta.fields]
+            
+            if "company_name_in_arabic" in field_names:
+                frappe.db.set_value("Company", TEST_COMPANY_NAME, "company_name_in_arabic", "شركة ركن للاختبار")
+            
+            if "tax_id" in field_names:
+                frappe.db.set_value("Company", TEST_COMPANY_NAME, "tax_id", "399999999900003")
 
     frappe.db.sql("delete from `tabItem Price`")
     
