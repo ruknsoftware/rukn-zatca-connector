@@ -160,7 +160,10 @@ jobs:
             bench get-app payments --branch version-15 &
             bench setup requirements --dev
           fi
-          wait
+          # Remove existing site if it exists (from cache)
+          if [ -d "sites/test_site" ]; then
+            bench drop-site test_site --force
+          fi
           bench new-site --db-root-password root --admin-password admin test_site
           bench --site test_site install-app erpnext
           bench --site test_site install-app payments
