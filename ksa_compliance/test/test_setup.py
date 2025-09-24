@@ -208,6 +208,6 @@ def _create_customer_address(customer_name, customer_id):
         address_doc.insert(ignore_permissions=True, ignore_if_duplicate=True)
         
         # Set as primary address for customer
-        frappe.db.set_value("Customer", customer_id, "customer_primary_address", address_name)
+        frappe.db.set_value("Customer", customer_id, "customer_primary_address", address_doc.name)
         frappe.db.commit()
         return address_name
