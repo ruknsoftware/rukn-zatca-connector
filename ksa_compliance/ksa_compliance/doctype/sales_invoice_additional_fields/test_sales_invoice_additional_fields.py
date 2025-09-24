@@ -43,6 +43,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         # Create test customers, item, tax template, POS profile, and ZATCA settings
         self._create_test_item()
         self._create_test_pos_profile()
+        self._create_test_pos_opening_entry()
 
         frappe.logger().info("✅ Test setup completed")
 
@@ -91,6 +92,32 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
                 }
             )
             pos_profile.insert(ignore_permissions=True)
+
+    def _create_test_pos_opening_entry(self):
+        """Create test POS Opening Entry for POS Invoice tests"""
+        pos_opening_name = "Test POS Opening Entry"
+        if not frappe.db.exists("POS Opening Entry", pos_opening_name):
+            pos_opening = frappe.get_doc(
+                {
+                    "doctype": "POS Opening Entry",
+                    "period_start_date": frappe.utils.nowdate(),
+                    "posting_date": frappe.utils.nowdate(),
+                    "user": "Administrator",
+                    "pos_profile": "Test POS Profile",
+                    "company": TEST_COMPANY_NAME,
+                    "pos_closing_entry": None,
+                    "status": "Draft",
+                    "docstatus": 0,
+                    "balance_details": [
+                        {
+                            "mode_of_payment": "Cash",
+                            "opening_amount": 1000.0,
+                        }
+                    ],
+                }
+            )
+            pos_opening.insert(ignore_permissions=True)
+            pos_opening.submit()
 
     def _create_test_sales_invoice(self):
         """Create a test sales invoice for testing"""
