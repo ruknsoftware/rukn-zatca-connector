@@ -31,7 +31,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
     @classmethod
     def tearDownClass(cls):
         """Clean up test class"""
-        frappe.logger().info("🏁 TestSalesInvoiceAdditionalFields test suite completed\n")     
+        frappe.logger().info("🏁 TestSalesInvoiceAdditionalFields test suite completed\n")
         super().tearDownClass()
 
     def setUp(self):
@@ -44,7 +44,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
 
         frappe.logger().info("✅ Test setup completed")
 
-    def tearDown(self):      
+    def tearDown(self):
         frappe.logger().info("✅ Test cleanup completed")
 
     def _create_test_item(self):
@@ -167,7 +167,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         test_sales_invoice = self._create_test_sales_invoice()
         
         # Check that additional fields document was created automatically when sales invoice was submitted
-        additional_fields_list = frappe.get_all("Sales Invoice Additional Fields", 
+        additional_fields_list = frappe.get_all("Sales Invoice Additional Fields",
             filters={"sales_invoice": test_sales_invoice.name})
         
         # Verify document was created automatically
@@ -195,7 +195,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         pos_invoice = self._create_test_pos_invoice()
         
         # Check that additional fields document was created automatically
-        additional_fields_list = frappe.get_all("Sales Invoice Additional Fields", 
+        additional_fields_list = frappe.get_all("Sales Invoice Additional Fields",
             filters={"sales_invoice": pos_invoice.name})
         
         self.assertTrue(

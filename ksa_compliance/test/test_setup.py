@@ -39,18 +39,18 @@ def custom_erpnext_setup():
             # Check if fields exist (version compatibility)
             company_meta = frappe.get_meta("Company")
             field_names = [field.fieldname for field in company_meta.fields]
-            
+
             if "company_name_in_arabic" in field_names:
                 frappe.db.set_value("Company", TEST_COMPANY_NAME, "company_name_in_arabic", "شركة ركن للاختبار")
-            
+
             if "tax_id" in field_names:
                 frappe.db.set_value("Company", TEST_COMPANY_NAME, "tax_id", "399999999900003")
 
     frappe.db.sql("delete from `tabItem Price`")
-    
+
     # Create Gender records for test data
     _create_gender_records()
-    
+
     # Create currency exchange rate for USD-SAR to avoid E-Commerce validation errors
     if not frappe.db.exists("Currency Exchange", {"from_currency": "USD", "to_currency": "SAR"}):
         frappe.get_doc({
@@ -112,7 +112,7 @@ def _create_standard_customer(customer_name, tax_category_name, with_address=Fal
             "tax_category": tax_category_name,
         })
         customer_doc.insert(ignore_permissions=True)
-        
+
         # Create address for the customer
         if with_address:
             _create_customer_address(customer_name, customer_doc.name)
@@ -130,7 +130,7 @@ def _create_simplified_customer():
             "territory": "All Territories",
         })
         customer_doc.insert(ignore_permissions=True)
-        
+
         # Create address for the customer
         _create_customer_address(TEST_SIMPLIFIED_CUSTOMER_NAME, customer_doc.name)
 
@@ -179,7 +179,7 @@ def _create_gender_records():
         "Male",
         "Female",
     ]
-    
+
     for gender in default_genders:
         if not frappe.db.exists("Gender", gender):
             frappe.get_doc({
@@ -190,7 +190,7 @@ def _create_gender_records():
 def _create_customer_address(customer_name, customer_id):
     """Create address for customer using ZATCA Business Settings test data"""
     address_name = f"{customer_name}Address-Billing"
-    
+
     if not frappe.db.exists("Address", address_name):
         address_doc = frappe.get_doc({
             "doctype": "Address",
@@ -213,7 +213,7 @@ def _create_customer_address(customer_name, customer_id):
             }]
         })
         address_doc.insert(ignore_permissions=True, ignore_if_duplicate=True)
-        
+
         # Set as primary address for customer
         frappe.db.set_value("Customer", customer_id, "customer_primary_address", address_doc.name)
         frappe.db.commit()
