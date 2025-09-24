@@ -123,7 +123,7 @@ jobs:
         run: |
           # Use the PR branch for pull requests and pull request reviews, otherwise use develop
           if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "pull_request_review" ]; then
-            BRANCH_NAME="${{ github.head_ref }}"
+            BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
             # Check if PR is from a fork
             if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
               # PR is from a fork, use the fork's repository
