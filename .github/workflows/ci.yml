@@ -162,7 +162,7 @@ jobs:
           fi
           # Remove existing site if it exists (from cache)
           if [ -d "sites/test_site" ]; then
-            bench drop-site test_site --force
+            bench drop-site test_site --db-root-password root --force
           fi
           bench new-site --db-root-password root --admin-password admin test_site
           bench --site test_site install-app erpnext
