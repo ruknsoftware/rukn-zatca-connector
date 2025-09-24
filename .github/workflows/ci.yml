@@ -148,11 +148,19 @@ jobs:
             BRANCH_NAME="develop"
             REPO_URL="https://github.com/ruknsoftware/rukn-zatca-connector.git"
           fi
+          # Remove existing ksa_compliance directory if it exists (from cache)
+          if [ -d "apps/ksa_compliance" ]; then
+            rm -rf apps/ksa_compliance
+          fi
           bench get-app ksa_compliance $REPO_URL --branch $BRANCH_NAME
-          bench get-app erpnext --branch version-15 &
-          bench get-app payments --branch version-15 &
+          
+          # Only get apps if they don't exist (from cache)
+          if [ ! -d ~/frappe-bench ]; then
+            bench get-app erpnext --branch version-15 &
+            bench get-app payments --branch version-15 &
+            bench setup requirements --dev
+          fi
           wait
-          bench setup requirements --dev
           bench new-site --db-root-password root --admin-password admin test_site
           bench --site test_site install-app erpnext
           bench --site test_site install-app payments
