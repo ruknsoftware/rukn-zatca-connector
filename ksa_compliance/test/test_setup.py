@@ -157,9 +157,9 @@ def _create_tax_template(company_name, tax_category_name):
             "tax_category": tax_category_name,
             "taxes": [{
                 "charge_type": "On Net Total",
-                "account_head": f"Miscellaneous Expenses - {company_abbr}",
+                "account_head": f"VAT 15% - {company_abbr}",
                 "rate": 15,
-                "description": "Miscellaneous Expenses",
+                "description": "VAT 15%",
             }],
         })
         tax_template.insert(ignore_permissions=True)
