@@ -7,6 +7,10 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+
+## 0.52.8
+* Add Mode Of Payment Account custom filed
+* Fetch Mode of Payment Account and Setup Reference Fields Depends on This
 ## 0.52.7
 * Refactor Test and Move Logic to Buissness ZATCA Phase 2
 
