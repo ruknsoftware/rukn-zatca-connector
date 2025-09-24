@@ -3,7 +3,7 @@ from frappe.utils import now_datetime
 from frappe import _
 from ksa_compliance.compliance_checks import _perform_compliance_checks
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.test_zatca_business_settings import setup_zatca_business_settings
-from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, TEST_TAX_CATEGORY_NAME, TEST_STANDARD_CUSTOMER_NAME, TEST_SIMPLIFIED_CUSTOMER_NAME, TEST_TAX_TEMPLATE_NAME
+from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, TEST_TAX_CATEGORY_NAME, TEST_STANDARD_CUSTOMER_NAME, TEST_SIMPLIFIED_CUSTOMER_NAME, TEST_TAX_TEMPLATE_NAME, TEST_STANDARD_CUSTOMER_NAME_WITHOUT_ADDRESS
 
 def custom_erpnext_setup():
     frappe.clear_cache()
@@ -66,14 +66,16 @@ def data_setup():
 
 def setup_compliance_check_data(company_name):
     tax_category_name = _create_tax_category()
-    standard_customer_name = _create_standard_customer(tax_category_name)
+    standard_customer_name_with_address = _create_standard_customer(TEST_STANDARD_CUSTOMER_NAME,tax_category_name,with_address=True)
+    standard_customer_name_without_address = _create_standard_customer(TEST_STANDARD_CUSTOMER_NAME_WITHOUT_ADDRESS,tax_category_name,with_address=False)
     simplified_customer = _create_simplified_customer()
     item = _create_test_item()
     tax_template_name = _create_tax_template(company_name, tax_category_name)
 
     return {
         "simplified_customer": simplified_customer,
-        "standard_customer": standard_customer_name,
+        "standard_customer": standard_customer_name_with_address,
+        "standard_customer_without_address": standard_customer_name_without_address,
         "item": item,
         "tax_category": tax_category_name,
         "tax_template": tax_template_name,
@@ -89,32 +91,41 @@ def _create_tax_category():
 
     return TEST_TAX_CATEGORY_NAME
 
-def _create_standard_customer(tax_category_name):
+def _create_standard_customer(customer_name, tax_category_name, with_address=False):
 
-    if not frappe.db.exists("Customer", TEST_STANDARD_CUSTOMER_NAME):
-        frappe.get_doc({
+    if not frappe.db.exists("Customer", customer_name):
+        customer_doc = frappe.get_doc({
             "doctype": "Customer",
-            "customer_name": TEST_STANDARD_CUSTOMER_NAME,
+            "customer_name": customer_name,
             "customer_type": "Company",
             "customer_group": "All Customer Groups",
             "territory": "All Territories",
             "tax_id": "311609596400003",
             "custom_vat_registration_number": "311609596400003",
             "tax_category": tax_category_name,
-        }).insert(ignore_permissions=True)
+        })
+        customer_doc.insert(ignore_permissions=True)
+        
+        # Create address for the customer
+        if with_address:
+            _create_customer_address(customer_name, customer_doc.name)
 
-    return TEST_STANDARD_CUSTOMER_NAME
+    return customer_name
 
 def _create_simplified_customer():
 
     if not frappe.db.exists("Customer", TEST_SIMPLIFIED_CUSTOMER_NAME):
-        frappe.get_doc({
+        customer_doc = frappe.get_doc({
             "doctype": "Customer",
             "customer_name": TEST_SIMPLIFIED_CUSTOMER_NAME,
             "customer_type": "Individual",
             "customer_group": "All Customer Groups",
             "territory": "All Territories",
-        }).insert(ignore_permissions=True)
+        })
+        customer_doc.insert(ignore_permissions=True)
+        
+        # Create address for the customer
+        _create_customer_address(TEST_SIMPLIFIED_CUSTOMER_NAME, customer_doc.name)
 
     return TEST_SIMPLIFIED_CUSTOMER_NAME
 
@@ -168,3 +179,35 @@ def _create_gender_records():
                 "doctype": "Gender",
                 "gender": gender
             }).insert(ignore_permissions=True, ignore_if_duplicate=True)
+
+def _create_customer_address(customer_name, customer_id):
+    """Create address for customer using ZATCA Business Settings test data"""
+    address_name = f"{customer_name}Address-Billing"
+    
+    if not frappe.db.exists("Address", address_name):
+        address_doc = frappe.get_doc({
+            "doctype": "Address",
+            "address_title": address_name,
+            "address_type": "Billing",
+            "address_line1": "الرياض",
+            "address_line2": "طريق الملك فهد",
+            "city": "الرياض",
+            "state": "Riyadh",
+            "country": "Saudi Arabia",
+            "pincode": "12344",
+            "custom_building_number": "1125",
+            "custom_area": "العليا",
+            "phone": "95233255",
+            "is_primary_address": 1,
+            "is_shipping_address": 1,
+            "links": [{
+                "link_doctype": "Customer",
+                "link_name": customer_id
+            }]
+        })
+        address_doc.insert(ignore_permissions=True, ignore_if_duplicate=True)
+        
+        # Set as primary address for customer
+        frappe.db.set_value("Customer", customer_id, "customer_primary_address", address_name)
+        frappe.db.commit()
+        return address_name
