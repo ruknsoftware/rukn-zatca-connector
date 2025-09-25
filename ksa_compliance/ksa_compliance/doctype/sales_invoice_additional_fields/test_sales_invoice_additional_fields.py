@@ -129,6 +129,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         sales_invoice.taxes_and_charges = tax_template_name
         sales_invoice.tax_category = TEST_TAX_CATEGORY_NAME
         sales_invoice.posting_date = frappe.utils.nowdate()
+        sales_invoice.set_posting_time = "00:00:00"
 
         sales_invoice.naming_series = TEST_SINV_NAMING_SERIES
 
@@ -177,6 +178,7 @@ class TestSalesInvoiceAdditionalFields(FrappeTestCase):
         pos_invoice.taxes_and_charges = tax_template_name
         pos_invoice.tax_category = TEST_TAX_CATEGORY_NAME
         pos_invoice.posting_date = frappe.utils.nowdate()
+        pos_invoice.set_posting_time = "00:00:00"
 
         pos_invoice.naming_series = TEST_POS_NAMING_SERIES
 
