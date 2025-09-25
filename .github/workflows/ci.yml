@@ -182,12 +182,18 @@ jobs:
             fi
             # Create new site and restore database
             bench new-site --db-root-password root --admin-password admin test_site --no-mariadb-socket
-            mariadb --host 127.0.0.1 --port 3306 -u root -proot test_site < sites/test_site.sql
+            DB_NAME=$(grep '"db_name"' sites/test_site/site_config.json | sed 's/.*"db_name": *"\([^"]*\)".*/\1/')
+            mariadb --host 127.0.0.1 --port 3306 -u root -proot $DB_NAME < sites/test_site.sql
             
             # Uninstall and reinstall ksa_compliance to get latest changes
             echo "🔄 Updating ksa_compliance app..."
             bench --site test_site uninstall-app ksa_compliance --yes
             bench --site test_site install-app ksa_compliance
+            
+            # Update database backup with latest ksa_compliance changes
+            echo "💾 Updating database backup..."
+            DB_NAME=$(grep '"db_name"' sites/test_site/site_config.json | sed 's/.*"db_name": *"\([^"]*\)".*/\1/')
+            mysqldump --host 127.0.0.1 --port 3306 -u root -proot $DB_NAME > sites/test_site.sql
             echo "✅ Database restored and ksa_compliance updated"
           else
             echo "🆕 Creating fresh database..."
@@ -202,7 +208,8 @@ jobs:
             
             # Backup database for future use
             echo "💾 Backing up database for future cache..."
-            mysqldump --host 127.0.0.1 --port 3306 -u root -proot test_site > sites/test_site.sql
+            DB_NAME=$(grep '"db_name"' sites/test_site/site_config.json | sed 's/.*"db_name": *"\([^"]*\)".*/\1/')
+            mysqldump --host 127.0.0.1 --port 3306 -u root -proot $DB_NAME > sites/test_site.sql
             echo "✅ Database backed up"
           fi
           bench build
