@@ -118,6 +118,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-bench-
 
+      - name: Cache Database
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/frappe-bench/sites/test_site.sql
+          key: ${{ runner.os }}-db-${{ hashFiles('**/requirements.txt', '**/package.json', '**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-db-
+
       - name: Install MariaDB Client
         run: sudo apt-get update && sudo apt-get install -y mariadb-client
 
@@ -155,19 +164,47 @@ jobs:
           bench get-app ksa_compliance $REPO_URL --branch $BRANCH_NAME
           
           # Only get apps if they don't exist (from cache)
-          if [ ! -d ~/frappe-bench ]; then
+          if [ ! -d "apps/erpnext" ]; then
             bench get-app erpnext --branch version-15 &
+          fi
+          if [ ! -d "apps/payments" ]; then
             bench get-app payments --branch version-15 &
-            bench setup requirements --dev
           fi
-          # Remove existing site if it exists (from cache)
-          if [ -d "sites/test_site" ]; then
-            bench drop-site test_site --db-root-password root --force
+          wait
+          bench setup requirements --dev
+          
+          # Database optimization: Use backup/restore if available
+          if [ -f "sites/test_site.sql" ]; then
+            echo "🔄 Restoring database from cache..."
+            # Drop existing site if it exists
+            if [ -d "sites/test_site" ]; then
+              bench drop-site test_site --db-root-password root --force
+            fi
+            # Create new site and restore database
+            bench new-site --db-root-password root --admin-password admin test_site --no-mariadb-socket
+            mariadb --host 127.0.0.1 --port 3306 -u root -proot test_site < sites/test_site.sql
+            
+            # Uninstall and reinstall ksa_compliance to get latest changes
+            echo "🔄 Updating ksa_compliance app..."
+            bench --site test_site uninstall-app ksa_compliance --yes
+            bench --site test_site install-app ksa_compliance
+            echo "✅ Database restored and ksa_compliance updated"
+          else
+            echo "🆕 Creating fresh database..."
+            # Remove existing site if it exists (from cache)
+            if [ -d "sites/test_site" ]; then
+              bench drop-site test_site --db-root-password root --force
+            fi
+            bench new-site --db-root-password root --admin-password admin test_site
+            bench --site test_site install-app erpnext
+            bench --site test_site install-app payments
+            bench --site test_site install-app ksa_compliance
+            
+            # Backup database for future use
+            echo "💾 Backing up database for future cache..."
+            mysqldump --host 127.0.0.1 --port 3306 -u root -proot test_site > sites/test_site.sql
+            echo "✅ Database backed up"
           fi
-          bench new-site --db-root-password root --admin-password admin test_site
-          bench --site test_site install-app erpnext
-          bench --site test_site install-app payments
-          bench --site test_site install-app ksa_compliance
           bench build
         env:
           CI: 'Yes'
