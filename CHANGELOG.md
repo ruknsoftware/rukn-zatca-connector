@@ -7,8 +7,11 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.53.0
+* Reduce Time for Github Actions
+
 ## 0.52.9
-* Refactor Test and create Initial Test for Sales Invoice Additional Fields
+* Refactor Test and Create Initial Test for Sales Invoice Additional Fields
 
 ## 0.52.8
 * Add Mode Of Payment Account Custom Filed

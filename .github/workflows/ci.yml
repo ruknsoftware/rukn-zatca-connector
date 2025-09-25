@@ -108,13 +108,34 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
+      - name: Cache Bench
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/frappe-bench
+            ~/.cache/frappe-bench
+          key: ${{ runner.os }}-bench-${{ hashFiles('**/requirements.txt', '**/package.json', '**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bench-
+
+      - name: Cache Database
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/frappe-bench/sites/test_site.sql
+          key: ${{ runner.os }}-db-${{ hashFiles('**/requirements.txt', '**/package.json', '**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-db-
+
       - name: Install MariaDB Client
         run: sudo apt-get update && sudo apt-get install -y mariadb-client
 
       - name: Setup
         run: |
           pip install frappe-bench
-          bench init --frappe-branch version-15 --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
+          if [ ! -d ~/frappe-bench ]; then
+            bench init --frappe-branch version-15 --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
+          fi
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 
@@ -136,14 +157,61 @@ jobs:
             BRANCH_NAME="develop"
             REPO_URL="https://github.com/ruknsoftware/rukn-zatca-connector.git"
           fi
+          # Remove existing ksa_compliance directory if it exists (from cache)
+          if [ -d "apps/ksa_compliance" ]; then
+            rm -rf apps/ksa_compliance
+          fi
           bench get-app ksa_compliance $REPO_URL --branch $BRANCH_NAME
+          
+          # Only get apps if they don't exist (from cache)
+          if [ ! -d "apps/erpnext" ]; then
+            bench get-app erpnext --branch version-15 &
+          fi
+          if [ ! -d "apps/payments" ]; then
+            bench get-app payments --branch version-15 &
+          fi
+          wait
           bench setup requirements --dev
-          bench new-site --db-root-password root --admin-password admin test_site
-          bench get-app erpnext --branch version-15
-          bench get-app payments --branch version-15
-          bench --site test_site install-app erpnext
-          bench --site test_site install-app payments
-          bench --site test_site install-app ksa_compliance
+          
+          # Database optimization: Use backup/restore if available
+          if [ -f "sites/test_site.sql" ]; then
+            echo "🔄 Restoring database from cache..."
+            # Drop existing site if it exists
+            if [ -d "sites/test_site" ]; then
+              bench drop-site test_site --db-root-password root --force
+            fi
+            # Create new site and restore database
+            bench new-site --db-root-password root --admin-password admin test_site --no-mariadb-socket
+            DB_NAME=$(grep '"db_name"' sites/test_site/site_config.json | sed 's/.*"db_name": *"\([^"]*\)".*/\1/')
+            mariadb --host 127.0.0.1 --port 3306 -u root -proot $DB_NAME < sites/test_site.sql
+            
+            # Uninstall and reinstall ksa_compliance to get latest changes
+            echo "🔄 Updating ksa_compliance app..."
+            bench --site test_site uninstall-app ksa_compliance --yes
+            bench --site test_site install-app ksa_compliance
+            
+            # Update database backup with latest ksa_compliance changes
+            echo "💾 Updating database backup..."
+            DB_NAME=$(grep '"db_name"' sites/test_site/site_config.json | sed 's/.*"db_name": *"\([^"]*\)".*/\1/')
+            mysqldump --host 127.0.0.1 --port 3306 -u root -proot $DB_NAME > sites/test_site.sql
+            echo "✅ Database restored and ksa_compliance updated"
+          else
+            echo "🆕 Creating fresh database..."
+            # Remove existing site if it exists (from cache)
+            if [ -d "sites/test_site" ]; then
+              bench drop-site test_site --db-root-password root --force
+            fi
+            bench new-site --db-root-password root --admin-password admin test_site
+            bench --site test_site install-app erpnext
+            bench --site test_site install-app payments
+            bench --site test_site install-app ksa_compliance
+            
+            # Backup database for future use
+            echo "💾 Backing up database for future cache..."
+            DB_NAME=$(grep '"db_name"' sites/test_site/site_config.json | sed 's/.*"db_name": *"\([^"]*\)".*/\1/')
+            mysqldump --host 127.0.0.1 --port 3306 -u root -proot $DB_NAME > sites/test_site.sql
+            echo "✅ Database backed up"
+          fi
           bench build
         env:
           CI: 'Yes'
