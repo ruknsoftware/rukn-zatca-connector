@@ -1,10 +1,9 @@
 function is_advance_invoice(frm) {
-    return frappe.db.get_value(
-        "ZATCA Business Settings",
-        { company: frm.doc.company },
-        "advance_payment_item"
-    ).then(response => {
-        const advance_item = response.message.advance_payment_item;
+    return frappe.call({
+        method: "ksa_compliance.utils.advance_payment_invoice.get_advance_payment_item",
+        args: { company: frm.doc.company },
+    }).then(response => {
+        const advance_item = response.message;
         return (frm.doc.items || []).some(row => row.item_code === advance_item);
     });
 }
