@@ -181,14 +181,6 @@ class KSAComplianceTestBase(FrappeTestCase):
         )
 
         sales_invoice.append(
-            "payments",
-            {
-                "mode_of_payment": "Cash",
-                "amount": 115,
-            },
-        )
-
-        sales_invoice.append(
             "taxes",
             {
                 "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {TEST_COMPANY_NAME}",
@@ -237,7 +229,7 @@ class KSAComplianceTestBase(FrappeTestCase):
             "payments",
             {
                 "mode_of_payment": "Cash",
-                "amount": 100,
+                "amount": 115,
             },
         )
 
