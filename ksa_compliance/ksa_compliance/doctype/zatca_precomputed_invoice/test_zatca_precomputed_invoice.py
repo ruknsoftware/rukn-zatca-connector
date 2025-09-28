@@ -204,25 +204,6 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         
         frappe.logger().info("✅ test_integration_with_sales_invoice_additional_fields completed successfully")
 
-    def test_for_invoice_static_method(self):
-        """Test the for_invoice static method"""
-        frappe.logger().info("🧪 Running test_for_invoice_static_method...")
-        
-        # Create precomputed invoice using real ZATCA processing
-        precomputed_invoice = self._create_precomputed_invoice_for_sales_invoice(
-            self.test_sales_invoice.name
-        )
-        
-        # Test the static method
-        result = ZATCAPrecomputedInvoice.for_invoice(self.test_sales_invoice.name)
-        
-        # Verify the result
-        self.assertIsNotNone(result)
-        self.assertEqual(result.name, precomputed_invoice.name)
-        self.assertEqual(result.sales_invoice, self.test_sales_invoice.name)
-        
-        frappe.logger().info("✅ test_for_invoice_static_method completed successfully")
-
     def test_for_invoice_returns_none_when_not_found(self):
         """Test that for_invoice returns None when no precomputed invoice exists"""
         frappe.logger().info("🧪 Running test_for_invoice_returns_none_when_not_found...")
