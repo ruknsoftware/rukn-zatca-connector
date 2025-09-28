@@ -44,11 +44,6 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
                 f"Missing ZATCA business settings for sales invoice: {sales_invoice_name}"
             )
 
-        # Get counting settings for sequential data
-        counting_settings = frappe.get_doc(
-            "ZATCA Invoice Counting Settings", {"business_settings_reference": settings.name}
-        )
-
         # Create Sales Invoice Additional Fields to generate real ZATCA data
         si_additional_fields = SalesInvoiceAdditionalFields.create_for_invoice(
             sales_invoice_name, "Sales Invoice"
@@ -367,3 +362,4 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         self.assertEqual(si_additional_fields.invoice_xml, precomputed_invoice.invoice_xml)
 
         frappe.logger().info("✅ test_precomputed_invoice_data_mapping completed successfully")
+
