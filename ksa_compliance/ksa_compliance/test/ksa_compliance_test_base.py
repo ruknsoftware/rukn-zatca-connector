@@ -96,6 +96,7 @@ class KSAComplianceTestBase(FrappeTestCase):
     def setUp(self):
         """Set up each test - create test-specific data"""
         frappe.logger().info("🧪 Setting up test...")
+        frappe.set_user("Administrator")  # Set Administrator as current user
         self._create_test_pos_profile()
         self._create_test_pos_opening_entry()
         frappe.logger().info("✅ Test setup completed")
@@ -129,7 +130,7 @@ class KSAComplianceTestBase(FrappeTestCase):
             pos_profile.append(
                 "applicable_for_users",
                 {
-                    "user": frappe.session.user,
+                    "user": "Administrator",
                 },
             )
             pos_profile.insert(ignore_permissions=True)
@@ -142,6 +143,7 @@ class KSAComplianceTestBase(FrappeTestCase):
             pos_opening.posting_date = frappe.utils.nowdate()
             pos_opening.pos_profile = "Test POS Profile"
             pos_opening.company = TEST_COMPANY_NAME
+            pos_opening.user = "Administrator"  # Required field for POS Opening Entry
             pos_opening.append(
                 "balance_details",
                 {
