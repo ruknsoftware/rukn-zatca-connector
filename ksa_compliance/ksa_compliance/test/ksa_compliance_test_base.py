@@ -126,6 +126,12 @@ class KSAComplianceTestBase(FrappeTestCase):
                     "default": 1,
                 },
             )
+            pos_profile.append(
+                "applicable_for_users",
+                {
+                    "user": frappe.session.user,
+                },
+            )
             pos_profile.insert(ignore_permissions=True)
 
     def _create_test_pos_opening_entry(self):
