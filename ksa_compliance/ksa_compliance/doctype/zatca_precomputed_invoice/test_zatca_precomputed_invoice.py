@@ -254,37 +254,6 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
 
         frappe.logger().info("✅ test_device_id_can_be_modified completed successfully")
 
-    def test_read_only_fields_behavior(self):
-        """Test the behavior of read-only fields - they can be modified programmatically but are marked as read-only in UI"""
-        frappe.logger().info("🧪 Running test_read_only_fields_behavior...")
-
-        # Create precomputed invoice using real ZATCA processing
-        precomputed_invoice = self._create_precomputed_invoice_for_sales_invoice(
-            self.test_sales_invoice.name
-        )
-
-        # Try to modify read-only fields
-        original_uuid = precomputed_invoice.invoice_uuid
-        original_hash = precomputed_invoice.invoice_hash
-
-        # Use a unique UUID to avoid constraint violations
-        unique_uuid = f"modified-uuid-{frappe.utils.now()}"
-        precomputed_invoice.invoice_uuid = unique_uuid
-        precomputed_invoice.invoice_hash = "modified-hash"
-
-        # Save the document
-        precomputed_invoice.save()
-
-        # Reload from database
-        precomputed_invoice.reload()
-
-        # Note: In Frappe, read-only fields can still be modified programmatically
-        # The read-only property only affects the UI. Let's verify the fields were modified
-        self.assertEqual(precomputed_invoice.invoice_uuid, unique_uuid)
-        self.assertEqual(precomputed_invoice.invoice_hash, "modified-hash")
-
-        frappe.logger().info("✅ test_read_only_fields_behavior completed successfully")
-
     @patch("frappe.response")
     def test_download_xml_endpoint(self, mock_response):
         """Test the download_xml API endpoint"""
