@@ -18,7 +18,7 @@ from ksa_compliance.test.test_constants import (
 
 class KSAComplianceTestBase(FrappeTestCase):
     """Base test class for KSA Compliance tests - provides shared test infrastructure"""
-    
+
     item_name = "Test Item"
 
     @classmethod
