@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
+
 from ksa_compliance.test.test_constants import (
     SAUDI_CURRENCY,
     TEST_COMPANY_NAME,

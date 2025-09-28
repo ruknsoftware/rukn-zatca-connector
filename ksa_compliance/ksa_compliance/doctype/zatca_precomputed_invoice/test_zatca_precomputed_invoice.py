@@ -5,14 +5,14 @@ from unittest.mock import patch
 
 import frappe
 
-from ksa_compliance.test.test_constants import (
-    TEST_SIMPLIFIED_CUSTOMER_NAME,
-    TEST_STANDARD_CUSTOMER_NAME,
-)
 from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_precomputed_invoice import (
     ZATCAPrecomputedInvoice,
 )
 from ksa_compliance.ksa_compliance.test.ksa_compliance_test_base import KSAComplianceTestBase
+from ksa_compliance.test.test_constants import (
+    TEST_SIMPLIFIED_CUSTOMER_NAME,
+    TEST_STANDARD_CUSTOMER_NAME,
+)
 
 
 class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
@@ -286,7 +286,9 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         mock_response.filecontent = None
 
         # Import and call the download_xml function
-        from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_precomputed_invoice import download_xml
+        from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_precomputed_invoice import (
+            download_xml,
+        )
         download_xml(precomputed_invoice.name)
 
         # Verify the response was set correctly
