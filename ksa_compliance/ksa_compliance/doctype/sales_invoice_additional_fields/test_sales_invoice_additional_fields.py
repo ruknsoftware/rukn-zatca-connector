@@ -39,18 +39,25 @@ class TestSalesInvoiceAdditionalFields(KSAComplianceTestBase):
         additional_fields = frappe.get_all(
             "Sales Invoice Additional Fields",
             filters={"sales_invoice": test_sales_invoice.name},
-            limit=1
+            limit=1,
         )
 
-        self.assertTrue(len(additional_fields) > 0, "Sales Invoice Additional Fields should be created automatically")
+        self.assertTrue(
+            len(additional_fields) > 0,
+            "Sales Invoice Additional Fields should be created automatically",
+        )
 
         # Get the additional fields document
-        additional_fields_doc = frappe.get_doc("Sales Invoice Additional Fields", additional_fields[0].name)
+        additional_fields_doc = frappe.get_doc(
+            "Sales Invoice Additional Fields", additional_fields[0].name
+        )
 
         # Verify the relationship
         self.assertEqual(additional_fields_doc.sales_invoice, test_sales_invoice.name)
 
-        frappe.logger().info("✅ test_automatic_creation_on_sales_invoice_submit completed successfully")
+        frappe.logger().info(
+            "✅ test_automatic_creation_on_sales_invoice_submit completed successfully"
+        )
 
     def test_automatic_creation_on_pos_invoice_submit(self):
         """Test that Sales Invoice Additional Fields is created automatically when POS Invoice is submitted"""
@@ -61,17 +68,22 @@ class TestSalesInvoiceAdditionalFields(KSAComplianceTestBase):
 
         # Verify that Sales Invoice Additional Fields was created automatically
         additional_fields = frappe.get_all(
-            "Sales Invoice Additional Fields",
-            filters={"sales_invoice": pos_invoice.name},
-            limit=1
+            "Sales Invoice Additional Fields", filters={"sales_invoice": pos_invoice.name}, limit=1
         )
 
-        self.assertTrue(len(additional_fields) > 0, "Sales Invoice Additional Fields should be created automatically")
+        self.assertTrue(
+            len(additional_fields) > 0,
+            "Sales Invoice Additional Fields should be created automatically",
+        )
 
         # Get the additional fields document
-        additional_fields_doc = frappe.get_doc("Sales Invoice Additional Fields", additional_fields[0].name)
+        additional_fields_doc = frappe.get_doc(
+            "Sales Invoice Additional Fields", additional_fields[0].name
+        )
 
         # Verify the relationship
         self.assertEqual(additional_fields_doc.sales_invoice, pos_invoice.name)
 
-        frappe.logger().info("✅ test_automatic_creation_on_pos_invoice_submit completed successfully")
+        frappe.logger().info(
+            "✅ test_automatic_creation_on_pos_invoice_submit completed successfully"
+        )

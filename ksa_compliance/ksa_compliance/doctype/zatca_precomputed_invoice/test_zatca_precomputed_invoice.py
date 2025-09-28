@@ -26,7 +26,9 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         self.test_sales_invoice = self._create_test_sales_invoice(submit=False)
         self.test_pos_invoice = self._create_test_pos_invoice(submit=False)
 
-    def _create_precomputed_invoice_for_sales_invoice(self, sales_invoice_name, device_id="TEST-DEVICE-001"):
+    def _create_precomputed_invoice_for_sales_invoice(
+        self, sales_invoice_name, device_id="TEST-DEVICE-001"
+    ):
         """Create a precomputed invoice following the real production flow"""
         from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import (
             SalesInvoiceAdditionalFields,
@@ -38,12 +40,13 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         # Get business settings
         settings = ZATCABusinessSettings.for_invoice(sales_invoice_name, "Sales Invoice")
         if not settings:
-            frappe.throw(f"Missing ZATCA business settings for sales invoice: {sales_invoice_name}")
+            frappe.throw(
+                f"Missing ZATCA business settings for sales invoice: {sales_invoice_name}"
+            )
 
         # Get counting settings for sequential data
         counting_settings = frappe.get_doc(
-            "ZATCA Invoice Counting Settings",
-            {"business_settings_reference": settings.name}
+            "ZATCA Invoice Counting Settings", {"business_settings_reference": settings.name}
         )
 
         # Create Sales Invoice Additional Fields to generate real ZATCA data
@@ -93,8 +96,7 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
 
         # Create precomputed invoice using real ZATCA processing
         precomputed_invoice = self._create_precomputed_invoice_for_sales_invoice(
-            self.test_sales_invoice.name,
-            device_id="TEST-DEVICE-001"
+            self.test_sales_invoice.name, device_id="TEST-DEVICE-001"
         )
 
         # Verify the document was created with real ZATCA data
@@ -110,6 +112,7 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
 
         # Verify UUID format (should be a proper UUID4)
         import uuid
+
         try:
             uuid.UUID(precomputed_invoice.invoice_uuid)
         except ValueError:
@@ -131,7 +134,9 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
             precomputed_invoice.delete()
 
         # Verify the error message
-        self.assertIn("You cannot Delete a configured ZATCA Precomputed Invoice", str(context.exception))
+        self.assertIn(
+            "You cannot Delete a configured ZATCA Precomputed Invoice", str(context.exception)
+        )
 
         frappe.logger().info("✅ test_cannot_delete_precomputed_invoice completed successfully")
 
@@ -183,13 +188,18 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         additional_fields = frappe.get_all(
             "Sales Invoice Additional Fields",
             filters={"sales_invoice": self.test_sales_invoice.name},
-            limit=1
+            limit=1,
         )
 
-        self.assertTrue(len(additional_fields) > 0, "Sales Invoice Additional Fields should be created automatically")
+        self.assertTrue(
+            len(additional_fields) > 0,
+            "Sales Invoice Additional Fields should be created automatically",
+        )
 
         # Get the additional fields document
-        additional_fields_doc = frappe.get_doc("Sales Invoice Additional Fields", additional_fields[0].name)
+        additional_fields_doc = frappe.get_doc(
+            "Sales Invoice Additional Fields", additional_fields[0].name
+        )
 
         # Verify the relationship and that it uses precomputed data
         self.assertEqual(additional_fields_doc.sales_invoice, self.test_sales_invoice.name)
@@ -197,12 +207,16 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         self.assertEqual(additional_fields_doc.precomputed_invoice, precomputed_invoice.name)
 
         # Verify the data was copied correctly
-        self.assertEqual(additional_fields_doc.invoice_counter, int(precomputed_invoice.invoice_counter))
+        self.assertEqual(
+            additional_fields_doc.invoice_counter, int(precomputed_invoice.invoice_counter)
+        )
         self.assertEqual(additional_fields_doc.uuid, precomputed_invoice.invoice_uuid)
         self.assertEqual(additional_fields_doc.invoice_hash, precomputed_invoice.invoice_hash)
         self.assertEqual(additional_fields_doc.qr_code, precomputed_invoice.invoice_qr)
 
-        frappe.logger().info("✅ test_integration_with_sales_invoice_additional_fields completed successfully")
+        frappe.logger().info(
+            "✅ test_integration_with_sales_invoice_additional_fields completed successfully"
+        )
 
     def test_for_invoice_returns_none_when_not_found(self):
         """Test that for_invoice returns None when no precomputed invoice exists"""
@@ -214,7 +228,9 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         # Verify the result is None
         self.assertIsNone(result)
 
-        frappe.logger().info("✅ test_for_invoice_returns_none_when_not_found completed successfully")
+        frappe.logger().info(
+            "✅ test_for_invoice_returns_none_when_not_found completed successfully"
+        )
 
     def test_device_id_can_be_modified(self):
         """Test that device_id can be modified (it's not read-only)"""
@@ -289,6 +305,7 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_precomputed_invoice import (
             download_xml,
         )
+
         download_xml(precomputed_invoice.name)
 
         # Verify the response was set correctly
@@ -305,8 +322,7 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
 
         # Create precomputed invoice with real ZATCA data
         precomputed_invoice = self._create_precomputed_invoice_for_sales_invoice(
-            self.test_sales_invoice.name,
-            device_id="REAL-DEVICE-001"
+            self.test_sales_invoice.name, device_id="REAL-DEVICE-001"
         )
 
         # Verify the document was created with real data
@@ -322,6 +338,7 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
 
         # Verify UUID format (should be a proper UUID4)
         import uuid
+
         try:
             uuid.UUID(precomputed_invoice.invoice_uuid)
         except ValueError:
@@ -329,6 +346,7 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
 
         # Verify hash format (should be base64 encoded)
         import base64
+
         try:
             base64.b64decode(precomputed_invoice.invoice_hash)
         except Exception:
@@ -338,7 +356,9 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         self.assertIn("Invoice", precomputed_invoice.invoice_xml)
         self.assertIn("xml", precomputed_invoice.invoice_xml.lower())
 
-        frappe.logger().info("✅ test_create_precomputed_invoice_with_real_zatca_data completed successfully")
+        frappe.logger().info(
+            "✅ test_create_precomputed_invoice_with_real_zatca_data completed successfully"
+        )
 
     def test_precomputed_invoice_data_mapping(self):
         """Test that precomputed invoice data maps correctly to Sales Invoice Additional Fields"""
@@ -364,11 +384,17 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         # Verify the data mapping is correct
         self.assertTrue(si_additional_fields.precomputed)
         self.assertEqual(si_additional_fields.precomputed_invoice, precomputed_invoice.name)
-        self.assertEqual(si_additional_fields.invoice_counter, int(precomputed_invoice.invoice_counter))
+        self.assertEqual(
+            si_additional_fields.invoice_counter, int(precomputed_invoice.invoice_counter)
+        )
         self.assertEqual(si_additional_fields.uuid, precomputed_invoice.invoice_uuid)
-        self.assertEqual(si_additional_fields.previous_invoice_hash, precomputed_invoice.previous_invoice_hash)
+        self.assertEqual(
+            si_additional_fields.previous_invoice_hash, precomputed_invoice.previous_invoice_hash
+        )
         self.assertEqual(si_additional_fields.invoice_hash, precomputed_invoice.invoice_hash)
-        self.assertEqual(si_additional_fields.qr_code, precomputed_invoice.invoice_qr)  # Field name mapping
+        self.assertEqual(
+            si_additional_fields.qr_code, precomputed_invoice.invoice_qr
+        )  # Field name mapping
         self.assertEqual(si_additional_fields.invoice_xml, precomputed_invoice.invoice_xml)
 
         frappe.logger().info("✅ test_precomputed_invoice_data_mapping completed successfully")
