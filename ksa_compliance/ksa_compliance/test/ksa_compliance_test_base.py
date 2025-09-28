@@ -184,7 +184,7 @@ class KSAComplianceTestBase(FrappeTestCase):
             "payments",
             {
                 "mode_of_payment": "Cash",
-                "amount": 100,
+                "amount": 115,
             },
         )
 
