@@ -1,16 +1,12 @@
 # Copyright (c) 2024, Lavaloon and Contributors
 # See license.txt
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import frappe
 from frappe import _
-from result import Err, Ok
 
 from ksa_compliance.ksa_compliance.test.ksa_compliance_test_base import KSAComplianceTestBase
-from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import (
-    SalesInvoiceAdditionalFields,
-)
 
 
 class TestSalesInvoiceAdditionalFields(KSAComplianceTestBase):

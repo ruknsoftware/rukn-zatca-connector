@@ -1,33 +1,18 @@
 # Copyright (c) 2024, LavaLoon and Contributors
 # See license.txt
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import frappe
-from frappe import _
-from frappe.tests.utils import FrappeTestCase
-from result import Err, Ok
 
 from ksa_compliance.test.test_constants import (
-    SAUDI_CURRENCY,
-    TEST_COMPANY_NAME,
-    TEST_POS_NAMING_SERIES,
     TEST_SIMPLIFIED_CUSTOMER_NAME,
-    TEST_SINV_NAMING_SERIES,
     TEST_STANDARD_CUSTOMER_NAME,
-    TEST_TAX_ACCOUNT_NAME,
-    TEST_TAX_CATEGORY_NAME,
-    TEST_TAX_TEMPLATE_NAME,
 )
 from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_precomputed_invoice import (
     ZATCAPrecomputedInvoice,
 )
-from ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields.sales_invoice_additional_fields import (
-    SalesInvoiceAdditionalFields,
-)
 from ksa_compliance.ksa_compliance.test.ksa_compliance_test_base import KSAComplianceTestBase
-from frappe.utils import nowdate
-import uuid
 
 
 class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
