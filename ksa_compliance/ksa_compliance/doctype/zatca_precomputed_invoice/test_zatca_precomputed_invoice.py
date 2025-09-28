@@ -362,4 +362,3 @@ class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
         self.assertEqual(si_additional_fields.invoice_xml, precomputed_invoice.invoice_xml)
 
         frappe.logger().info("✅ test_precomputed_invoice_data_mapping completed successfully")
-
