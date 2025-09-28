@@ -108,6 +108,7 @@ class KSAComplianceTestBase(FrappeTestCase):
         """Create test POS profile"""
         if not frappe.db.exists("POS Profile", "Test POS Profile"):
             pos_profile = frappe.new_doc("POS Profile")
+            pos_profile.name = "Test POS Profile"
             pos_profile.pos_profile_name = "Test POS Profile"
             pos_profile.company = TEST_COMPANY_NAME
             pos_profile.currency = SAUDI_CURRENCY
