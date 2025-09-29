@@ -23,11 +23,10 @@ class TestZATCAInvoiceCountingSettings(KSAComplianceTestBase):
 
         # Create a test sales invoice first to get proper settings
         sales_invoice = self._create_test_sales_invoice(submit=False)
-        
+
         # Get initial counting settings using the actual invoice
         settings = ZATCABusinessSettings.for_invoice(sales_invoice.name, "Sales Invoice")
         self.assertIsNotNone(settings, "ZATCA Business Settings should exist for test invoice")
-        
         counting_settings = frappe.get_doc(
             "ZATCA Invoice Counting Settings", {"business_settings_reference": settings.name}
         )
@@ -64,11 +63,10 @@ class TestZATCAInvoiceCountingSettings(KSAComplianceTestBase):
 
         # Create a test POS invoice first to get proper settings
         pos_invoice = self._create_test_pos_invoice(submit=False)
-        
+
         # Get initial counting settings using the actual invoice
         settings = ZATCABusinessSettings.for_invoice(pos_invoice.name, "POS Invoice")
         self.assertIsNotNone(settings, "ZATCA Business Settings should exist for test POS invoice")
-        
         counting_settings = frappe.get_doc(
             "ZATCA Invoice Counting Settings", {"business_settings_reference": settings.name}
         )
@@ -200,11 +198,10 @@ class TestZATCAInvoiceCountingSettings(KSAComplianceTestBase):
 
         # Create a test invoice first to get proper settings
         first_invoice = self._create_test_sales_invoice(submit=False)
-        
+
         # Get initial counting settings using the actual invoice
         settings = ZATCABusinessSettings.for_invoice(first_invoice.name, "Sales Invoice")
         self.assertIsNotNone(settings, "ZATCA Business Settings should exist for test invoice")
-        
         counting_settings = frappe.get_doc(
             "ZATCA Invoice Counting Settings", {"business_settings_reference": settings.name}
         )
@@ -215,7 +212,7 @@ class TestZATCAInvoiceCountingSettings(KSAComplianceTestBase):
         for i in range(3):
             invoice = self._create_test_sales_invoice(submit=False)
             invoice.submit()
-            
+
             # Reload counting settings
             counting_settings.reload()
             invoice_counters.append(counting_settings.invoice_counter)
