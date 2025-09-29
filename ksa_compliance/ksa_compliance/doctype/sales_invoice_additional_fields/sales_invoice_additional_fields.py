@@ -166,7 +166,7 @@ class SalesInvoiceAdditionalFields(Document):
         self.uuid = precomputed_invoice.invoice_uuid
         self.previous_invoice_hash = precomputed_invoice.previous_invoice_hash
         self.invoice_hash = precomputed_invoice.invoice_hash
-        self.invoice_qr = precomputed_invoice.invoice_qr
+        self.qr_code = precomputed_invoice.invoice_qr
         self.invoice_xml = precomputed_invoice.invoice_xml
 
     def _get_invoice_type(self, settings: ZATCABusinessSettings) -> InvoiceType:
