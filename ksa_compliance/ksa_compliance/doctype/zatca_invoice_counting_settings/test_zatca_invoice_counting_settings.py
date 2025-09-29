@@ -199,7 +199,6 @@ class TestZATCAInvoiceCountingSettings(KSAComplianceTestBase):
             "✅ test_sales_invoice_with_precomputed_data_skips_counting_settings_update completed successfully"
         )
 
-
     def test_counting_settings_sequential_behavior(self):
         """Test that counting settings maintain proper sequential behavior across multiple invoices"""
         frappe.logger().info("🧪 Running test_counting_settings_sequential_behavior...")
