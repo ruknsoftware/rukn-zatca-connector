@@ -51,7 +51,9 @@ class TestZATCAInvoiceCountingSettings(KSAComplianceTestBase):
             "Previous hash should be updated when regular Sales Invoice is submitted",
         )
 
-        frappe.logger().info("✅ test_regular_sales_invoice_updates_counting_settings completed successfully")
+        frappe.logger().info(
+            "✅ test_regular_sales_invoice_updates_counting_settings completed successfully"
+        )
 
     def test_regular_pos_invoice_updates_counting_settings(self):
         """Test that regular POS Invoice submission updates counting settings"""
@@ -91,11 +93,15 @@ class TestZATCAInvoiceCountingSettings(KSAComplianceTestBase):
             "Previous hash should be updated when regular POS Invoice is submitted",
         )
 
-        frappe.logger().info("✅ test_regular_pos_invoice_updates_counting_settings completed successfully")
+        frappe.logger().info(
+            "✅ test_regular_pos_invoice_updates_counting_settings completed successfully"
+        )
 
     def test_precomputed_invoice_creation_updates_counting_settings(self):
         """Test that creating a precomputed invoice updates counting settings (generates real ZATCA data)"""
-        frappe.logger().info("🧪 Running test_precomputed_invoice_creation_updates_counting_settings...")
+        frappe.logger().info(
+            "🧪 Running test_precomputed_invoice_creation_updates_counting_settings..."
+        )
 
         from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
             ZATCABusinessSettings,
@@ -135,11 +141,15 @@ class TestZATCAInvoiceCountingSettings(KSAComplianceTestBase):
             "Previous hash should be updated when precomputed invoice is created (generates real ZATCA data)",
         )
 
-        frappe.logger().info("✅ test_precomputed_invoice_creation_updates_counting_settings completed successfully")
+        frappe.logger().info(
+            "✅ test_precomputed_invoice_creation_updates_counting_settings completed successfully"
+        )
 
     def test_sales_invoice_with_precomputed_data_skips_counting_settings_update(self):
         """Test that Sales Invoice submission with precomputed data does NOT update counting settings"""
-        frappe.logger().info("🧪 Running test_sales_invoice_with_precomputed_data_skips_counting_settings_update...")
+        frappe.logger().info(
+            "🧪 Running test_sales_invoice_with_precomputed_data_skips_counting_settings_update..."
+        )
 
         from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
             ZATCABusinessSettings,
@@ -185,7 +195,9 @@ class TestZATCAInvoiceCountingSettings(KSAComplianceTestBase):
             "Previous hash should NOT be updated when Sales Invoice uses precomputed data",
         )
 
-        frappe.logger().info("✅ test_sales_invoice_with_precomputed_data_skips_counting_settings_update completed successfully")
+        frappe.logger().info(
+            "✅ test_sales_invoice_with_precomputed_data_skips_counting_settings_update completed successfully"
+        )
 
 
     def test_counting_settings_sequential_behavior(self):
@@ -222,7 +234,9 @@ class TestZATCAInvoiceCountingSettings(KSAComplianceTestBase):
             invoice_counters[0], initial_counter + 1, "First invoice should increment counter by 1"
         )
         self.assertEqual(
-            invoice_counters[1], initial_counter + 2, "Second invoice should increment counter by 2"
+            invoice_counters[1],
+            initial_counter + 2,
+            "Second invoice should increment counter by 2",
         )
         self.assertEqual(
             invoice_counters[2], initial_counter + 3, "Third invoice should increment counter by 3"
@@ -231,8 +245,11 @@ class TestZATCAInvoiceCountingSettings(KSAComplianceTestBase):
         # Verify all counters are sequential
         for i in range(1, len(invoice_counters)):
             self.assertEqual(
-                invoice_counters[i], invoice_counters[i-1] + 1,
-                f"Invoice {i+1} counter should be sequential"
+                invoice_counters[i],
+                invoice_counters[i - 1] + 1,
+                f"Invoice {i+1} counter should be sequential",
             )
 
-        frappe.logger().info("✅ test_counting_settings_sequential_behavior completed successfully")
+        frappe.logger().info(
+            "✅ test_counting_settings_sequential_behavior completed successfully"
+        )
