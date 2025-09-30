@@ -8,6 +8,9 @@ to a section with the version name.
 
 ## Unreleased Changes
 ## 0.53.2
+* Create Intal Test for SI Counting Settings
+
+## 0.53.2
 * Create Intal Test for Precomputed Sales Invoice
 * Fix Bug in Handling QR for Precomputed Sales Invoice
 
