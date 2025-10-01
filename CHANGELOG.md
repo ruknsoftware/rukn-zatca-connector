@@ -7,7 +7,10 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
-## 0.53.2
+## 0.53.4
+* Create Intal Test for ZATCA EGS
+
+## 0.53.3
 * Create Intal Test for SI Counting Settings
 
 ## 0.53.2
