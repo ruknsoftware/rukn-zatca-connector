@@ -4,10 +4,10 @@
 import frappe
 from frappe import _
 
+from ksa_compliance.ksa_compliance.doctype.zatca_egs.zatca_egs import ZATCAEGS
 from ksa_compliance.ksa_compliance.test.ksa_compliance_test_base import (
     KSAComplianceTestBase,
 )
-from ksa_compliance.ksa_compliance.doctype.zatca_egs.zatca_egs import ZATCAEGS
 
 
 class TestZATCAEGS(KSAComplianceTestBase):
@@ -24,9 +24,9 @@ class TestZATCAEGS(KSAComplianceTestBase):
             setup_zatca_business_settings,
         )
         from ksa_compliance.test.test_constants import (
-            TEST_COMPANY_NAME,
             SAUDI_COUNTRY,
             SAUDI_CURRENCY,
+            TEST_COMPANY_NAME,
         )
 
         # Use the comprehensive setup function from business settings tests
