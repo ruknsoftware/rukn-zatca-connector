@@ -67,9 +67,7 @@ class TestZATCAEGS(KSAComplianceTestBase):
         # Verify test data was created successfully
         self.assertIsNotNone(self.item_name)
         self.assertTrue(frappe.db.exists("Item", self.item_name))
-        self.assertTrue(
-            frappe.db.exists("ZATCA Business Settings", self.business_settings_name)
-        )
+        self.assertTrue(frappe.db.exists("ZATCA Business Settings", self.business_settings_name))
 
         frappe.logger().info("✅ test_basic_setup completed successfully")
 
@@ -165,9 +163,7 @@ class TestZATCAEGS(KSAComplianceTestBase):
 
         self.assertIn("Could not find", str(context.exception))
 
-        frappe.logger().info(
-            "✅ test_egs_required_fields_validation completed successfully"
-        )
+        frappe.logger().info("✅ test_egs_required_fields_validation completed successfully")
 
     def test_egs_business_settings_link(self):
         """Test linking to ZATCA Business Settings"""
@@ -178,9 +174,7 @@ class TestZATCAEGS(KSAComplianceTestBase):
 
         # Verify the link is working
         self.assertEqual(egs.business_settings, self.business_settings_name)
-        self.assertTrue(
-            frappe.db.exists("ZATCA Business Settings", egs.business_settings)
-        )
+        self.assertTrue(frappe.db.exists("ZATCA Business Settings", egs.business_settings))
 
         # Test with invalid business settings
         egs_invalid = frappe.new_doc("ZATCA EGS")
@@ -241,15 +235,11 @@ class TestZATCAEGS(KSAComplianceTestBase):
             self.assertEqual(found_egs.name, created_egs[i].name)
             self.assertEqual(found_egs.unit_common_name, device_id)
 
-        frappe.logger().info(
-            "✅ test_device_lookup_by_common_name completed successfully"
-        )
+        frappe.logger().info("✅ test_device_lookup_by_common_name completed successfully")
 
     def test_device_lookup_returns_none_when_not_found(self):
         """Test device lookup when EGS doesn't exist"""
-        frappe.logger().info(
-            "🧪 Running test_device_lookup_returns_none_when_not_found..."
-        )
+        frappe.logger().info("🧪 Running test_device_lookup_returns_none_when_not_found...")
 
         # Test with various non-existent device IDs
         non_existent_devices = [
@@ -332,9 +322,7 @@ class TestZATCAEGS(KSAComplianceTestBase):
         frappe.logger().info("🧪 Running test_sync_mode_override_behavior...")
 
         # Get business settings
-        business_settings = frappe.get_doc(
-            "ZATCA Business Settings", self.business_settings_name
-        )
+        business_settings = frappe.get_doc("ZATCA Business Settings", self.business_settings_name)
         business_settings.sync_with_zatca = "Batches"  # Company setting: Batches
         business_settings.save()
 
@@ -344,9 +332,7 @@ class TestZATCAEGS(KSAComplianceTestBase):
         egs.save()
 
         # Verify EGS overrides company setting
-        self.assertEqual(
-            business_settings.sync_with_zatca, "Batches"
-        )  # Company: Batches
+        self.assertEqual(business_settings.sync_with_zatca, "Batches")  # Company: Batches
         self.assertEqual(egs.sync_with_zatca, "Live")  # EGS: Live
         self.assertTrue(egs.is_live_sync)  # EGS should be Live
 
@@ -355,9 +341,7 @@ class TestZATCAEGS(KSAComplianceTestBase):
         egs.save()
         self.assertFalse(egs.is_live_sync)  # EGS should be Batches
 
-        frappe.logger().info(
-            "✅ test_sync_mode_override_behavior completed successfully"
-        )
+        frappe.logger().info("✅ test_sync_mode_override_behavior completed successfully")
 
     def test_xml_validation_configuration(self):
         """Test device-specific XML validation settings"""
@@ -377,9 +361,7 @@ class TestZATCAEGS(KSAComplianceTestBase):
 
         self.assertEqual(egs_without_validation.validate_generated_xml, 0)
 
-        frappe.logger().info(
-            "✅ test_xml_validation_configuration completed successfully"
-        )
+        frappe.logger().info("✅ test_xml_validation_configuration completed successfully")
 
     def test_egs_deletion_prevention(self):
         """Test that configured EGS cannot be deleted"""
@@ -393,8 +375,6 @@ class TestZATCAEGS(KSAComplianceTestBase):
             egs.delete()
 
         # Verify the error message
-        self.assertIn(
-            "You cannot Delete a configured ZATCA EGS", str(context.exception)
-        )
+        self.assertIn("You cannot Delete a configured ZATCA EGS", str(context.exception))
 
         frappe.logger().info("✅ test_egs_deletion_prevention completed successfully")
