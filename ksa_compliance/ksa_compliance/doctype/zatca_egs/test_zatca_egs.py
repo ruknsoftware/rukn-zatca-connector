@@ -28,7 +28,7 @@ class TestZATCAEGS(KSAComplianceTestBase):
             SAUDI_COUNTRY,
             SAUDI_CURRENCY,
         )
-        
+
         # Use the comprehensive setup function from business settings tests
         self.business_settings_name = setup_zatca_business_settings(
             TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY
