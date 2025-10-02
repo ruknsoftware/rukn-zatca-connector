@@ -194,18 +194,18 @@ class TestZATCAEGS(KSAComplianceTestBase):
         """Test ZATCAEGS.for_device() static method"""
         frappe.logger().info("🧪 Running test_for_device_static_method...")
 
-        # Create test EGS configurations
-        erpnext_egs = self._create_test_erpnext_egs("ERPNext")
-        pos_egs = self._create_test_pos_egs("POS-DEVICE-001")
+        # Create test EGS configurations with unique device IDs
+        erpnext_egs = self._create_test_erpnext_egs("ERPNext-TEST-001")
+        pos_egs = self._create_test_pos_egs("POS-DEVICE-TEST-001")
 
         # Test finding ERPNext EGS
-        found_egs = ZATCAEGS.for_device("ERPNext")
+        found_egs = ZATCAEGS.for_device("ERPNext-TEST-001")
         self.assertIsNotNone(found_egs)
         self.assertEqual(found_egs.name, erpnext_egs.name)
         self.assertEqual(found_egs.egs_type, "ERPNext")
 
         # Test finding POS device EGS
-        found_pos_egs = ZATCAEGS.for_device("POS-DEVICE-001")
+        found_pos_egs = ZATCAEGS.for_device("POS-DEVICE-TEST-001")
         self.assertIsNotNone(found_pos_egs)
         self.assertEqual(found_pos_egs.name, pos_egs.name)
         self.assertEqual(found_pos_egs.egs_type, "POS Device")
@@ -262,12 +262,12 @@ class TestZATCAEGS(KSAComplianceTestBase):
         """Test lookup with multiple EGS configurations"""
         frappe.logger().info("🧪 Running test_multiple_devices_lookup...")
 
-        # Create multiple EGS configurations
+        # Create multiple EGS configurations with unique device IDs
         devices = [
-            ("ERPNext", "ERPNext"),
-            ("POS-DEVICE-001", "POS Device"),
-            ("POS-DEVICE-002", "POS Device"),
-            ("CASHIER-001", "ERPNext"),
+            ("ERPNext-MULTI-001", "ERPNext"),
+            ("POS-DEVICE-MULTI-001", "POS Device"),
+            ("POS-DEVICE-MULTI-002", "POS Device"),
+            ("CASHIER-MULTI-001", "ERPNext"),
         ]
 
         created_egs = {}
@@ -293,14 +293,14 @@ class TestZATCAEGS(KSAComplianceTestBase):
         frappe.logger().info("🧪 Running test_is_live_sync_property...")
 
         # Test Live sync
-        live_egs = self._create_test_erpnext_egs("LIVE-DEVICE")
+        live_egs = self._create_test_erpnext_egs("LIVE-DEVICE-SYNC-001")
         live_egs.sync_with_zatca = "Live"
         live_egs.save()
 
         self.assertTrue(live_egs.is_live_sync)
 
         # Test Batches sync
-        batch_egs = self._create_test_pos_egs("BATCH-DEVICE")
+        batch_egs = self._create_test_pos_egs("BATCH-DEVICE-SYNC-001")
         batch_egs.sync_with_zatca = "Batches"
         batch_egs.save()
 
@@ -327,7 +327,7 @@ class TestZATCAEGS(KSAComplianceTestBase):
         business_settings.save()
 
         # Create EGS with Live sync (should override company setting)
-        egs = self._create_test_erpnext_egs("OVERRIDE-DEVICE")
+        egs = self._create_test_erpnext_egs("OVERRIDE-DEVICE-SYNC-001")
         egs.sync_with_zatca = "Live"
         egs.save()
 
@@ -348,14 +348,14 @@ class TestZATCAEGS(KSAComplianceTestBase):
         frappe.logger().info("🧪 Running test_xml_validation_configuration...")
 
         # Create EGS with XML validation enabled
-        egs_with_validation = self._create_test_erpnext_egs("VALIDATION-DEVICE")
+        egs_with_validation = self._create_test_erpnext_egs("VALIDATION-DEVICE-XML-001")
         egs_with_validation.validate_generated_xml = 1
         egs_with_validation.save()
 
         self.assertEqual(egs_with_validation.validate_generated_xml, 1)
 
         # Create EGS with XML validation disabled
-        egs_without_validation = self._create_test_pos_egs("NO-VALIDATION-DEVICE")
+        egs_without_validation = self._create_test_pos_egs("NO-VALIDATION-DEVICE-XML-001")
         egs_without_validation.validate_generated_xml = 0
         egs_without_validation.save()
 
@@ -368,7 +368,7 @@ class TestZATCAEGS(KSAComplianceTestBase):
         frappe.logger().info("🧪 Running test_egs_deletion_prevention...")
 
         # Create EGS
-        egs = self._create_test_erpnext_egs("NO-DELETE-DEVICE")
+        egs = self._create_test_erpnext_egs("NO-DELETE-DEVICE-001")
 
         # Try to delete the EGS
         with self.assertRaises(frappe.ValidationError) as context:
