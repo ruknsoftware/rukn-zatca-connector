@@ -135,6 +135,7 @@ def get_phase_2_print_format_details(sales_invoice: SalesInvoice | POSInvoice) -
         "buyer_other_id_name": buyer_other_id_name,
         "siaf": siaf,
         "prepayment_info": prepayment_info,
+        "advance_payment_item": settings.advance_payment_item,
     }
 
 
