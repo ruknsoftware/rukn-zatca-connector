@@ -17,7 +17,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
     def _create_test_company(self):
         """Create test company for Phase 1 Business Settings"""
         self.test_company_name = "Test Company Phase 1"
-        
+
         if not frappe.db.exists("Company", self.test_company_name):
             company = frappe.get_doc({
                 "doctype": "Company",
@@ -31,7 +31,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
     def _create_test_address(self):
         """Create test address for Phase 1 Business Settings"""
         self.test_address_name = "Test Address Phase 1"
-        
+
         if not frappe.db.exists("Address", self.test_address_name):
             address = frappe.get_doc({
                 "doctype": "Address",
@@ -47,12 +47,12 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
             })
             address.insert(ignore_permissions=True)
 
-    def _create_test_phase_1_settings(self, company=None, address=None, status="Active", 
+    def _create_test_phase_1_settings(self, company=None, address=None, status="Active",
                                      type_of_transaction="Both", vat_registration_number="123456789012345"):
         """Create test ZATCA Phase 1 Business Settings"""
         company = company or self.test_company_name
         address = address or self.test_address_name
-        
+
         settings = frappe.new_doc("ZATCA Phase 1 Business Settings")
         settings.company = company
         settings.address = address
@@ -185,7 +185,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         frappe.logger().info("🧪 Running test_type_of_transaction_options...")
 
         valid_options = ["Simplified Tax Invoice", "Standard Tax Invoice", "Both"]
-        
+
         for option in valid_options:
             # Create settings with each valid option
             settings = self._create_test_phase_1_settings(
@@ -201,7 +201,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         frappe.logger().info("🧪 Running test_status_options...")
 
         valid_options = ["Active", "Disabled"]
-        
+
         for option in valid_options:
             # Create settings with each valid option
             settings = self._create_test_phase_1_settings(
@@ -217,7 +217,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         frappe.logger().info("🧪 Running test_autoname_behavior...")
 
         settings = self._create_test_phase_1_settings()
-        
+
         # Document name should be the same as company name
         self.assertEqual(settings.name, self.test_company_name)
 
