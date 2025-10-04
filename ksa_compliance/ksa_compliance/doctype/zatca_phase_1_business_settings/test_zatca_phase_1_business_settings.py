@@ -20,13 +20,15 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         self.test_company_name = "Test Company Phase 1"
 
         if not frappe.db.exists("Company", self.test_company_name):
-            company = frappe.get_doc({
-                "doctype": "Company",
-                "company_name": self.test_company_name,
-                "abbr": "TCP1",
-                "default_currency": "SAR",
-                "country": "Saudi Arabia"
-            })
+            company = frappe.get_doc(
+                {
+                    "doctype": "Company",
+                    "company_name": self.test_company_name,
+                    "abbr": "TCP1",
+                    "default_currency": "SAR",
+                    "country": "Saudi Arabia",
+                }
+            )
             company.insert(ignore_permissions=True)
 
     def _create_test_address(self):
@@ -34,22 +36,30 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         self.test_address_name = "Test Address Phase 1"
 
         if not frappe.db.exists("Address", self.test_address_name):
-            address = frappe.get_doc({
-                "doctype": "Address",
-                "address_title": self.test_address_name,
-                "address_type": "Billing",
-                "address_line1": "123 Test Street",
-                "city": "Riyadh",
-                "state": "Riyadh",
-                "pincode": "12345",
-                "country": "Saudi Arabia",
-                "is_primary_address": 1,
-                "links": [{"link_doctype": "Company", "link_name": self.test_company_name}]
-            })
+            address = frappe.get_doc(
+                {
+                    "doctype": "Address",
+                    "address_title": self.test_address_name,
+                    "address_type": "Billing",
+                    "address_line1": "123 Test Street",
+                    "city": "Riyadh",
+                    "state": "Riyadh",
+                    "pincode": "12345",
+                    "country": "Saudi Arabia",
+                    "is_primary_address": 1,
+                    "links": [{"link_doctype": "Company", "link_name": self.test_company_name}],
+                }
+            )
             address.insert(ignore_permissions=True)
 
-    def _create_test_phase_1_settings(self, company=None, address=None, status="Active",
-                                     type_of_transaction="Both", vat_registration_number="123456789012345"):
+    def _create_test_phase_1_settings(
+        self,
+        company=None,
+        address=None,
+        status="Active",
+        type_of_transaction="Both",
+        vat_registration_number="123456789012345",
+    ):
         """Create test ZATCA Phase 1 Business Settings"""
         company = company or self.test_company_name
         address = address or self.test_address_name
@@ -190,8 +200,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         for option in valid_options:
             # Create settings with each valid option
             settings = self._create_test_phase_1_settings(
-                type_of_transaction=option,
-                company=f"Test Company {option.replace(' ', '_')}"
+                type_of_transaction=option, company=f"Test Company {option.replace(' ', '_')}"
             )
             self.assertEqual(settings.type_of_transaction, option)
 
@@ -206,8 +215,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         for option in valid_options:
             # Create settings with each valid option
             settings = self._create_test_phase_1_settings(
-                status=option,
-                company=f"Test Company {option}"
+                status=option, company=f"Test Company {option}"
             )
             self.assertEqual(settings.status, option)
 
