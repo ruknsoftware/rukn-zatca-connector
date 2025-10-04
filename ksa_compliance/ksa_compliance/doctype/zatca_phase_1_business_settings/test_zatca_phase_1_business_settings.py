@@ -3,6 +3,7 @@
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
+
 from ksa_compliance.ksa_compliance.test.ksa_compliance_test_base import KSAComplianceTestBase
 
 
