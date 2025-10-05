@@ -27,6 +27,8 @@ class KSAComplianceTestBase(FrappeTestCase):
         """Set up test class - create shared test data"""
         frappe.logger().info("\n🚀 Starting KSA Compliance test suite...")
         # Setup for the entire test class
+        frappe.db.set_value("User", "Administrator", "time_zone", "Asia/Riyadh")
+        frappe.clear_cache()
         cls._create_test_customers()
         cls._create_test_item()
         cls._create_test_tax_template()
