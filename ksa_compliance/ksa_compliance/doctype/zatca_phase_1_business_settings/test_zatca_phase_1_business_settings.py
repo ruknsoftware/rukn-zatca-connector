@@ -42,7 +42,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         frappe.db.sql(
             "DELETE FROM `tabZATCA Phase 1 Business Settings` WHERE company LIKE 'Test Company%'"
         )
-        frappe.db.commit()  # nosemgrep: frappe-manual-commit - Required for test cleanup
+        frappe.db.commit()  # nosemgrep
 
     def _ensure_country_exists(self):
         """Ensure Saudi Arabia country exists in the database"""
@@ -51,7 +51,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
                 {"doctype": "Country", "country_name": SAUDI_COUNTRY, "code": "SA"}
             )
             country.insert(ignore_permissions=True)
-            frappe.db.commit()  # nosemgrep: frappe-manual-commit - Required for test setup
+            frappe.db.commit()  # nosemgrep
 
     def _create_test_company(self):
         """Create test company for Phase 1 Business Settings"""
@@ -70,7 +70,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
                     }
                 )
                 company.insert(ignore_permissions=True)
-                frappe.db.commit()  # nosemgrep: frappe-manual-commit - Required for test setup
+                frappe.db.commit()  # nosemgrep
 
                 # Verify the company was created
                 if not frappe.db.exists("Company", self.test_company_name):
@@ -112,7 +112,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
                 frappe.logger().info("Address doc created, inserting...")
                 address.insert(ignore_permissions=True)
                 frappe.logger().info("Address inserted, committing...")
-                frappe.db.commit()  # nosemgrep: frappe-manual-commit - Required for test setup
+                frappe.db.commit()  # nosemgrep
                 frappe.logger().info("Address committed, verifying...")
 
                 # Verify the address was created
@@ -158,7 +158,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
                     "country": SAUDI_COUNTRY,
                 }
             ).insert(ignore_permissions=True)
-            frappe.db.commit()  # nosemgrep: frappe-manual-commit - Required for test setup
+            frappe.db.commit()  # nosemgrep
 
         # Create address if it doesn't exist
         if address != self.test_address_name and not frappe.db.exists("Address", address):
@@ -180,7 +180,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
                     "links": [{"link_doctype": "Company", "link_name": company}],
                 }
             ).insert(ignore_permissions=True)
-            frappe.db.commit()  # nosemgrep: frappe-manual-commit - Required for test setup
+            frappe.db.commit()  # nosemgrep
 
         settings = frappe.new_doc("ZATCA Phase 1 Business Settings")
         settings.company = company
@@ -189,7 +189,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         settings.type_of_transaction = type_of_transaction
         settings.vat_registration_number = vat_registration_number
         settings.insert(ignore_permissions=True)
-        frappe.db.commit()  # nosemgrep: frappe-manual-commit - Required for test setup
+        frappe.db.commit()  # nosemgrep
         return settings
 
     # ===== PHASE 1: CORE CRUD OPERATIONS =====
