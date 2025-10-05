@@ -2,9 +2,11 @@
 # See license.txt
 
 import frappe
+import uuid
 from frappe.tests.utils import FrappeTestCase
 
 from ksa_compliance.ksa_compliance.test.ksa_compliance_test_base import KSAComplianceTestBase
+from ksa_compliance.test.test_constants import SAUDI_COUNTRY, SAUDI_CURRENCY
 
 
 class TestZATCAPhase1BusinessSettings(FrappeTestCase):
@@ -12,45 +14,109 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
 
     def setUp(self):
         """Set up each test - create minimal test data"""
+        # Use unique identifiers to avoid conflicts
+        self.test_id = str(uuid.uuid4())[:8]
+        self._ensure_country_exists()
         self._create_test_company()
         self._create_test_address()
 
+    def tearDown(self):
+        """Clean up test data after each test"""
+        # Clean up test data
+        if hasattr(self, 'test_company_name') and frappe.db.exists("Company", self.test_company_name):
+            frappe.delete_doc("Company", self.test_company_name, ignore_permissions=True, force=True)
+        
+        if hasattr(self, 'test_address_name') and frappe.db.exists("Address", self.test_address_name):
+            frappe.delete_doc("Address", self.test_address_name, ignore_permissions=True, force=True)
+        
+        # Clean up any ZATCA Phase 1 Business Settings created during tests
+        frappe.db.sql("DELETE FROM `tabZATCA Phase 1 Business Settings` WHERE company LIKE 'Test Company%'")
+        frappe.db.commit()
+
+    def _ensure_country_exists(self):
+        """Ensure Saudi Arabia country exists in the database"""
+        if not frappe.db.exists("Country", SAUDI_COUNTRY):
+            country = frappe.get_doc({
+                "doctype": "Country",
+                "country_name": SAUDI_COUNTRY,
+                "code": "SA"
+            })
+            country.insert(ignore_permissions=True)
+            frappe.db.commit()
+
     def _create_test_company(self):
         """Create test company for Phase 1 Business Settings"""
-        self.test_company_name = "Test Company Phase 1"
+        self.test_company_name = f"Test Company Phase 1 {self.test_id}"
+        self.test_company_abbr = f"TCP1{self.test_id[:4]}"
 
         if not frappe.db.exists("Company", self.test_company_name):
-            company = frappe.get_doc(
-                {
-                    "doctype": "Company",
-                    "company_name": self.test_company_name,
-                    "abbr": "TCP1",
-                    "default_currency": "SAR",
-                    "country": "Saudi Arabia",
-                }
-            )
-            company.insert(ignore_permissions=True)
+            try:
+                company = frappe.get_doc(
+                    {
+                        "doctype": "Company",
+                        "company_name": self.test_company_name,
+                        "abbr": self.test_company_abbr,
+                        "default_currency": SAUDI_CURRENCY,
+                        "country": SAUDI_COUNTRY,
+                    }
+                )
+                company.insert(ignore_permissions=True)
+                frappe.db.commit()  # Ensure the company is committed to the database
+                
+                # Verify the company was created
+                if not frappe.db.exists("Company", self.test_company_name):
+                    frappe.logger().error(f"Failed to create company: {self.test_company_name}")
+                    raise Exception(f"Company creation failed: {self.test_company_name}")
+                    
+            except Exception as e:
+                frappe.logger().error(f"Error creating company {self.test_company_name}: {str(e)}")
+                raise
 
     def _create_test_address(self):
         """Create test address for Phase 1 Business Settings"""
-        self.test_address_name = "Test Address Phase 1"
+        self.test_address_title = f"Test Address Phase 1 {self.test_id}"
+        # Address autoname creates name as: address_title + "-" + address_type
+        self.test_address_name = f"{self.test_address_title}-Billing"
 
         if not frappe.db.exists("Address", self.test_address_name):
-            address = frappe.get_doc(
-                {
-                    "doctype": "Address",
-                    "address_title": self.test_address_name,
-                    "address_type": "Billing",
-                    "address_line1": "123 Test Street",
-                    "city": "Riyadh",
-                    "state": "Riyadh",
-                    "pincode": "12345",
-                    "country": "Saudi Arabia",
-                    "is_primary_address": 1,
-                    "links": [{"link_doctype": "Company", "link_name": self.test_company_name}],
-                }
-            )
-            address.insert(ignore_permissions=True)
+            try:
+                frappe.logger().info(f"Creating address: {self.test_address_name}")
+                frappe.logger().info(f"Company name: {self.test_company_name}")
+                frappe.logger().info(f"Country: {SAUDI_COUNTRY}")
+                
+                address = frappe.get_doc(
+                    {
+                        "doctype": "Address",
+                        "address_title": self.test_address_title,
+                        "address_type": "Billing",
+                        "address_line1": "123 Test Street",
+                        "city": "Riyadh",
+                        "state": "Riyadh",
+                        "pincode": "12345",
+                        "country": SAUDI_COUNTRY,
+                        "is_primary_address": 1,
+                        "links": [{"link_doctype": "Company", "link_name": self.test_company_name}],
+                    }
+                )
+                frappe.logger().info(f"Address doc created, inserting...")
+                address.insert(ignore_permissions=True)
+                frappe.logger().info(f"Address inserted, committing...")
+                frappe.db.commit()  # Ensure the address is committed to the database
+                frappe.logger().info(f"Address committed, verifying...")
+                
+                # Verify the address was created
+                if not frappe.db.exists("Address", self.test_address_name):
+                    frappe.logger().error(f"Failed to create address: {self.test_address_name}")
+                    raise Exception(f"Address creation failed: {self.test_address_name}")
+                else:
+                    frappe.logger().info(f"Address created successfully: {self.test_address_name}")
+                    
+            except Exception as e:
+                frappe.logger().error(f"Error creating address {self.test_address_name}: {str(e)}")
+                frappe.logger().error(f"Exception type: {type(e)}")
+                import traceback
+                frappe.logger().error(f"Traceback: {traceback.format_exc()}")
+                raise
 
     def _create_test_phase_1_settings(
         self,
@@ -64,6 +130,39 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         company = company or self.test_company_name
         address = address or self.test_address_name
 
+        # Create company if it doesn't exist
+        if company != self.test_company_name and not frappe.db.exists("Company", company):
+            # Generate unique abbreviation using hash of company name and test_id
+            import hashlib
+            company_hash = hashlib.md5(f"{company}{self.test_id}".encode()).hexdigest()[:8]
+            company_abbr = f"TC{company_hash}"
+            frappe.get_doc({
+                "doctype": "Company",
+                "company_name": company,
+                "abbr": company_abbr,
+                "default_currency": SAUDI_CURRENCY,
+                "country": SAUDI_COUNTRY,
+            }).insert(ignore_permissions=True)
+            frappe.db.commit()
+
+        # Create address if it doesn't exist
+        if address != self.test_address_name and not frappe.db.exists("Address", address):
+            # Address autoname creates name as: address_title + "-" + address_type
+            address_title = address.replace("-Billing", "") if address.endswith("-Billing") else address
+            frappe.get_doc({
+                "doctype": "Address",
+                "address_title": address_title,
+                "address_type": "Billing",
+                "address_line1": "123 Test Street",
+                "city": "Riyadh",
+                "state": "Riyadh",
+                "pincode": "12345",
+                "country": SAUDI_COUNTRY,
+                "is_primary_address": 1,
+                "links": [{"link_doctype": "Company", "link_name": company}],
+            }).insert(ignore_permissions=True)
+            frappe.db.commit()
+
         settings = frappe.new_doc("ZATCA Phase 1 Business Settings")
         settings.company = company
         settings.address = address
@@ -71,6 +170,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         settings.type_of_transaction = type_of_transaction
         settings.vat_registration_number = vat_registration_number
         settings.insert(ignore_permissions=True)
+        frappe.db.commit()  # Ensure the settings are committed to the database
         return settings
 
     # ===== PHASE 1: CORE CRUD OPERATIONS =====
@@ -139,6 +239,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
 
         # Create first Phase 1 settings
         settings1 = self._create_test_phase_1_settings()
+        self.assertIsNotNone(settings1.name)
 
         # Try to create second Phase 1 settings for same company
         settings2 = frappe.new_doc("ZATCA Phase 1 Business Settings")
@@ -200,7 +301,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         for option in valid_options:
             # Create settings with each valid option
             settings = self._create_test_phase_1_settings(
-                type_of_transaction=option, company=f"Test Company {option.replace(' ', '_')}"
+                type_of_transaction=option, company=f"Test Company {option.replace(' ', '_')} {self.test_id}"
             )
             self.assertEqual(settings.type_of_transaction, option)
 
@@ -215,7 +316,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         for option in valid_options:
             # Create settings with each valid option
             settings = self._create_test_phase_1_settings(
-                status=option, company=f"Test Company {option}"
+                status=option, company=f"Test Company {option} {self.test_id}"
             )
             self.assertEqual(settings.status, option)
 
