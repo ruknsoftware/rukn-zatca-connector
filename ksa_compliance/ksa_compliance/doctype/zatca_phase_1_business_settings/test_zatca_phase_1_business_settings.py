@@ -25,10 +25,10 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         # Clean up test data
         if hasattr(self, 'test_company_name') and frappe.db.exists("Company", self.test_company_name):
             frappe.delete_doc("Company", self.test_company_name, ignore_permissions=True, force=True)
-        
+
         if hasattr(self, 'test_address_name') and frappe.db.exists("Address", self.test_address_name):
             frappe.delete_doc("Address", self.test_address_name, ignore_permissions=True, force=True)
-        
+
         # Clean up any ZATCA Phase 1 Business Settings created during tests
         frappe.db.sql("DELETE FROM `tabZATCA Phase 1 Business Settings` WHERE company LIKE 'Test Company%'")
         frappe.db.commit()
@@ -62,12 +62,12 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
                 )
                 company.insert(ignore_permissions=True)
                 frappe.db.commit()  # Ensure the company is committed to the database
-                
+
                 # Verify the company was created
                 if not frappe.db.exists("Company", self.test_company_name):
                     frappe.logger().error(f"Failed to create company: {self.test_company_name}")
                     raise Exception(f"Company creation failed: {self.test_company_name}")
-                    
+
             except Exception as e:
                 frappe.logger().error(f"Error creating company {self.test_company_name}: {str(e)}")
                 raise
@@ -83,7 +83,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
                 frappe.logger().info(f"Creating address: {self.test_address_name}")
                 frappe.logger().info(f"Company name: {self.test_company_name}")
                 frappe.logger().info(f"Country: {SAUDI_COUNTRY}")
-                
+
                 address = frappe.get_doc(
                     {
                         "doctype": "Address",
@@ -103,14 +103,14 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
                 frappe.logger().info(f"Address inserted, committing...")
                 frappe.db.commit()  # Ensure the address is committed to the database
                 frappe.logger().info(f"Address committed, verifying...")
-                
+
                 # Verify the address was created
                 if not frappe.db.exists("Address", self.test_address_name):
                     frappe.logger().error(f"Failed to create address: {self.test_address_name}")
                     raise Exception(f"Address creation failed: {self.test_address_name}")
                 else:
                     frappe.logger().info(f"Address created successfully: {self.test_address_name}")
-                    
+
             except Exception as e:
                 frappe.logger().error(f"Error creating address {self.test_address_name}: {str(e)}")
                 frappe.logger().error(f"Exception type: {type(e)}")
