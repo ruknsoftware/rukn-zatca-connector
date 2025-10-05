@@ -109,11 +109,11 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
                         ],
                     }
                 )
-                frappe.logger().info(f"Address doc created, inserting...")
+                frappe.logger().info("Address doc created, inserting...")
                 address.insert(ignore_permissions=True)
-                frappe.logger().info(f"Address inserted, committing...")
+                frappe.logger().info("Address inserted, committing...")
                 frappe.db.commit()  # Ensure the address is committed to the database
-                frappe.logger().info(f"Address committed, verifying...")
+                frappe.logger().info("Address committed, verifying...")
 
                 # Verify the address was created
                 if not frappe.db.exists("Address", self.test_address_name):
