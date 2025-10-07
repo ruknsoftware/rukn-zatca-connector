@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.53.7
+* Add Rounding App to Test Site
+
 ## 0.53.6
 * Prepare Test System for ZATCA Integration
 

@@ -172,6 +172,9 @@ jobs:
           if [ ! -d "apps/payments" ]; then
             bench get-app payments --branch version-15 &
           fi
+          if [ ! -d "apps/round_tax_amount_row_wise" ]; then
+            bench get-app round_tax_amount_row_wise https://github.com/ruknsoftware/Round-Tax-Amount-Row-wise &
+          fi
           wait
           bench setup requirements --dev
           
@@ -192,6 +195,10 @@ jobs:
             bench --site test_site uninstall-app ksa_compliance --yes
             bench --site test_site install-app ksa_compliance
             
+            # Install rounding app if not already installed
+            echo "🔄 Installing round_tax_amount_row_wise app..."
+            bench --site test_site install-app round_tax_amount_row_wise
+            
             # Update database backup with latest ksa_compliance changes
             echo "💾 Updating database backup..."
             DB_NAME=$(grep '"db_name"' sites/test_site/site_config.json | sed 's/.*"db_name": *"\([^"]*\)".*/\1/')
@@ -206,6 +213,7 @@ jobs:
             bench new-site --db-root-password root --admin-password admin test_site
             bench --site test_site install-app erpnext
             bench --site test_site install-app payments
+            bench --site test_site install-app round_tax_amount_row_wise
             bench --site test_site install-app ksa_compliance
             
             # Backup database for future use
