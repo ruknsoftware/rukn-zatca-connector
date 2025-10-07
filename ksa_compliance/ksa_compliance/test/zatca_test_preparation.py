@@ -87,7 +87,16 @@ def configure_sar_currency():
 def set_float_precision():
     """Set float precision to 2 in System Settings"""
     try:
-        system_settings = frappe.get_doc("System Settings")
+        # Check if System Settings exists, if not create with required fields
+        if frappe.db.exists("System Settings", "System Settings"):
+            system_settings = frappe.get_doc("System Settings", "System Settings")
+        else:
+            system_settings = frappe.new_doc("System Settings")
+            system_settings.name = "System Settings"
+            # Set required fields for v15
+            system_settings.language = "en"
+            system_settings.time_zone = "Asia/Riyadh"  # Saudi Arabia timezone
+        
         system_settings.float_precision = "2"
         system_settings.save()
         logging.info("✅ Set float precision to 2")
@@ -98,7 +107,16 @@ def set_float_precision():
 def set_currency_precision():
     """Set currency precision to 2 in System Settings"""
     try:
-        system_settings = frappe.get_doc("System Settings")
+        # Check if System Settings exists, if not create with required fields
+        if frappe.db.exists("System Settings", "System Settings"):
+            system_settings = frappe.get_doc("System Settings", "System Settings")
+        else:
+            system_settings = frappe.new_doc("System Settings")
+            system_settings.name = "System Settings"
+            # Set required fields for v15
+            system_settings.language = "en"
+            system_settings.time_zone = "Asia/Riyadh"  # Saudi Arabia timezone
+        
         system_settings.currency_precision = "2"
         system_settings.save()
         logging.info("✅ Set currency precision to 2")
@@ -109,7 +127,16 @@ def set_currency_precision():
 def set_bankers_rounding():
     """Change rounding method to Banker's Rounding"""
     try:
-        system_settings = frappe.get_doc("System Settings")
+        # Check if System Settings exists, if not create with required fields
+        if frappe.db.exists("System Settings", "System Settings"):
+            system_settings = frappe.get_doc("System Settings", "System Settings")
+        else:
+            system_settings = frappe.new_doc("System Settings")
+            system_settings.name = "System Settings"
+            # Set required fields for v15
+            system_settings.language = "en"
+            system_settings.time_zone = "Asia/Riyadh"  # Saudi Arabia timezone
+        
         system_settings.rounding_method = "Banker's Rounding"
         system_settings.save()
         logging.info("✅ Set rounding method to Banker's Rounding")
