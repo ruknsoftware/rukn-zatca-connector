@@ -15,207 +15,213 @@ from frappe import _
 
 
 def prepare_system_for_zatca_tests():
-	"""
-	Configure system settings required for ZATCA compliance testing
-	"""
-	print("Starting ZATCA test preparation...")
+    """
+    Configure system settings required for ZATCA compliance testing
+    """
+    print("Starting ZATCA test preparation...")
 
-	# 1. Disable rounded total in Global Defaults
-	disable_rounded_total()
+    # 1. Disable rounded total in Global Defaults
+    disable_rounded_total()
 
-	# 2. Configure SAR currency smallest fraction
-	configure_sar_currency()
+    # 2. Configure SAR currency smallest fraction
+    configure_sar_currency()
 
-	# 3. Set float precision to 2
-	set_float_precision()
+    # 3. Set float precision to 2
+    set_float_precision()
 
-	# 4. Set currency precision to 2
-	set_currency_precision()
+    # 4. Set currency precision to 2
+    set_currency_precision()
 
-	# 5. Change rounding method to Banker's Rounding
-	set_bankers_rounding()
+    # 5. Change rounding method to Banker's Rounding
+    set_bankers_rounding()
 
-	# 6. Verify round tax amount row-wise
-	verify_round_tax_row_wise()
+    # 6. Verify round tax amount row-wise
+    verify_round_tax_row_wise()
 
-	print("ZATCA test preparation completed successfully!")
+    print("ZATCA test preparation completed successfully!")
 
-	# Display current settings
-	display_current_settings()
+    # Display current settings
+    display_current_settings()
 
 
 def disable_rounded_total():
-	"""Disable rounded total in Global Defaults"""
-	try:
-		global_defaults = frappe.get_doc("Global Defaults")
-		global_defaults.disable_rounded_total = 1
-		global_defaults.save()
-		print("✅ Disabled rounded total in Global Defaults")
-	except Exception as e:
-		print(f"❌ Error disabling rounded total: {str(e)}")
+    """Disable rounded total in Global Defaults"""
+    try:
+        global_defaults = frappe.get_doc("Global Defaults")
+        global_defaults.disable_rounded_total = 1
+        global_defaults.save()
+        print("✅ Disabled rounded total in Global Defaults")
+    except Exception as e:
+        print(f"❌ Error disabling rounded total: {str(e)}")
 
 
 def configure_sar_currency():
-	"""Configure SAR currency smallest fraction to 0.01"""
-	try:
-		# Check if SAR currency exists
-		if frappe.db.exists("Currency", "SAR"):
-			sar_currency = frappe.get_doc("Currency", "SAR")
-			sar_currency.smallest_currency_fraction_value = 0.01
-			sar_currency.fraction_units = 100
-			sar_currency.fraction = "Halala"
-			sar_currency.save()
-			print("✅ Configured SAR currency smallest fraction to 0.01")
-		else:
-			# Create SAR currency if it doesn't exist
-			sar_currency = frappe.new_doc("Currency")
-			sar_currency.currency_name = "SAR"
-			sar_currency.enabled = 1
-			sar_currency.smallest_currency_fraction_value = 0.01
-			sar_currency.fraction_units = 100
-			sar_currency.fraction = "Halala"
-			sar_currency.symbol = "ر.س"
-			sar_currency.number_format = "#,###.##"
-			sar_currency.insert()
-			print("✅ Created and configured SAR currency with smallest fraction 0.01")
-	except Exception as e:
-		print(f"❌ Error configuring SAR currency: {str(e)}")
+    """Configure SAR currency smallest fraction to 0.01"""
+    try:
+        # Check if SAR currency exists
+        if frappe.db.exists("Currency", "SAR"):
+            sar_currency = frappe.get_doc("Currency", "SAR")
+            sar_currency.smallest_currency_fraction_value = 0.01
+            sar_currency.fraction_units = 100
+            sar_currency.fraction = "Halala"
+            sar_currency.save()
+            print("✅ Configured SAR currency smallest fraction to 0.01")
+        else:
+            # Create SAR currency if it doesn't exist
+            sar_currency = frappe.new_doc("Currency")
+            sar_currency.currency_name = "SAR"
+            sar_currency.enabled = 1
+            sar_currency.smallest_currency_fraction_value = 0.01
+            sar_currency.fraction_units = 100
+            sar_currency.fraction = "Halala"
+            sar_currency.symbol = "ر.س"
+            sar_currency.number_format = "#,###.##"
+            sar_currency.insert()
+            print("✅ Created and configured SAR currency with smallest fraction 0.01")
+    except Exception as e:
+        print(f"❌ Error configuring SAR currency: {str(e)}")
 
 
 def set_float_precision():
-	"""Set float precision to 2 in System Settings"""
-	try:
-		system_settings = frappe.get_doc("System Settings")
-		system_settings.float_precision = "2"
-		system_settings.save()
-		print("✅ Set float precision to 2")
-	except Exception as e:
-		print(f"❌ Error setting float precision: {str(e)}")
+    """Set float precision to 2 in System Settings"""
+    try:
+        system_settings = frappe.get_doc("System Settings")
+        system_settings.float_precision = "2"
+        system_settings.save()
+        print("✅ Set float precision to 2")
+    except Exception as e:
+        print(f"❌ Error setting float precision: {str(e)}")
 
 
 def set_currency_precision():
-	"""Set currency precision to 2 in System Settings"""
-	try:
-		system_settings = frappe.get_doc("System Settings")
-		system_settings.currency_precision = "2"
-		system_settings.save()
-		print("✅ Set currency precision to 2")
-	except Exception as e:
-		print(f"❌ Error setting currency precision: {str(e)}")
+    """Set currency precision to 2 in System Settings"""
+    try:
+        system_settings = frappe.get_doc("System Settings")
+        system_settings.currency_precision = "2"
+        system_settings.save()
+        print("✅ Set currency precision to 2")
+    except Exception as e:
+        print(f"❌ Error setting currency precision: {str(e)}")
 
 
 def set_bankers_rounding():
-	"""Change rounding method to Banker's Rounding"""
-	try:
-		system_settings = frappe.get_doc("System Settings")
-		system_settings.rounding_method = "Banker's Rounding"
-		system_settings.save()
-		print("✅ Set rounding method to Banker's Rounding")
-	except Exception as e:
-		print(f"❌ Error setting rounding method: {str(e)}")
+    """Change rounding method to Banker's Rounding"""
+    try:
+        system_settings = frappe.get_doc("System Settings")
+        system_settings.rounding_method = "Banker's Rounding"
+        system_settings.save()
+        print("✅ Set rounding method to Banker's Rounding")
+    except Exception as e:
+        print(f"❌ Error setting rounding method: {str(e)}")
 
 
 def verify_round_tax_row_wise():
-	"""Verify and activate round tax amount row-wise based on Frappe version"""
-	try:
-		# Get Frappe version
-		frappe_version = frappe.get_version()
-		major_version = int(frappe_version.split('.')[0])
+    """Verify and activate round tax amount row-wise based on Frappe version"""
+    try:
+        # Get Frappe version
+        frappe_version = frappe.get_version()
+        major_version = int(frappe_version.split(".")[0])
 
-		if major_version >= 15:
-			# In v15+, this is a built-in feature in Account Settings
-			activate_round_tax_row_wise_v15()
-		else:
-			# In v14, check if round_tax_amount_row_wise app is installed
-			installed_apps = frappe.get_installed_apps()
-			if "round_tax_amount_row_wise" in installed_apps:
-				print("✅ Round tax amount row-wise app is installed")
+        if major_version >= 15:
+            # In v15+, this is a built-in feature in Account Settings
+            activate_round_tax_row_wise_v15()
+        else:
+            # In v14, check if round_tax_amount_row_wise app is installed
+            installed_apps = frappe.get_installed_apps()
+            if "round_tax_amount_row_wise" in installed_apps:
+                print("✅ Round tax amount row-wise app is installed")
 
-				# Check if the app is enabled
-				app_info = frappe.get_doc("Installed Application", {"app_name": "round_tax_amount_row_wise"})
-				if app_info:
-					print("✅ Round tax amount row-wise app is enabled")
-				else:
-					print("⚠️  Round tax amount row-wise app is installed but may not be enabled")
-			else:
-				print("⚠️  Round tax amount row-wise app is not installed")
-				print("   This feature requires the app in Frappe v14")
-	except Exception as e:
-		print(f"❌ Error verifying round tax row-wise: {str(e)}")
+                # Check if the app is enabled
+                app_info = frappe.get_doc(
+                    "Installed Application", {"app_name": "round_tax_amount_row_wise"}
+                )
+                if app_info:
+                    print("✅ Round tax amount row-wise app is enabled")
+                else:
+                    print("⚠️  Round tax amount row-wise app is installed but may not be enabled")
+            else:
+                print("⚠️  Round tax amount row-wise app is not installed")
+                print("   This feature requires the app in Frappe v14")
+    except Exception as e:
+        print(f"❌ Error verifying round tax row-wise: {str(e)}")
 
 
 def activate_round_tax_row_wise_v15():
-	"""Activate round tax amount row-wise in Frappe v15+ Account Settings"""
-	try:
-		# Check if Account Settings doctype exists
-		if frappe.db.exists("DocType", "Account Settings"):
-			# Get or create Account Settings
-			if frappe.db.exists("Account Settings", "Account Settings"):
-				account_settings = frappe.get_doc("Account Settings", "Account Settings")
-			else:
-				account_settings = frappe.new_doc("Account Settings")
-				account_settings.name = "Account Settings"
+    """Activate round tax amount row-wise in Frappe v15+ Account Settings"""
+    try:
+        # Check if Account Settings doctype exists
+        if frappe.db.exists("DocType", "Account Settings"):
+            # Get or create Account Settings
+            if frappe.db.exists("Account Settings", "Account Settings"):
+                account_settings = frappe.get_doc("Account Settings", "Account Settings")
+            else:
+                account_settings = frappe.new_doc("Account Settings")
+                account_settings.name = "Account Settings"
 
-			# Check if the field exists and activate it
-			if hasattr(account_settings, 'round_tax_amount_row_wise'):
-				account_settings.round_tax_amount_row_wise = 1
-				account_settings.save()
-				print("✅ Activated round tax amount row-wise in Account Settings (v15+)")
-			else:
-				print("⚠️  Round tax amount row-wise field not found in Account Settings")
-				print("   This may indicate a different field name or missing feature")
-		else:
-			print("⚠️  Account Settings doctype not found")
-			print("   This may indicate an older version or missing ERPNext module")
-	except Exception as e:
-		print(f"❌ Error activating round tax row-wise in v15: {str(e)}")
+            # Check if the field exists and activate it
+            if hasattr(account_settings, "round_tax_amount_row_wise"):
+                account_settings.round_tax_amount_row_wise = 1
+                account_settings.save()
+                print("✅ Activated round tax amount row-wise in Account Settings (v15+)")
+            else:
+                print("⚠️  Round tax amount row-wise field not found in Account Settings")
+                print("   This may indicate a different field name or missing feature")
+        else:
+            print("⚠️  Account Settings doctype not found")
+            print("   This may indicate an older version or missing ERPNext module")
+    except Exception as e:
+        print(f"❌ Error activating round tax row-wise in v15: {str(e)}")
 
 
 def display_current_settings():
-	"""Display current system settings for verification"""
-	print("\n" + "="*50)
-	print("CURRENT SYSTEM SETTINGS:")
-	print("="*50)
+    """Display current system settings for verification"""
+    print("\n" + "=" * 50)
+    print("CURRENT SYSTEM SETTINGS:")
+    print("=" * 50)
 
-	try:
-		# Global Defaults
-		global_defaults = frappe.get_doc("Global Defaults")
-		print(f"Disable Rounded Total: {global_defaults.disable_rounded_total}")
+    try:
+        # Global Defaults
+        global_defaults = frappe.get_doc("Global Defaults")
+        print(f"Disable Rounded Total: {global_defaults.disable_rounded_total}")
 
-		# System Settings
-		system_settings = frappe.get_doc("System Settings")
-		print(f"Float Precision: {system_settings.float_precision}")
-		print(f"Currency Precision: {system_settings.currency_precision}")
-		print(f"Rounding Method: {system_settings.rounding_method}")
+        # System Settings
+        system_settings = frappe.get_doc("System Settings")
+        print(f"Float Precision: {system_settings.float_precision}")
+        print(f"Currency Precision: {system_settings.currency_precision}")
+        print(f"Rounding Method: {system_settings.rounding_method}")
 
-		# SAR Currency
-		if frappe.db.exists("Currency", "SAR"):
-			sar_currency = frappe.get_doc("Currency", "SAR")
-			print(f"SAR Smallest Fraction: {sar_currency.smallest_currency_fraction_value}")
-			print(f"SAR Fraction Units: {sar_currency.fraction_units}")
+        # SAR Currency
+        if frappe.db.exists("Currency", "SAR"):
+            sar_currency = frappe.get_doc("Currency", "SAR")
+            print(f"SAR Smallest Fraction: {sar_currency.smallest_currency_fraction_value}")
+            print(f"SAR Fraction Units: {sar_currency.fraction_units}")
 
-		# Round tax row-wise status
-		frappe_version = frappe.get_version()
-		major_version = int(frappe_version.split('.')[0])
+        # Round tax row-wise status
+        frappe_version = frappe.get_version()
+        major_version = int(frappe_version.split(".")[0])
 
-		if major_version >= 15:
-			# Check Account Settings in v15+
-			if frappe.db.exists("DocType", "Account Settings"):
-				if frappe.db.exists("Account Settings", "Account Settings"):
-					account_settings = frappe.get_doc("Account Settings", "Account Settings")
-					if hasattr(account_settings, 'round_tax_amount_row_wise'):
-						print(f"Round Tax Row-wise (v15+): {account_settings.round_tax_amount_row_wise}")
-					else:
-						print("Round Tax Row-wise (v15+): Field not found")
-				else:
-					print("Round Tax Row-wise (v15+): Account Settings not configured")
-			else:
-				print("Round Tax Row-wise (v15+): Account Settings doctype not found")
-		# Check app installation in v14
-		installed_apps = frappe.get_installed_apps()
-		print(f"Round Tax Row-wise App Installed (v14): {'round_tax_amount_row_wise' in installed_apps}")
+        if major_version >= 15:
+            # Check Account Settings in v15+
+            if frappe.db.exists("DocType", "Account Settings"):
+                if frappe.db.exists("Account Settings", "Account Settings"):
+                    account_settings = frappe.get_doc("Account Settings", "Account Settings")
+                    if hasattr(account_settings, "round_tax_amount_row_wise"):
+                        print(
+                            f"Round Tax Row-wise (v15+): {account_settings.round_tax_amount_row_wise}"
+                        )
+                    else:
+                        print("Round Tax Row-wise (v15+): Field not found")
+                else:
+                    print("Round Tax Row-wise (v15+): Account Settings not configured")
+            else:
+                print("Round Tax Row-wise (v15+): Account Settings doctype not found")
+        # Check app installation in v14
+        installed_apps = frappe.get_installed_apps()
+        print(
+            f"Round Tax Row-wise App Installed (v14): {'round_tax_amount_row_wise' in installed_apps}"
+        )
 
-	except Exception as e:
-		print(f"Error displaying settings: {str(e)}")
+    except Exception as e:
+        print(f"Error displaying settings: {str(e)}")
 
-	print("="*50)
+    print("=" * 50)
