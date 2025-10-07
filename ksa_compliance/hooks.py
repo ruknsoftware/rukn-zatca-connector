@@ -151,7 +151,14 @@ doc_events = {
         "before_cancel": "ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice",
     },
     "Payment Entry": {
-        "validate": "ksa_compliance.standard_doctypes.payment_entry.prevent_settling_advance_invoice_from_payment_entry_references",
+        "on_submit": [
+            "ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype",
+            "ksa_compliance.standard_doctypes.payment_entry.add_tax_gl_entries",
+        ],
+        "validate": [
+            "ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice",
+            "ksa_compliance.standard_doctypes.payment_entry.prevent_settling_advance_invoice_from_payment_entry_references",
+        ],
         "before_cancel": "ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice",
     },
     "POS Invoice": {
