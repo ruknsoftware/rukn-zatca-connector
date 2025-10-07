@@ -414,11 +414,12 @@ class SalesInvoiceAdditionalFields(Document):
         )
 
     def _set_buyer_details(self, sales_invoice: SalesInvoice | POSInvoice | PaymentEntry):
+        customer_filed_name = "customer"
+        if sales_invoice.doctype == "Payment Entry":
+            customer_filed_name = "party"
         customer_doc = cast(
             Customer,
-            frappe.get_doc(
-                "Customer", sales_invoice.get("customer") or sales_invoice.get("party")
-            ),
+            frappe.get_doc("Customer", sales_invoice.get(customer_filed_name)),
         )
 
         self.buyer_vat_registration_number = customer_doc.get("custom_vat_registration_number")
