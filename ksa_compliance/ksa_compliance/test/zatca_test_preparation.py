@@ -139,7 +139,9 @@ def verify_round_tax_row_wise():
                 if app_info:
                     logging.info("✅ Round tax amount row-wise app is enabled")
                 else:
-                    logging.warning("⚠️  Round tax amount row-wise app is installed but may not be enabled")
+                    logging.warning(
+                        "⚠️  Round tax amount row-wise app is installed but may not be enabled"
+                    )
             else:
                 logging.warning("⚠️  Round tax amount row-wise app is not installed")
                 logging.warning("   This feature requires the app in Frappe v14")
