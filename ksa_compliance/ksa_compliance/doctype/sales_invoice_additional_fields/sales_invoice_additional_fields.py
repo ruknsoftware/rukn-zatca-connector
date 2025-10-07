@@ -237,12 +237,12 @@ class SalesInvoiceAdditionalFields(Document):
 
         self.invoice_counter = pre_invoice_counter + 1
         self.previous_invoice_hash = pre_invoice_hash
-        if self.invoice_doctype != "Payment Entry":
-            einvoice = SalesEinvoice(
+        if self.invoice_doctype == "Payment Entry":
+            einvoice = AdvancePaymentEntry(
                 sales_invoice_additional_fields_doc=self, invoice_type=invoice_type
             )
         else:
-            einvoice = AdvancePaymentEntry(
+            einvoice = SalesEinvoice(
                 sales_invoice_additional_fields_doc=self, invoice_type=invoice_type
             )
 
