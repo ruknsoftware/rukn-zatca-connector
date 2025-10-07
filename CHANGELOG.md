@@ -7,6 +7,11 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.53.7
+* Add Methods Advance Payment Depends on Payment Entry and Sales Invoice
+* Add new Settings for Advance Payment Taxes
+* Send Advance Payment Entry to ZATCA
+
 ## 0.53.6
 * Prepare Test System for ZATCA Integration
 
