@@ -9,6 +9,7 @@ This script configures the system with the required settings before running ZATC
 5. Change rounding method to Banker's Rounding
 6. Verify round tax amount row-wise is activated
 """
+
 import logging
 
 import frappe
