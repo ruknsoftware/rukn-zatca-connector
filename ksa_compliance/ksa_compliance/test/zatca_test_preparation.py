@@ -217,5 +217,5 @@ def display_current_settings():
 
 	except Exception as e:
 		print(f"Error displaying settings: {str(e)}")
-	
+
 	print("="*50)
