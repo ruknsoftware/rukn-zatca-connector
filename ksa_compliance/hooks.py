@@ -198,6 +198,7 @@ scheduler_events = {"hourly_long": ["ksa_compliance.background_jobs.sync_e_invoi
 before_tests = [
     "ksa_compliance.test.test_setup.custom_erpnext_setup",
     "ksa_compliance.test.test_setup.data_setup",
+    "ksa_compliance.ksa_compliance.test.zatca_test_preparation.prepare_system_for_zatca_tests",
 ]
 
 # Overriding Methods
