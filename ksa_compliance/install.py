@@ -22,6 +22,13 @@ def add_custom_fields():
                 read_only=True,
             ),
             dict(
+                fieldname="is_advance_payment_entry",
+                label="IS Advance Payment Entry",
+                fieldtype="Check",
+                insert_after="is_advance_payment",
+                module=ksa_compliance_module,
+            ),
+            dict(
                 fieldname="invoice_doctype",
                 label="Invoice Doctype",
                 fieldtype="Select",
