@@ -89,7 +89,7 @@ def create_sales_invoice_additional_fields_doctype(
     if self.doctype == "Sales Invoice" and self.is_consolidated:
         logger.info(f"Skipping additional fields for {self.name} because it's consolidated")
         return
-    if self.doctype == "Payment Entry" and not self.is_advance_payment_entry:
+    if self.doctype == "Payment Entry" and not self.is_advance_payment_depends_on_entry:
         return
 
     si_additional_fields_doc = SalesInvoiceAdditionalFields.create_for_invoice(

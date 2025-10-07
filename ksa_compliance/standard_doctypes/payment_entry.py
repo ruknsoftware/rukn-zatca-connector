@@ -92,7 +92,7 @@ def add_tax_gl_entries(doc, method):
     if (
         not settings
         or settings.advance_payment_depends_on != "Payment Entry"
-        or not doc.is_advance_payment_entry
+        or not doc.is_advance_payment_depends_on_entry
     ):
         return
     tax = get_taxes_and_charges(doc).taxes[0]
