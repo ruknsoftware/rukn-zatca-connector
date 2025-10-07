@@ -137,7 +137,7 @@ def verify_round_tax_row_wise():
     """Verify and activate round tax amount row-wise based on Frappe version"""
     try:
         # Get Frappe version
-        frappe_version = frappe.get_version()
+        frappe_version = frappe.__version__
         major_version = int(frappe_version.split(".")[0])
 
         if major_version >= 15:
@@ -217,7 +217,7 @@ def display_current_settings():
             logging.info(f"SAR Fraction Units: {sar_currency.fraction_units}")
 
         # Round tax row-wise status
-        frappe_version = frappe.get_version()
+        frappe_version = frappe.__version__
         major_version = int(frappe_version.split(".")[0])
 
         if major_version >= 15:
