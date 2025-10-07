@@ -28,7 +28,7 @@ class TestZATCATestSetup(FrappeTestCase):
             self.assertEqual(sar_currency.fraction, "Halala", "SAR fraction should be Halala")
 
         # Verify round tax row-wise based on version
-        frappe_version = frappe.get_version()
+        frappe_version = frappe.__version__
         major_version = int(frappe_version.split('.')[0])
 
         if major_version >= 15:
