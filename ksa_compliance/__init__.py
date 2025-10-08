@@ -17,4 +17,4 @@ except (FileNotFoundError, OSError):
         logger.addHandler(handler)
 
 
-__version__ = "0.53.7"
+__version__ = "0.53.8"
