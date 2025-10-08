@@ -10,6 +10,10 @@ from frappe.utils import flt
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     ZATCABusinessSettings,
 )
+from ksa_compliance.utils.update_itemised_tax_data import (
+    calculate_net_from_gross_included_in_print_rate,
+    calculate_tax_amount_included_in_print_rate,
+)
 
 
 def prevent_settling_advance_invoice_from_payment_entry_references(doc, method):
@@ -93,7 +97,7 @@ def add_tax_gl_entries(doc, method):
         not settings
         or settings.advance_payment_depends_on != "Payment Entry"
         or not doc.is_advance_payment_depends_on_entry
-        or doc.doc.payment_type not in ("Receive", "Pay")
+        or doc.payment_type not in ("Receive", "Pay")
     ):
         return
     tax = get_taxes_and_charges(doc).taxes[0]
@@ -116,8 +120,8 @@ def add_tax_gl_entries(doc, method):
 
     tax_rate = tax.rate
     amount = flt(doc.paid_amount)
-    net_amount = round(amount / (1 + (tax_rate / 100)), 2)
-    tax_amount = round(flt(amount - net_amount), 2)
+    net_amount = round(calculate_net_from_gross_included_in_print_rate(amount, tax_rate), 2)
+    tax_amount = round(calculate_tax_amount_included_in_print_rate(amount, net_amount), 2)
 
     gl_entries.append(
         doc.get_gl_dict(

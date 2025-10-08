@@ -30,6 +30,10 @@ from ksa_compliance.translation import ft
 from ksa_compliance.utils.return_invoice_paid_from_advance_payment import (
     get_return_against_advance_payments,
 )
+from ksa_compliance.utils.update_itemised_tax_data import (
+    calculate_net_from_gross_included_in_print_rate,
+    calculate_tax_amount_included_in_print_rate,
+)
 
 
 def append_tax_details_into_item_lines(item_lines: list, is_tax_included: bool) -> list:
@@ -1252,8 +1256,8 @@ class AdvancePaymentEntry(Einvoice):
 
         tax_rate = taxes_and_charges.taxes[0].rate
         amount = flt(paid_amount)
-        net_amount = round(amount / (1 + (tax_rate / 100)), 2)
-        tax_amount = round(flt(amount - net_amount), 2)
+        net_amount = round(calculate_net_from_gross_included_in_print_rate(amount, tax_rate), 2)
+        tax_amount = round(flt(calculate_tax_amount_included_in_print_rate(amount, net_amount)), 2)
 
         self.get_float_value(
             field_name="base_total_taxes_and_charges",
