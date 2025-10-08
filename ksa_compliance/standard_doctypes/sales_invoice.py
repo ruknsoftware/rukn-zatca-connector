@@ -208,75 +208,72 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
 
     if is_phase_2_enabled_for_company:
         settings = ZATCABusinessSettings.for_company(self.company)
-        if self.doctype != "Payment Entry":
-            is_advance_invoice = invoice_has_advance_item(self, settings)
-            valid_advance_payment_invoice = is_valid_advance_invoice(is_advance_invoice, self)
-            if not valid_advance_payment_invoice:
+
+        is_advance_invoice = invoice_has_advance_item(self, settings)
+        valid_advance_payment_invoice = is_valid_advance_invoice(is_advance_invoice, self)
+        if not valid_advance_payment_invoice:
+            frappe.msgprint(
+                msg=_("Advance payment invoices must include only the advance payment item"),
+                title=_("Validation Error"),
+                indicator="red",
+                raise_exception=True,
+            )
+            valid = False
+        elif is_advance_invoice and self.advances:
+            frappe.msgprint(
+                msg=_("Advance payment invoices can not include Advance Payments"),
+                title=_("Validation Error"),
+                indicator="red",
+                raise_exception=True,
+            )
+            valid = False
+
+        advance_payments = get_invoice_advance_payments(self)
+        if self.is_return:
+            return_against = frappe.get_doc(self.doctype, self.return_against)
+            if is_advance_invoice and abs(self.grand_total) > return_against.outstanding_amount:
                 frappe.msgprint(
-                    msg=_("Advance payment invoices must include only the advance payment item"),
+                    _("Cant Return exceeds the outstanding amount {0} of Advance Invoice").format(
+                        return_against.outstanding_amount
+                    ),
+                    title=_("Validation Error"),
+                    indicator="red",
+                )
+                valid = False
+            advance_payments = get_return_against_advance_payments(
+                return_against, abs(self.get("grand_total"))
+            )
+
+        self.advance_payment_invoices = []
+        if advance_payments:
+            if self.doctype == "POS Invoice":
+                frappe.msgprint(
+                    msg=_("Cant Add Advance Payments Invoices Entries On POS Invoice"),
                     title=_("Validation Error"),
                     indicator="red",
                     raise_exception=True,
                 )
                 valid = False
-            elif is_advance_invoice and self.advances:
-                frappe.msgprint(
-                    msg=_("Advance payment invoices can not include Advance Payments"),
-                    title=_("Validation Error"),
-                    indicator="red",
-                    raise_exception=True,
-                )
-                valid = False
-
-            advance_payments = get_invoice_advance_payments(self)
-            if self.is_return:
-                return_against = frappe.get_doc(self.doctype, self.return_against)
-                if (
-                    is_advance_invoice
-                    and abs(self.grand_total) > return_against.outstanding_amount
-                ):
-                    frappe.msgprint(
-                        _(
-                            "Cant Return exceeds the outstanding amount {0} of Advance Invoice"
-                        ).format(return_against.outstanding_amount),
-                        title=_("Validation Error"),
-                        indicator="red",
+            else:
+                for advance_payment in advance_payments:
+                    advance_payment_invoice = advance_payment.copy()
+                    advance_payment_invoice.reference_type = "Sales Invoice"
+                    advance_payment_invoice.reference_name = (
+                        advance_payment.advance_payment_invoice
                     )
-                    valid = False
-                advance_payments = get_return_against_advance_payments(
-                    return_against, abs(self.get("grand_total"))
-                )
 
-            self.advance_payment_invoices = []
-            if advance_payments:
-                if self.doctype == "POS Invoice":
-                    frappe.msgprint(
-                        msg=_("Cant Add Advance Payments Invoices Entries On POS Invoice"),
-                        title=_("Validation Error"),
-                        indicator="red",
-                        raise_exception=True,
+                    advance_payment_invoice_doc = frappe.get_doc(
+                        "Sales Invoice", advance_payment.advance_payment_invoice
                     )
-                    valid = False
-                else:
-                    for advance_payment in advance_payments:
-                        advance_payment_invoice = advance_payment.copy()
-                        advance_payment_invoice.reference_type = "Sales Invoice"
-                        advance_payment_invoice.reference_name = (
-                            advance_payment.advance_payment_invoice
-                        )
+                    item = advance_payment_invoice_doc.items[0]
+                    tax_percent = abs(item.tax_rate or 0.0)
+                    tax_amount = calculate_advance_payment_tax_amount(
+                        advance_payment_invoice, advance_payment_invoice_doc
+                    )
+                    advance_payment_invoice.tax_percent = tax_percent
+                    advance_payment_invoice.tax_amount = tax_amount
 
-                        advance_payment_invoice_doc = frappe.get_doc(
-                            "Sales Invoice", advance_payment.advance_payment_invoice
-                        )
-                        item = advance_payment_invoice_doc.items[0]
-                        tax_percent = abs(item.tax_rate or 0.0)
-                        tax_amount = calculate_advance_payment_tax_amount(
-                            advance_payment_invoice, advance_payment_invoice_doc
-                        )
-                        advance_payment_invoice.tax_percent = tax_percent
-                        advance_payment_invoice.tax_amount = tax_amount
-
-                        self.append("advance_payment_invoices", advance_payment_invoice)
+                    self.append("advance_payment_invoices", advance_payment_invoice)
         validate_customer_vat_compliance(self, method)
 
     if not valid:
