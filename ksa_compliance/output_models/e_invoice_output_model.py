@@ -19,7 +19,6 @@ from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_busines
 from ksa_compliance.ksa_compliance.doctype.zatca_return_against_reference.zatca_return_against_reference import (
     ZATCAReturnAgainstReference,
 )
-from ksa_compliance.standard_doctypes.payment_entry import get_taxes_and_charges
 from ksa_compliance.standard_doctypes.sales_invoice_advance import (
     calculate_advance_payment_tax_amount,
     get_invoice_advance_payments,
@@ -27,6 +26,7 @@ from ksa_compliance.standard_doctypes.sales_invoice_advance import (
 from ksa_compliance.standard_doctypes.tax_category import map_tax_category
 from ksa_compliance.throw import fthrow
 from ksa_compliance.translation import ft
+from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
 from ksa_compliance.utils.return_invoice_paid_from_advance_payment import (
     get_return_against_advance_payments,
 )

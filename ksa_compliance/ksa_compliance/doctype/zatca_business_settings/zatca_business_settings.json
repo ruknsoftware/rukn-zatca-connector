@@ -26,7 +26,6 @@
   "postal_code",
   "district",
   "advance_payment_depends_on",
-  "advance_payment_tax_account",
   "advance_payment_item",
   "auto_apply_advance_payments",
   "advance_payment_entry_taxes_and_charges",
@@ -510,14 +509,6 @@
    "options": "Sales Invoice\nPayment Entry"
   },
   {
-   "fieldname": "advance_payment_tax_account",
-   "fieldtype": "Link",
-   "label": "Advance Payment Tax Account",
-   "mandatory_depends_on": "eval:doc.advance_payment_depends_on===\"Payment Entry\"",
-   "options": "Account",
-   "read_only_depends_on": "eval:!doc.advance_payment_depends_on"
-  },
-  {
    "fieldname": "advance_payment_entry_taxes_and_charges",
    "fieldtype": "Link",
    "label": "Advance Payment Entry Sales Taxes and Charges",
@@ -526,7 +517,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-08 11:18:08.201176",
+ "modified": "2025-10-08 16:53:16.568862",
  "modified_by": "Administrator",
  "module": "KSA Compliance",
  "name": "ZATCA Business Settings",

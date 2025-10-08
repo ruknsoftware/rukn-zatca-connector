@@ -29,6 +29,16 @@ def add_custom_fields():
                 module=ksa_compliance_module,
             ),
             dict(
+                fieldname="advance_payment_entry_taxes_and_charges",
+                label="Advance Payment Entry Sales Taxes and Charges",
+                fieldtype="Link",
+                options="Sales Taxes and Charges Template",
+                insert_after="is_advance_payment_depends_on_entry",
+                read_only_depends_on="eval:!doc.is_advance_payment_depends_on_entry",
+                mandatory_depends_on="eval:doc.is_advance_payment_depends_on_entry",
+                module=ksa_compliance_module,
+            ),
+            dict(
                 fieldname="invoice_doctype",
                 label="Invoice Doctype",
                 fieldtype="Select",

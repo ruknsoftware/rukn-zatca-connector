@@ -10,6 +10,7 @@ from frappe.utils import flt
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     ZATCABusinessSettings,
 )
+from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
 from ksa_compliance.utils.update_itemised_tax_data import (
     calculate_net_from_gross_included_in_print_rate,
     calculate_tax_amount_included_in_print_rate,
@@ -44,20 +45,6 @@ def prevent_settling_advance_invoice_from_payment_entry_references(doc, method):
                 ", ".join(names)
             )
         )
-
-
-def get_company_default_taxes_and_charges_template(payment_entry):
-    settings = ZATCABusinessSettings.for_company(payment_entry.company)
-
-    return settings.advance_payment_entry_taxes_and_charges or frappe.get_value(
-        doctype="Sales Taxes and Charges Template",
-        filters={"company": settings.company, "is_default": 1},
-    )
-
-
-def get_taxes_and_charges(payment_entry):
-    item_tax_template = get_company_default_taxes_and_charges_template(payment_entry)
-    return frappe.get_doc("Sales Taxes and Charges Template", item_tax_template)
 
 
 def set_advance_payment_entry_settling_references(payment_entry):
