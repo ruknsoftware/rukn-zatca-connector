@@ -198,7 +198,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
         ZATCAPhase1BusinessSettings.is_enabled_for_company(self.company)
         or is_phase_2_enabled_for_company
     ):
-        if len(self.taxes) == 0 and self.doctype != "Payment Entry":
+        if len(self.taxes) == 0:
             frappe.msgprint(
                 msg=_("Please include tax rate in Sales Taxes and Charges Table"),
                 title=_("Validation Error"),
