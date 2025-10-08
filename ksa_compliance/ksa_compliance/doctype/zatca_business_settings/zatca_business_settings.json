@@ -506,7 +506,7 @@
    "fieldname": "advance_payment_depends_on",
    "fieldtype": "Select",
    "label": "Advance Payment Depends On",
-   "options": "\nPayment Entry\nSales Invoice"
+   "options": "Sales Invoice\nPayment Entry"
   },
   {
    "fieldname": "advance_payment_tax_account",
@@ -519,7 +519,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-07 15:04:01.595106",
+ "modified": "2025-10-08 08:33:34.005599",
  "modified_by": "Administrator",
  "module": "KSA Compliance",
  "name": "ZATCA Business Settings",
