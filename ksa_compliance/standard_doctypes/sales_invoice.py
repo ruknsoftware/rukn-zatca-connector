@@ -191,7 +191,7 @@ def prevent_cancellation_of_sales_invoice(
         )
 
 
-def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, method) -> None:
+def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
     valid = True
     is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
     if (
@@ -277,35 +277,41 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice | PaymentEntry, metho
                         advance_payment_invoice.tax_amount = tax_amount
 
                         self.append("advance_payment_invoices", advance_payment_invoice)
-        customer = frappe.get_doc("Customer", self.get("customer") or self.get("party"))
-        is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
-            [strip(x.value) for x in customer.custom_additional_ids]
-        )
-
-        check_vat_number_on_standard_invoice_mode = (
-            settings.invoice_mode == InvoiceMode.Standard and not is_customer_have_vat_number
-        )
-
-        check_vat_number_on_auto_invoice_mode = (
-            settings.invoice_mode == InvoiceMode.Auto
-            and customer.customer_type != "Individual"
-            and not is_customer_have_vat_number
-        )
-        if check_vat_number_on_standard_invoice_mode or check_vat_number_on_auto_invoice_mode:
-            frappe.msgprint(
-                ft(
-                    "Company <b>$company</b> is configured to use Standard Tax Invoices, which require customers to "
-                    "define a VAT number or one of the other IDs. Please update customer <b>$customer</b>",
-                    company=self.company,
-                    customer=self.get("customer"),
-                )
-            )
-            valid = False
+        validate_customer_vat_compliance(self, method)
 
     if not valid:
         message_log = frappe.get_message_log()
         error_messages = "\n".join(log["message"] for log in message_log)
         raise frappe.ValidationError(error_messages)
+
+
+def validate_customer_vat_compliance(self, method):
+    settings = ZATCABusinessSettings.for_company(self.company)
+    if not settings.enable_zatca_integration:
+        return
+    customer = frappe.get_doc("Customer", self.get("customer") or self.get("party"))
+    is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
+        [strip(x.value) for x in customer.custom_additional_ids]
+    )
+
+    check_vat_number_on_standard_invoice_mode = (
+        settings.invoice_mode == InvoiceMode.Standard and not is_customer_have_vat_number
+    )
+
+    check_vat_number_on_auto_invoice_mode = (
+        settings.invoice_mode == InvoiceMode.Auto
+        and customer.customer_type != "Individual"
+        and not is_customer_have_vat_number
+    )
+    if check_vat_number_on_standard_invoice_mode or check_vat_number_on_auto_invoice_mode:
+        frappe.throw(
+            ft(
+                "Company <b>$company</b> is configured to use Standard Tax Invoices, which require customers to "
+                "define a VAT number or one of the other IDs. Please update customer <b>$customer</b>",
+                company=self.company,
+                customer=self.get("customer"),
+            )
+        )
 
 
 def auto_apply_advance_payments(self: SalesInvoice, method):
