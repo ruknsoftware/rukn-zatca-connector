@@ -109,7 +109,7 @@ def create_sales_invoice_additional_fields_doctype(
             is_live_sync = egs_settings.is_live_sync
 
     si_additional_fields_doc.insert()
-    if self.doctype != "Payment Entry":
+    if self.doctype in ("Sales Invoice", "POS Invoice"):
         is_advance_invoice = invoice_has_advance_item(self, settings)
         if is_advance_invoice:
             payment_entry = create_payment_entry_for_advance_payment_invoice(self)
