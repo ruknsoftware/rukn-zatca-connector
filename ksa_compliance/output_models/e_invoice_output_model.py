@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import List, Optional, cast
 
 import frappe
+from erpnext import get_company_currency
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.setup.doctype.branch.branch import Branch
 from frappe.model.document import Document
@@ -25,8 +26,13 @@ from ksa_compliance.standard_doctypes.sales_invoice_advance import (
 from ksa_compliance.standard_doctypes.tax_category import map_tax_category
 from ksa_compliance.throw import fthrow
 from ksa_compliance.translation import ft
+from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
 from ksa_compliance.utils.return_invoice_paid_from_advance_payment import (
     get_return_against_advance_payments,
+)
+from ksa_compliance.utils.update_itemised_tax_data import (
+    calculate_net_from_gross_included_in_print_rate,
+    calculate_tax_amount_included_in_print_rate,
 )
 
 
@@ -268,7 +274,6 @@ class Einvoice:
             xml_name="allowance_total_amount",
             parent="invoice",
         )
-        self.compute_invoice_discount_amount()
 
         # <----- end document level allowance ----->
 
@@ -360,17 +365,6 @@ class Einvoice:
             source_doc=self.additional_fields_doc,
             xml_name="MultiplierFactorNumeric",
             parent="invoice",
-        )
-        self.prepayment_invoice()
-
-        # After prepayment invoices are collected, recompute payable amount per BR-CO-16 to avoid double subtraction
-        prepaid_amount_total = float(self.result.get("prepaid_amount", 0.0) or 0.0)
-        if self.sales_invoice_doc.is_rounded_total_disabled():
-            base_payable = abs(self.sales_invoice_doc.grand_total)
-        else:
-            base_payable = abs(self.sales_invoice_doc.rounded_total)
-        self.result["invoice"]["payable_amount"] = max(
-            0.0, float(base_payable) - prepaid_amount_total
         )
 
     # --------------------------- START helper functions ------------------------------
@@ -573,21 +567,6 @@ class Einvoice:
     def get_customer_info(self, invoice_id):
         pass
 
-    def compute_invoice_discount_amount(self):
-        discount_amount = abs(self.sales_invoice_doc.discount_amount)
-        if self.sales_invoice_doc.apply_discount_on != "Grand Total" or discount_amount == 0:
-            self.additional_fields_doc.fatoora_invoice_discount_amount = discount_amount
-            return
-
-        applied_discount_percent = self.sales_invoice_doc.additional_discount_percentage
-        total_without_vat = self.result["invoice"]["line_extension_amount"]
-        tax_amount = abs(self.sales_invoice_doc.taxes[0].tax_amount)
-        if applied_discount_percent == 0:
-            applied_discount_percent = (discount_amount / (total_without_vat + tax_amount)) * 100
-        applied_discount_amount = total_without_vat * (applied_discount_percent / 100)
-        self.result["invoice"]["allowance_total_amount"] = applied_discount_amount
-        self.additional_fields_doc.fatoora_invoice_discount_amount = applied_discount_amount
-
     def get_business_settings_and_seller_details(self):
         # TODO: special validations handling
         has_branch_address = False
@@ -775,18 +754,10 @@ class Einvoice:
             parent="buyer_details",
         )
 
-        self.get_text_value(
-            field_name="customer_name",
-            source_doc=self.sales_invoice_doc,
-            xml_name="registration_name",
-            parent="buyer_details",
-        )
-
         # --------------------------- END Buyer Details fields ------------------------------
 
     def get_e_invoice_details(self, invoice_type: str):
         is_standard = invoice_type == "Standard"
-
         # --------------------------- START Invoice fields ------------------------------
         # --------------------------- START Invoice Basic info ------------------------------
         self.get_text_value(
@@ -804,13 +775,6 @@ class Einvoice:
             field_name="posting_date",
             source_doc=self.sales_invoice_doc,
             xml_name="issue_date",
-            parent="invoice",
-        )
-
-        self.get_time_value(
-            field_name="posting_time",
-            source_doc=self.sales_invoice_doc,
-            xml_name="issue_time",
             parent="invoice",
         )
 
@@ -834,6 +798,81 @@ class Einvoice:
             field_name="invoice_type_transaction",
             source_doc=self.additional_fields_doc,
             xml_name="invoice_type_transaction",
+            parent="invoice",
+        )
+
+        self.get_int_value(
+            field_name="invoice_counter",
+            source_doc=self.additional_fields_doc,
+            xml_name="invoice_counter_value",
+            parent="invoice",
+        )
+
+        self.get_text_value(
+            field_name="previous_invoice_hash",
+            source_doc=self.additional_fields_doc,
+            xml_name="pih",
+            parent="invoice",
+        )
+
+        # FIXME: Contracting (contract ID)
+        if self.sales_invoice_doc.get("contract_id"):
+            self.get_text_value(
+                field_name="contract_id",
+                source_doc=self.additional_fields_doc,
+                xml_name="contract_id",
+                parent="invoice",
+            )
+
+        self.get_float_value(
+            field_name="total",
+            source_doc=self.sales_invoice_doc,
+            xml_name="total",
+            parent="invoice",
+        )
+
+
+class SalesEinvoice(Einvoice):
+    def __init__(
+        self,
+        sales_invoice_additional_fields_doc: "sales_invoice_additional_fields.SalesInvoiceAdditionalFields",
+        invoice_type: InvoiceType = "Simplified",
+    ):
+        super().__init__(sales_invoice_additional_fields_doc, invoice_type)
+        self.compute_invoice_discount_amount()
+
+        # After prepayment invoices are collected, recompute payable amount per BR-CO-16 to avoid double subtraction
+        prepaid_amount_total = float(self.result.get("prepaid_amount", 0.0) or 0.0)
+        if self.sales_invoice_doc.is_rounded_total_disabled():
+            base_payable = abs(self.sales_invoice_doc.grand_total)
+        else:
+            base_payable = abs(self.sales_invoice_doc.rounded_total)
+        self.result["invoice"]["payable_amount"] = max(
+            0.0, float(base_payable) - prepaid_amount_total
+        )
+
+    def compute_invoice_discount_amount(self):
+        discount_amount = abs(self.sales_invoice_doc.discount_amount)
+        if self.sales_invoice_doc.apply_discount_on != "Grand Total" or discount_amount == 0:
+            self.additional_fields_doc.fatoora_invoice_discount_amount = discount_amount
+            return
+
+        applied_discount_percent = self.sales_invoice_doc.additional_discount_percentage
+        total_without_vat = self.result["invoice"]["line_extension_amount"]
+        tax_amount = abs(self.sales_invoice_doc.taxes[0].tax_amount)
+        if applied_discount_percent == 0:
+            applied_discount_percent = (discount_amount / (total_without_vat + tax_amount)) * 100
+        applied_discount_amount = total_without_vat * (applied_discount_percent / 100)
+        self.result["invoice"]["allowance_total_amount"] = applied_discount_amount
+        self.additional_fields_doc.fatoora_invoice_discount_amount = applied_discount_amount
+
+    def get_e_invoice_details(self, invoice_type: str):
+        super().get_e_invoice_details(invoice_type)
+
+        self.get_time_value(
+            field_name="posting_time",
+            source_doc=self.sales_invoice_doc,
+            xml_name="issue_time",
             parent="invoice",
         )
 
@@ -865,20 +904,6 @@ class Einvoice:
             parent="invoice",
         )
 
-        self.get_int_value(
-            field_name="invoice_counter",
-            source_doc=self.additional_fields_doc,
-            xml_name="invoice_counter_value",
-            parent="invoice",
-        )
-
-        self.get_text_value(
-            field_name="previous_invoice_hash",
-            source_doc=self.additional_fields_doc,
-            xml_name="pih",
-            parent="invoice",
-        )
-
         if self.sales_invoice_doc.get("is_debit_note") or self.sales_invoice_doc.get("is_return"):
             billing_references = []
             if self.sales_invoice_doc.return_against:
@@ -892,22 +917,6 @@ class Einvoice:
                 billing_references.extend([ref.sales_invoice for ref in additional_references])
 
             self.result["invoice"]["billing_references"] = billing_references
-
-        # FIXME: Contracting (contract ID)
-        if self.sales_invoice_doc.get("contract_id"):
-            self.get_text_value(
-                field_name="contract_id",
-                source_doc=self.additional_fields_doc,
-                xml_name="contract_id",
-                parent="invoice",
-            )
-
-        self.get_float_value(
-            field_name="total",
-            source_doc=self.sales_invoice_doc,
-            xml_name="total",
-            parent="invoice",
-        )
 
         self.get_float_value(
             field_name="net_total",
@@ -944,7 +953,7 @@ class Einvoice:
         )
 
         if self.sales_invoice_doc.is_rounded_total_disabled():
-            base_payable = abs(self.sales_invoice_doc.grand_total)
+            base_payable = abs(self.sales_invoice_doc.paid_amount)
             prepaid_amount = self.result.get("prepaid_amount", 0.0) or 0.0
             self.result["invoice"]["payable_amount"] = max(0.0, base_payable - prepaid_amount)
             self.result["invoice"]["rounding_adjustment"] = 0.0
@@ -961,8 +970,8 @@ class Einvoice:
             # Return invoice (XML): abs(-100.25) + 0.25 = 100.25
             # So the calculation would be wrong if we just used the value of rounding adjustment. We need to recalculate
             # it or adjust its sign to produce the right result in the return case
-            payable_before_prepay = abs(self.sales_invoice_doc.rounded_total)
-            tax_inclusive_amount = abs(self.sales_invoice_doc.grand_total)
+            payable_before_prepay = abs(self.sales_invoice_doc.paid_amount)
+            tax_inclusive_amount = abs(self.sales_invoice_doc.paid_amount)
             prepaid_amount = self.result.get("prepaid_amount", 0.0) or 0.0
             # Apply BR-CO-16 by subtracting pre-paid amount
             self.result["invoice"]["payable_amount"] = max(
@@ -978,13 +987,13 @@ class Einvoice:
                 ] = self.sales_invoice_doc.rounding_adjustment
 
         self.get_float_value(
-            field_name="outstanding_amount",
+            field_name="paid_amount",
             source_doc=self.sales_invoice_doc,
             xml_name="outstanding_amount",
             parent="invoice",
         )
         self.get_float_value(
-            field_name="net_amount",
+            field_name="paid_amount",
             source_doc=self.sales_invoice_doc,
             xml_name="VAT_category_taxable_amount",
             parent="invoice",
@@ -1104,3 +1113,200 @@ class Einvoice:
             prepayment_invoice["uuid"] = siaf.uuid
 
             self.result["prepayment_invoices"].append(prepayment_invoice)
+
+    def get_buyer_details(self, invoice_type):
+        super().get_buyer_details(invoice_type)
+        self.get_text_value(
+            field_name="customer_name",
+            source_doc=self.sales_invoice_doc,
+            xml_name="registration_name",
+            parent="buyer_details",
+        )
+
+
+class AdvancePaymentEntry(Einvoice):
+    def __init__(
+        self,
+        sales_invoice_additional_fields_doc: "sales_invoice_additional_fields.SalesInvoiceAdditionalFields",
+        invoice_type: InvoiceType = "Simplified",
+    ):
+        super().__init__(sales_invoice_additional_fields_doc, invoice_type)
+        self.result["invoice"]["allowance_total_amount"] = 0.0
+
+    def get_e_invoice_details(self, invoice_type: str):
+        super().get_e_invoice_details(invoice_type)
+
+        self.get_time_value(
+            field_name="creation",
+            source_doc=self.sales_invoice_doc,
+            xml_name="issue_time",
+            parent="invoice",
+        )
+
+        self.result["invoice"]["currency_code"] = get_company_currency(
+            self.sales_invoice_doc.company
+        )
+
+        # Default "SAR"
+        self.get_text_value(
+            field_name="tax_currency",
+            source_doc=self.additional_fields_doc,
+            xml_name="tax_currency",
+            parent="invoice",
+        )
+
+        self.get_bool_value(
+            field_name="is_return",
+            source_doc=self.sales_invoice_doc,
+            xml_name="is_return",
+            parent="invoice",
+        )
+
+        self.get_bool_value(
+            field_name="is_debit_note",
+            source_doc=self.sales_invoice_doc,
+            xml_name="is_debit_note",
+            parent="invoice",
+        )
+
+        if self.sales_invoice_doc.get("is_debit_note") or self.sales_invoice_doc.get("is_return"):
+            billing_references = []
+            if self.sales_invoice_doc.return_against:
+                billing_references.append(self.sales_invoice_doc.return_against)
+
+            additional_references = cast(
+                List[ZATCAReturnAgainstReference] | None,
+                self.sales_invoice_doc.get("custom_return_against_additional_references"),
+            )
+            if additional_references:
+                billing_references.extend([ref.sales_invoice for ref in additional_references])
+
+            self.result["invoice"]["billing_references"] = billing_references
+
+        # TODO: Tax Account Currency
+        self.get_float_value(
+            field_name="paid_amount",
+            source_doc=self.sales_invoice_doc,
+            xml_name="grand_total",
+            parent="invoice",
+        )
+        self.get_float_value(
+            field_name="total_advance",
+            source_doc=self.sales_invoice_doc,
+            xml_name="prepaid_amount",
+            parent="invoice",
+        )
+
+        if self.sales_invoice_doc.is_rounded_total_disabled():
+            base_payable = abs(self.sales_invoice_doc.paid_amount)
+            prepaid_amount = self.result.get("prepaid_amount", 0.0) or 0.0
+            self.result["invoice"]["payable_amount"] = max(0.0, base_payable - prepaid_amount)
+            self.result["invoice"]["rounding_adjustment"] = 0.0
+        else:
+            # Tax inclusive amount + rounding adjustment = payable amount (before prepayments)
+            # However, ZATCA doesn't accept negative values for tax inclusive amount or payable amount, so we put their
+            # absolute values.
+            # For return invoices, we can have a positive rounding adjustment (if it were negative in the original invoice)
+            # The calculation works out if tax inclusive amount and payable amount are negative, but it doesn't work with
+            # the abs values we send to ZATCA.
+            # For example:
+            # Original invoice: 100.25 + (-0.25) = 100
+            # Return invoice (ERPNext): -100.25 + 0.25 = -100
+            # Return invoice (XML): abs(-100.25) + 0.25 = 100.25
+            # So the calculation would be wrong if we just used the value of rounding adjustment. We need to recalculate
+            # it or adjust its sign to produce the right result in the return case
+            payable_before_prepay = abs(self.sales_invoice_doc.rounded_total)
+            tax_inclusive_amount = abs(self.sales_invoice_doc.grand_total)
+            prepaid_amount = self.result.get("prepaid_amount", 0.0) or 0.0
+            # Apply BR-CO-16 by subtracting pre-paid amount
+            self.result["invoice"]["payable_amount"] = max(
+                0.0, payable_before_prepay - prepaid_amount
+            )
+            if self.sales_invoice_doc.is_return:
+                self.result["invoice"]["rounding_adjustment"] = (
+                    payable_before_prepay - tax_inclusive_amount
+                )
+            else:
+                self.result["invoice"][
+                    "rounding_adjustment"
+                ] = self.sales_invoice_doc.rounding_adjustment
+
+        self.get_float_value(
+            field_name="outstanding_amount",
+            source_doc=self.sales_invoice_doc,
+            xml_name="outstanding_amount",
+            parent="invoice",
+        )
+        self.get_float_value(
+            field_name="net_amount",
+            source_doc=self.sales_invoice_doc,
+            xml_name="VAT_category_taxable_amount",
+            parent="invoice",
+        )
+
+        # --------------------------- END Invoice Basic info ------------------------------
+        # --------------------------- Start Getting Invoice's item lines ------------------------------
+        item_lines = []
+        advance_payment_item = frappe.get_doc(
+            "Item", self.business_settings_doc.advance_payment_item
+        )
+
+        taxes_and_charges = get_taxes_and_charges(self.sales_invoice_doc)
+        paid_amount = self.sales_invoice_doc.paid_amount
+
+        tax_rate = taxes_and_charges.taxes[0].rate
+        amount = flt(paid_amount)
+        net_amount = round(calculate_net_from_gross_included_in_print_rate(amount, tax_rate), 2)
+        tax_amount = round(flt(calculate_tax_amount_included_in_print_rate(amount, net_amount)), 2)
+
+        self.get_float_value(
+            field_name="base_total_taxes_and_charges",
+            source_doc=self.sales_invoice_doc,
+            xml_name="base_total_taxes_and_charges",
+            parent="invoice",
+        )
+        item_lines.append(
+            {
+                "idx": 1,
+                "qty": 1,
+                "uom": advance_payment_item.stock_uom,
+                "item_code": advance_payment_item.item_code,
+                "item_name": advance_payment_item.item_name,
+                "net_amount": net_amount,
+                "amount": net_amount,
+                "rate": net_amount,
+                "discount_percentage": 0.0,
+                "discount_amount": 0.0,
+                "item_tax_template": taxes_and_charges.name,
+                "tax_percent": tax_rate,
+                "tax_amount": tax_amount,
+            }
+        )
+
+        # Add tax amount and tax percent on each item line
+        is_tax_included = bool(taxes_and_charges.taxes[0].included_in_print_rate)
+        item_lines = append_tax_details_into_item_lines(
+            item_lines=item_lines, is_tax_included=is_tax_included
+        )
+        unique_tax_categories = append_tax_categories_to_item(item_lines, taxes_and_charges)
+        # Append unique Tax categories to invoice
+        self.result["invoice"]["tax_categories"] = unique_tax_categories
+
+        # Add invoice total taxes and charges percentage field
+
+        self.result["invoice"]["net_total"] = net_amount
+        self.result["invoice"]["total_taxes_and_charges"] = tax_amount
+        self.result["invoice"]["base_total_taxes_and_charges"] = tax_amount
+        self.result["invoice"]["total_taxes_and_charges_percent"] = tax_rate
+        self.result["invoice"]["item_lines"] = item_lines
+        self.result["invoice"]["line_extension_amount"] = net_amount
+        # --------------------------- END Getting Invoice's item lines ------------------------------
+
+    def get_buyer_details(self, invoice_type):
+        super().get_buyer_details(invoice_type)
+        self.get_text_value(
+            field_name="party",
+            source_doc=self.sales_invoice_doc,
+            xml_name="registration_name",
+            parent="buyer_details",
+        )

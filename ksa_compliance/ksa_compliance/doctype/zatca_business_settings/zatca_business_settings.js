@@ -2,6 +2,14 @@ frappe.ui.form.on("ZATCA Business Settings", {
     setup: function (frm) {
         frm.set_df_property('other_ids', 'cannot_delete_rows', 1);
         frm.set_df_property('other_ids', 'cannot_add_rows', 1);
+        frm.set_query("advance_payment_entry_taxes_and_charges", function () {
+			return {
+				filters: {
+					company: frm.doc.company,
+					disabled: false,
+				},
+			};
+		});
     },
     refresh: function (frm) {
         add_other_ids_if_new(frm);
