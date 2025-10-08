@@ -47,6 +47,24 @@ def add_custom_fields():
                 module=ksa_compliance_module,
                 read_only=True,
             ),
+            dict(
+                fieldname="allocated_tax",
+                label="Allocated Tax",
+                fieldtype="Currency",
+                options="Company:company:default_currency",
+                insert_after="base_total_allocated_amount",
+                module=ksa_compliance_module,
+                read_only=True,
+            ),
+            dict(
+                fieldname="unallocated_tax",
+                label="Unallocated Tax",
+                fieldtype="Currency",
+                options="Company:company:default_currency",
+                insert_after="unallocated_amount",
+                module=ksa_compliance_module,
+                read_only=True,
+            ),
         ],
         "Sales Invoice": [
             dict(
