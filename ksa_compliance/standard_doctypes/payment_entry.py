@@ -93,6 +93,7 @@ def add_tax_gl_entries(doc, method):
         not settings
         or settings.advance_payment_depends_on != "Payment Entry"
         or not doc.is_advance_payment_depends_on_entry
+        or doc.doc.payment_type not in ("Receive", "Pay")
     ):
         return
     tax = get_taxes_and_charges(doc).taxes[0]
@@ -104,7 +105,7 @@ def add_tax_gl_entries(doc, method):
             _("Currency for {0} must be {1}").format(tax.get("account_head"), doc.company_currency)
         )
 
-    if doc.payment_type in ("Pay", "Internal Transfer"):
+    if doc.payment_type == "Pay":
         dr_or_cr = "debit" if tax.get("add_deduct_tax") == "Add" else "credit"
         rev_dr_or_cr = "credit" if dr_or_cr == "debit" else "debit"
         against = doc.party or doc.paid_from
