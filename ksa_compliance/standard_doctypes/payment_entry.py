@@ -48,7 +48,8 @@ def prevent_settling_advance_invoice_from_payment_entry_references(doc, method):
 
 def get_company_default_taxes_and_charges_template(payment_entry):
     settings = ZATCABusinessSettings.for_company(payment_entry.company)
-    return frappe.get_value(
+
+    return settings.advance_payment_entry_taxes_and_charges or frappe.get_value(
         doctype="Sales Taxes and Charges Template",
         filters={"company": settings.company, "is_default": 1},
     )
