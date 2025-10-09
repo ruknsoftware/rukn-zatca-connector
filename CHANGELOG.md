@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.54.0
+* Fix Read Zatca Category from Tax Category
+
 ## 0.53.9
 * Fix Adding Advance Payment Tax Account
 
