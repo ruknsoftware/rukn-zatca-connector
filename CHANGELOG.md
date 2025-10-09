@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.53.9
+* Fix Adding Advance Payment Tax Account
+
 ## 0.53.8
 * Add Methods Advance Payment Depends on Payment Entry and Sales Invoice
 * Add new Settings for Advance Payment Taxes
