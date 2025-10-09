@@ -116,8 +116,8 @@ def add_tax_gl_entries(doc, method):
             {
                 "account": tax.get("account_head"),
                 "against": against,
-                dr_or_cr: tax_amount,
-                dr_or_cr
+                rev_dr_or_cr: tax_amount,
+                rev_dr_or_cr
                 + "_in_account_currency": (
                     tax_amount
                     if account_currency == doc.company_currency
@@ -136,8 +136,8 @@ def add_tax_gl_entries(doc, method):
             {
                 "account": settings.advance_payment_tax_account,
                 "against": tax.get("account_head"),
-                rev_dr_or_cr: tax_amount,
-                rev_dr_or_cr + "_in_account_currency": tax_amount,
+                dr_or_cr: tax_amount,
+                dr_or_cr + "_in_account_currency": tax_amount,
                 "cost_center": tax.get("cost_center"),
                 "post_net_value": True,
             },

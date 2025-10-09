@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.54.1
+* Reverse GL Entries for Advance Payment Taxes
+
 ## 0.54.0
 * Fix Read Zatca Category from Tax Category
 
