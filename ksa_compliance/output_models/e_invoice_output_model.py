@@ -1277,7 +1277,7 @@ class AdvancePaymentEntry(Einvoice):
                 "rate": net_amount,
                 "discount_percentage": 0.0,
                 "discount_amount": 0.0,
-                "item_tax_template": taxes_and_charges.name,
+                "item_tax_template": "",
                 "tax_percent": tax_rate,
                 "tax_amount": tax_amount,
             }
