@@ -334,7 +334,12 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         finally:
             # Clean up the single settings document
             if frappe.db.exists("ZATCA Phase 1 Business Settings", settings.name):
-                frappe.delete_doc("ZATCA Phase 1 Business Settings", settings.name, ignore_permissions=True, force=True)
+                frappe.delete_doc(
+                    "ZATCA Phase 1 Business Settings",
+                    settings.name,
+                    ignore_permissions=True,
+                    force=True,
+                )
                 frappe.db.commit()  # nosemgrep
 
         frappe.logger().info("✅ test_type_of_transaction_options completed successfully")
@@ -362,7 +367,12 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         finally:
             # Clean up the single settings document
             if frappe.db.exists("ZATCA Phase 1 Business Settings", settings.name):
-                frappe.delete_doc("ZATCA Phase 1 Business Settings", settings.name, ignore_permissions=True, force=True)
+                frappe.delete_doc(
+                    "ZATCA Phase 1 Business Settings",
+                    settings.name,
+                    ignore_permissions=True,
+                    force=True,
+                )
                 frappe.db.commit()  # nosemgrep
 
         frappe.logger().info("✅ test_status_options completed successfully")

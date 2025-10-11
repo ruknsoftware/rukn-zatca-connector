@@ -88,7 +88,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info("🧪 Running test_compliance_without_addresses...")
 
         business_settings_id = setup_zatca_business_settings(
-            TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY,True
+            TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, True,
         )
         from ksa_compliance.test.test_setup import setup_compliance_check_data
 
@@ -114,7 +114,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info("🧪 Running test_compliance_with_addresses...")
 
         business_settings_id = setup_zatca_business_settings(
-            TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY,True
+            TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, True,
         )
         from ksa_compliance.test.test_setup import setup_compliance_check_data
 
@@ -349,9 +349,10 @@ def setup_zatca_business_settings(company_name, country, currency, full_onboardi
 
     b_settings = frappe.get_doc("ZATCA Business Settings", doc_name)
 
-
     if full_onboarding:
-        frappe.logger().info(f"🔍 Current production_request_id: {b_settings.production_request_id}")
+        frappe.logger().info(
+            f"🔍 Current production_request_id: {b_settings.production_request_id}"
+        )
         frappe.logger().info("🔄 Clearing mock compliance_request_id to force fresh onboarding")
         b_settings.compliance_request_id = None
         b_settings.production_request_id = None
