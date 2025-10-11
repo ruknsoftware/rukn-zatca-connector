@@ -354,7 +354,7 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
                 settings.status = option
                 settings.save(ignore_permissions=True)
                 frappe.db.commit()  # nosemgrep
-                
+
                 # Reload to verify the change
                 settings.reload()
                 self.assertEqual(settings.status, option)
