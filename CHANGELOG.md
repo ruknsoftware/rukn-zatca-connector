@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.54.2
+* Enhance Test Performance
+
 ## 0.54.1
 * Reverse GL Entries for Advance Payment Taxes
 
