@@ -3,11 +3,17 @@ from erpnext.accounts.general_ledger import (
     make_gl_entries,
     process_gl_map,
 )
-from erpnext.controllers.accounts_controller import get_taxes_and_charges
+from erpnext.accounts.utils import get_account_currency
 from frappe import _
+from frappe.utils import flt
 
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     ZATCABusinessSettings,
+)
+from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
+from ksa_compliance.utils.update_itemised_tax_data import (
+    calculate_net_from_gross_included_in_print_rate,
+    calculate_tax_amount_included_in_print_rate,
 )
 
 
@@ -41,20 +47,6 @@ def prevent_settling_advance_invoice_from_payment_entry_references(doc, method):
         )
 
 
-def get_company_default_taxes_and_charges_template(payment_entry):
-    settings = ZATCABusinessSettings.for_company(payment_entry.company)
-    return frappe.get_value(
-        doctype="Sales Taxes and Charges Template",
-        filters={"company": settings.company, "is_default": 1},
-    )
-
-
-def get_taxes_and_charges_details(payment_entry):
-    item_tax_template = get_company_default_taxes_and_charges_template(payment_entry)
-    taxes = get_taxes_and_charges("Sales Taxes and Charges Template", item_tax_template)[0]
-    return taxes
-
-
 def set_advance_payment_entry_settling_references(payment_entry):
     advance_payment_entry = frappe.get_value(
         "Payment Entry",
@@ -85,3 +77,73 @@ def set_advance_payment_entry_settling_references(payment_entry):
     advance_payment_entry_doc.unallocated_amount -= payment_entry.paid_amount
     advance_payment_entry_doc.flags.ignore_validate_update_after_submit = True
     advance_payment_entry_doc.save()
+
+
+def add_tax_gl_entries(doc, method):
+    settings = ZATCABusinessSettings.for_company(doc.company)
+    if (
+        not settings
+        or settings.advance_payment_depends_on != "Payment Entry"
+        or not doc.is_advance_payment_depends_on_entry
+        or doc.payment_type not in ("Receive", "Pay")
+    ):
+        return
+    tax = get_taxes_and_charges(doc).taxes[0]
+    gl_entries = []
+
+    account_currency = get_account_currency(tax.get("account_head"))
+    if account_currency != doc.company_currency:
+        frappe.throw(
+            _("Currency for {0} must be {1}").format(tax.get("account_head"), doc.company_currency)
+        )
+
+    if doc.payment_type == "Pay":
+        dr_or_cr = "debit" if tax.get("add_deduct_tax") == "Add" else "credit"
+        rev_dr_or_cr = "credit" if dr_or_cr == "debit" else "debit"
+        against = doc.party or doc.paid_from
+    elif doc.payment_type == "Receive":
+        dr_or_cr = "credit" if tax.get("add_deduct_tax") == "Add" else "debit"
+        rev_dr_or_cr = "credit" if dr_or_cr == "debit" else "debit"
+        against = doc.party or doc.paid_to
+
+    tax_rate = tax.rate
+    amount = flt(doc.paid_amount)
+    net_amount = round(calculate_net_from_gross_included_in_print_rate(amount, tax_rate), 2)
+    tax_amount = round(calculate_tax_amount_included_in_print_rate(amount, net_amount), 2)
+    doc.unallocated_tax = tax_amount
+    gl_entries.append(
+        doc.get_gl_dict(
+            {
+                "account": tax.get("account_head"),
+                "against": against,
+                rev_dr_or_cr: tax_amount,
+                rev_dr_or_cr
+                + "_in_account_currency": (
+                    tax_amount
+                    if account_currency == doc.company_currency
+                    else tax.get("tax_amount")
+                ),
+                "cost_center": tax.get("cost_center"),
+                "post_net_value": True,
+            },
+            account_currency,
+            item=tax,
+        )
+    )
+
+    gl_entries.append(
+        doc.get_gl_dict(
+            {
+                "account": settings.advance_payment_tax_account,
+                "against": tax.get("account_head"),
+                dr_or_cr: tax_amount,
+                dr_or_cr + "_in_account_currency": tax_amount,
+                "cost_center": tax.get("cost_center"),
+                "post_net_value": True,
+            },
+            account_currency,
+            item=tax,
+        )
+    )
+    gl_entries = process_gl_map(gl_entries)
+    make_gl_entries(gl_entries)

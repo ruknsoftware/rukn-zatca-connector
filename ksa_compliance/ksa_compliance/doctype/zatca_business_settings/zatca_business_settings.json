@@ -25,8 +25,10 @@
   "city",
   "postal_code",
   "district",
+  "advance_payment_depends_on",
   "advance_payment_item",
   "auto_apply_advance_payments",
+  "advance_payment_tax_account",
   "seller_id_tab",
   "seller_id_section",
   "seller_name",
@@ -499,11 +501,23 @@
    "fieldname": "auto_apply_advance_payments",
    "fieldtype": "Check",
    "label": "Auto Apply Advance Payments"
+  },
+  {
+   "fieldname": "advance_payment_depends_on",
+   "fieldtype": "Select",
+   "label": "Advance Payment Depends On",
+   "options": "Sales Invoice\nPayment Entry"
+  },
+  {
+   "fieldname": "advance_payment_tax_account",
+   "fieldtype": "Link",
+   "label": "Advance Payment Tax Account",
+   "options": "Account"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-07-23 14:54:42.857085",
+ "modified": "2025-10-09 12:38:31.672639",
  "modified_by": "Administrator",
  "module": "KSA Compliance",
  "name": "ZATCA Business Settings",

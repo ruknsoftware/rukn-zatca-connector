@@ -7,6 +7,20 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.54.1
+* Reverse GL Entries for Advance Payment Taxes
+
+## 0.54.0
+* Fix Read Zatca Category from Tax Category
+
+## 0.53.9
+* Fix Adding Advance Payment Tax Account
+
+## 0.53.8
+* Add Methods Advance Payment Depends on Payment Entry and Sales Invoice
+* Add new Settings for Advance Payment Taxes
+* Send Advance Payment Entry to ZATCA
+
 ## 0.53.7
 * Add Rounding App to Test Site
 
