@@ -88,7 +88,10 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info("🧪 Running test_compliance_without_addresses...")
 
         business_settings_id = setup_zatca_business_settings(
-            TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, True,
+            TEST_COMPANY_NAME,
+            SAUDI_COUNTRY,
+            SAUDI_CURRENCY,
+            True,
         )
         from ksa_compliance.test.test_setup import setup_compliance_check_data
 
@@ -114,7 +117,10 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info("🧪 Running test_compliance_with_addresses...")
 
         business_settings_id = setup_zatca_business_settings(
-            TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, True,
+            TEST_COMPANY_NAME,
+            SAUDI_COUNTRY,
+            SAUDI_CURRENCY,
+            True,
         )
         from ksa_compliance.test.test_setup import setup_compliance_check_data
 
