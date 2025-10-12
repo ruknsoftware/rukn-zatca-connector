@@ -120,7 +120,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
             TEST_COMPANY_NAME,
             SAUDI_COUNTRY,
             SAUDI_CURRENCY,
-            True,
+            False,
         )
         from ksa_compliance.test.test_setup import setup_compliance_check_data
 
