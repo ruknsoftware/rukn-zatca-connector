@@ -48,7 +48,9 @@ jobs:
       ((github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && needs.check-review.outputs.approved == 'true')
     strategy:
       fail-fast: false
-    name: Server
+      matrix:
+        build-number: [1, 2, 3, 4]
+    name: Server (Build ${{ matrix.build-number }}/4)
 
     services:
       redis-cache:
@@ -226,10 +228,10 @@ jobs:
         env:
           CI: 'Yes'
 
-      - name: Run Tests
+      - name: Run Tests (Parallel)
         working-directory: /home/runner/frappe-bench
         run: |
           bench --site test_site set-config allow_tests true
-          bench --site test_site run-tests --app ksa_compliance
+          bench --site test_site run-parallel-tests --app ksa_compliance --total-builds 4 --build-number ${{ matrix.build-number }}
         env:
           TYPE: server
