@@ -231,7 +231,7 @@ jobs:
           echo "🔧 Preparing test environment artifacts..."
           
           # Copy the test setup script from the repository
-          cp /home/runner/work/ksa_compliance/ksa_compliance/.github/scripts/test_setup.py test_setup_script.py
+          cp .github/scripts/test_setup.py test_setup_script.py
           
           # Run the setup script
           python test_setup_script.py
