@@ -240,7 +240,7 @@ jobs:
           touch test_environment_ready.marker
 
       - name: Upload Test Environment Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-environment-${{ github.run_id }}
           path: |
@@ -344,7 +344,7 @@ jobs:
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 
       - name: Download Test Environment Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: test-environment-${{ github.run_id }}
           path: /home/runner/frappe-bench/
