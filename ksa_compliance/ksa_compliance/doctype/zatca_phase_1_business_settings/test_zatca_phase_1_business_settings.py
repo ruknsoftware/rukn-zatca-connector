@@ -312,33 +312,68 @@ class TestZATCAPhase1BusinessSettings(FrappeTestCase):
         frappe.logger().info("✅ test_address_link_validation completed successfully")
 
     def test_type_of_transaction_options(self):
-        """Test valid options for type_of_transaction field"""
+        """Test valid options for type_of_transaction field - OPTIMIZED"""
         frappe.logger().info("🧪 Running test_type_of_transaction_options...")
 
         valid_options = ["Simplified Tax Invoice", "Standard Tax Invoice", "Both"]
 
-        for option in valid_options:
-            # Create settings with each valid option
-            settings = self._create_test_phase_1_settings(
-                type_of_transaction=option,
-                company=f"Test Company {option.replace(' ', '_')} {self.test_id}",
-            )
-            self.assertEqual(settings.type_of_transaction, option)
+        # Create ONE settings document to reuse
+        settings = self._create_test_phase_1_settings()
+
+        try:
+            for option in valid_options:
+                # Update the same document with different field value
+                settings.type_of_transaction = option
+                settings.save(ignore_permissions=True)
+                frappe.db.commit()  # nosemgrep
+
+                # Reload to verify the change
+                settings.reload()
+                self.assertEqual(settings.type_of_transaction, option)
+
+        finally:
+            # Clean up the single settings document
+            if frappe.db.exists("ZATCA Phase 1 Business Settings", settings.name):
+                frappe.delete_doc(
+                    "ZATCA Phase 1 Business Settings",
+                    settings.name,
+                    ignore_permissions=True,
+                    force=True,
+                )
+                frappe.db.commit()  # nosemgrep
 
         frappe.logger().info("✅ test_type_of_transaction_options completed successfully")
 
     def test_status_options(self):
-        """Test valid options for status field"""
+        """Test valid options for status field - OPTIMIZED"""
         frappe.logger().info("🧪 Running test_status_options...")
 
         valid_options = ["Active", "Disabled"]
 
-        for option in valid_options:
-            # Create settings with each valid option
-            settings = self._create_test_phase_1_settings(
-                status=option, company=f"Test Company {option} {self.test_id}"
-            )
-            self.assertEqual(settings.status, option)
+        # Create ONE settings document to reuse
+        settings = self._create_test_phase_1_settings()
+
+        try:
+            for option in valid_options:
+                # Update the same document with different field value
+                settings.status = option
+                settings.save(ignore_permissions=True)
+                frappe.db.commit()  # nosemgrep
+
+                # Reload to verify the change
+                settings.reload()
+                self.assertEqual(settings.status, option)
+
+        finally:
+            # Clean up the single settings document
+            if frappe.db.exists("ZATCA Phase 1 Business Settings", settings.name):
+                frappe.delete_doc(
+                    "ZATCA Phase 1 Business Settings",
+                    settings.name,
+                    ignore_permissions=True,
+                    force=True,
+                )
+                frappe.db.commit()  # nosemgrep
 
         frappe.logger().info("✅ test_status_options completed successfully")
 

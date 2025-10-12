@@ -31,7 +31,7 @@ class TestZATCAEGS(KSAComplianceTestBase):
 
         # Use the comprehensive setup function from business settings tests
         self.business_settings_name = setup_zatca_business_settings(
-            TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY
+            TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, full_onboarding=False
         )
 
     def _create_test_erpnext_egs(self, device_id="ERPNext"):

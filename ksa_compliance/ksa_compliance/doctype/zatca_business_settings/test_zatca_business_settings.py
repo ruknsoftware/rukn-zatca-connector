@@ -88,7 +88,10 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info("🧪 Running test_compliance_without_addresses...")
 
         business_settings_id = setup_zatca_business_settings(
-            TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY
+            TEST_COMPANY_NAME,
+            SAUDI_COUNTRY,
+            SAUDI_CURRENCY,
+            True,
         )
         from ksa_compliance.test.test_setup import setup_compliance_check_data
 
@@ -114,7 +117,10 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info("🧪 Running test_compliance_with_addresses...")
 
         business_settings_id = setup_zatca_business_settings(
-            TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY
+            TEST_COMPANY_NAME,
+            SAUDI_COUNTRY,
+            SAUDI_CURRENCY,
+            False,
         )
         from ksa_compliance.test.test_setup import setup_compliance_check_data
 
@@ -263,7 +269,7 @@ class TestZATCABusinessSettings(FrappeTestCase):
         )
 
 
-def setup_zatca_business_settings(company_name, country, currency):
+def setup_zatca_business_settings(company_name, country, currency, full_onboarding):
     """Setup ZATCA Business Settings with full onboarding process"""
     doc_name = f"{company_name}-{country}-{currency}"
 
@@ -349,44 +355,44 @@ def setup_zatca_business_settings(company_name, country, currency):
 
     b_settings = frappe.get_doc("ZATCA Business Settings", doc_name)
 
-    frappe.logger().info(f"🔍 Current compliance_request_id: {b_settings.compliance_request_id}")
-    frappe.logger().info(f"🔍 Current production_request_id: {b_settings.production_request_id}")
+    if full_onboarding:
+        frappe.logger().info(
+            f"🔍 Current production_request_id: {b_settings.production_request_id}"
+        )
+        frappe.logger().info("🔄 Clearing mock compliance_request_id to force fresh onboarding")
+        b_settings.compliance_request_id = None
+        b_settings.production_request_id = None
+        b_settings.save(ignore_permissions=True)
+        frappe.db.commit()  # nosemgrep - Required to persist mock ID clearing for fresh onboarding
+        if b_settings.cli_setup == "Automatic":
+            zatca_cli_response = zatca_cli_setup("", "")
+            if zatca_cli_response:
+                b_settings.zatca_cli_path = zatca_cli_response.get("cli_path")
+                b_settings.java_home = zatca_cli_response.get("jre_path")
+                b_settings.save(ignore_permissions=True)
+                frappe.logger().info(
+                    f"✅ ZATCA CLI setup completed: {zatca_cli_response.get('cli_path')}"
+                )
 
-    frappe.logger().info("🔄 Clearing mock compliance_request_id to force fresh onboarding")
-    b_settings.compliance_request_id = None
-    b_settings.production_request_id = None
-    b_settings.save(ignore_permissions=True)
-    frappe.db.commit()  # nosemgrep - Required to persist mock ID clearing for fresh onboarding
+        otp = "123456"
 
-    if b_settings.cli_setup == "Automatic":
-        zatca_cli_response = zatca_cli_setup("", "")
-        if zatca_cli_response:
-            b_settings.zatca_cli_path = zatca_cli_response.get("cli_path")
-            b_settings.java_home = zatca_cli_response.get("jre_path")
-            b_settings.save(ignore_permissions=True)
-            frappe.logger().info(
-                f"✅ ZATCA CLI setup completed: {zatca_cli_response.get('cli_path')}"
-            )
+        if not b_settings.compliance_request_id:
+            # Run actual onboarding process
+            frappe.logger().info("🔄 Starting ZATCA onboarding process...")
+            try:
+                b_settings.onboard(otp=otp)
+                b_settings.reload()
+                frappe.logger().info(
+                    f"✅ Onboarding completed. Compliance Request ID: {b_settings.compliance_request_id}"
+                )
+            except Exception as e:
+                frappe.logger().info(f"❌ Onboarding failed: {e}")
+                # Create the necessary certificate files for testing even if onboarding fails
+                raise
 
-    otp = "123456"
-
-    if not b_settings.compliance_request_id:
-        # Run actual onboarding process
-        frappe.logger().info("🔄 Starting ZATCA onboarding process...")
-        try:
-            b_settings.onboard(otp=otp)
+        if b_settings.compliance_request_id and not b_settings.production_request_id:
+            # Run actual production CSID process
+            b_settings.get_production_csid(otp=otp)
             b_settings.reload()
-            frappe.logger().info(
-                f"✅ Onboarding completed. Compliance Request ID: {b_settings.compliance_request_id}"
-            )
-        except Exception as e:
-            frappe.logger().info(f"❌ Onboarding failed: {e}")
-            # Create the necessary certificate files for testing even if onboarding fails
-            raise
-
-    if b_settings.compliance_request_id and not b_settings.production_request_id:
-        # Run actual production CSID process
-        b_settings.get_production_csid(otp=otp)
-        b_settings.reload()
 
     return doc_name
