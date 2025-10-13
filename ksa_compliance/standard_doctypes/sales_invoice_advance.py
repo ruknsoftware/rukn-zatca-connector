@@ -19,13 +19,20 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
     sales_invoice_advance = frappe.qb.DocType("Sales Invoice Advance")
     payment_entry = frappe.qb.DocType("Payment Entry")
     advance_payments = []
+    settings = ZATCABusinessSettings.for_company(self.company)
     if hasattr(self, "__unsaved"):
         for sales_invoice_advance in self.advances:
             payment_entry = frappe.get_doc(
                 sales_invoice_advance.reference_type, sales_invoice_advance.reference_name
             )
+            if settings.advance_payment_depends_on == "Sales Invoice":
+                is_advance_payment = True if payment_entry.is_advance_payment == 1 else False
+            else:
+                is_advance_payment = (
+                    True if payment_entry.is_advance_payment_depends_on_entry == 1 else False
+                )
             if (
-                payment_entry.is_advance_payment == 1
+                is_advance_payment
                 and payment_entry.party_type == "Customer"
                 and payment_entry.payment_type == "Receive"
             ):
@@ -41,6 +48,11 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
                 )
         return advance_payments
 
+    advance_payment_query_condition = (
+        payment_entry.is_advance_payment == 1
+        if settings.advance_payment_depends_on == "Sales Invoice"
+        else payment_entry.is_advance_payment_depends_on_entry == 1
+    )
     return (
         frappe.qb.from_(sales_invoice_advance)
         .join(payment_entry)
@@ -55,7 +67,7 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
             payment_entry.advance_payment_invoice,
         )
         .where(
-            (payment_entry.is_advance_payment == 1)
+            advance_payment_query_condition
             & (payment_entry.payment_type == "Receive")
             & (payment_entry.party_type == "Customer")
             & (sales_invoice_advance.parent == self.name)
@@ -152,7 +164,7 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
     customer = self.get("customer")
     party_account = get_party_account(party_type="Customer", party=customer, company=company)
     payment_entry = qb.DocType("Payment Entry")
-    advance_payment_entries = (
+    advance_payment_entries_query = (
         qb.from_(payment_entry)
         .select(
             ConstantColumn("Payment Entry").as_("reference_type"),
@@ -170,10 +182,18 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
             & (payment_entry.payment_type == "Receive")
             & (payment_entry.docstatus == 1)
             & (payment_entry.unallocated_amount.gt(0))
-            & (payment_entry.is_advance_payment == 1)
         )
         .orderby(payment_entry.posting_date)
-    ).run(as_dict=1)
+    )
+    if settings.advance_payment_depends_on == "Sales Invoice":
+        advance_payment_entries_query = advance_payment_entries_query.where(
+            (payment_entry.is_advance_payment == 1)
+        )
+    else:
+        advance_payment_entries_query = advance_payment_entries_query.where(
+            (payment_entry.is_advance_payment_depends_on_entry == 1)
+        )
+    advance_payment_entries = advance_payment_entries_query.run(as_dict=1)
     advances = []
     advance_allocated = 0
     for advance_payment in advance_payment_entries:
