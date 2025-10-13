@@ -400,6 +400,44 @@ jobs:
           
           bench build
 
+      - name: Debug - Show Installed Apps
+        working-directory: /home/runner/frappe-bench
+        run: |
+          echo "🔍 Debug: Checking installed apps on test site..."
+          echo "📋 List of installed apps:"
+          bench --site test_site list-apps
+          echo ""
+          echo "📁 App directories in bench:"
+          ls -la apps/
+          echo ""
+          echo "📁 KSA Compliance app structure:"
+          if [ -d "apps/ksa_compliance" ]; then
+            ls -la apps/ksa_compliance/
+            echo ""
+            echo "📁 KSA Compliance ksa_compliance directory:"
+            if [ -d "apps/ksa_compliance/ksa_compliance" ]; then
+              ls -la apps/ksa_compliance/ksa_compliance/
+              echo ""
+              echo "📁 Test directories:"
+              if [ -d "apps/ksa_compliance/ksa_compliance/test" ]; then
+                echo "✅ test directory exists:"
+                ls -la apps/ksa_compliance/ksa_compliance/test/
+              else
+                echo "❌ test directory does not exist"
+              fi
+              if [ -d "apps/ksa_compliance/ksa_compliance/tests" ]; then
+                echo "✅ tests directory exists:"
+                ls -la apps/ksa_compliance/ksa_compliance/tests/
+              else
+                echo "❌ tests directory does not exist"
+              fi
+            else
+              echo "❌ ksa_compliance/ksa_compliance directory does not exist"
+            fi
+          else
+            echo "❌ ksa_compliance app directory does not exist"
+          fi
+
       - name: Run Tests (Optimized)
         working-directory: /home/runner/frappe-bench
         run: |
