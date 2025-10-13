@@ -233,8 +233,8 @@ jobs:
           # Copy the test setup script from the repository (using GitHub workspace)
           cp $GITHUB_WORKSPACE/.github/scripts/test_setup.py test_setup_script.py
           
-          # Run the setup script
-          python test_setup_script.py
+          # Run the setup script through bench to ensure proper environment
+          bench --site test_site console < test_setup_script.py
           
           # Create a marker file to indicate setup is complete
           touch test_environment_ready.marker

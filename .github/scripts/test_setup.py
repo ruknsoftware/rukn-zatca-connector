@@ -14,15 +14,7 @@ def main():
     """Main function to run the test environment setup."""
     print("🚀 Starting test environment setup...")
     
-    # Add the bench directory to Python path
-    sys.path.insert(0, '/home/runner/frappe-bench')
-    
     try:
-        # Initialize Frappe
-        print("🔧 Initializing Frappe...")
-        frappe.init(site='test_site')
-        frappe.connect()
-        
         # Import test setup functions
         from ksa_compliance.test.test_setup import custom_erpnext_setup, data_setup
         from ksa_compliance.ksa_compliance.test.zatca_test_preparation import prepare_system_for_zatca_tests
@@ -42,10 +34,6 @@ def main():
     except Exception as e:
         print(f"❌ Error during test environment setup: {str(e)}")
         raise
-    finally:
-        # Clean up Frappe connection
-        if frappe.db:
-            frappe.destroy()
 
 
 if __name__ == "__main__":
