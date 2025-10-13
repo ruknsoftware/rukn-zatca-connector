@@ -288,7 +288,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
-    name: Server (Build ${{ matrix.build-number }}/${{ env.PARALLEL_BUILDS }})
+    name: Server (Build ${{ matrix.build-number }})
 
     services:
       redis-cache:
