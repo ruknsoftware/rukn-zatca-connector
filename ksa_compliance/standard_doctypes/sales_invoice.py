@@ -472,28 +472,77 @@ def create_payment_entry_for_advance_payment_invoice(
 
 class AdvanceSalesInvoice(SalesInvoice):
     def make_tax_gl_entries(self, gl_entries):
+        settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
+        advance_payments = get_invoice_advance_payments(self)
+        if not advance_payments:
+            return super().make_tax_gl_entries(gl_entries)
+
         enable_discount_accounting = cint(
             frappe.db.get_single_value("Selling Settings", "enable_discount_accounting")
         )
 
+        advance_payments = get_invoice_advance_payments(self)
+        total_advance_taxes_amount = 0
+
+        for advance_payment in advance_payments:
+            advance_payment_tax = calculate_advance_payment_tax_amount(advance_payment, self)
+            advance_payment_entry_doc = frappe.get_doc(
+                "Payment Entry", advance_payment.reference_name
+            )
+            advance_payment_entry_doc.allocated_tax = (
+                advance_payment_entry_doc.allocated_tax + advance_payment_tax
+            )
+            advance_payment_entry_doc.unallocated_tax = abs(
+                advance_payment_entry_doc.unallocated_tax - advance_payment_tax
+            )
+            advance_payment_entry_doc.flags.ignore_validate_update_after_submit = True
+            advance_payment_entry_doc.save()
+
+            total_advance_taxes_amount += advance_payment_tax
+
+        advance_tax_account = settings.advance_payment_tax_account
+
         for tax in self.get("taxes"):
             amount, base_amount = self.get_tax_amounts(tax, enable_discount_accounting)
+            if not flt(tax.base_tax_amount_after_discount_amount):
+                continue
 
-            if flt(tax.base_tax_amount_after_discount_amount):
-                account_currency = get_account_currency(tax.account_head)
+            account_currency = get_account_currency(tax.account_head)
+            tax_amount = flt(base_amount, tax.precision("tax_amount_after_discount_amount"))
+
+            if total_advance_taxes_amount > 0 and advance_tax_account:
+                advance_portion = min(total_advance_taxes_amount, tax_amount)
+
+                gl_entries.append(
+                    self.get_gl_dict(
+                        {
+                            "account": advance_tax_account,
+                            "against": self.customer,
+                            "credit": advance_portion,
+                            "credit_in_account_currency": (
+                                advance_portion
+                                if account_currency == self.company_currency
+                                else advance_portion
+                            ),
+                            "cost_center": tax.cost_center,
+                        },
+                        account_currency,
+                        item=tax,
+                    )
+                )
+
+                total_advance_taxes_amount -= advance_portion
+                tax_amount -= advance_portion
+
+            if tax_amount > 0:
                 gl_entries.append(
                     self.get_gl_dict(
                         {
                             "account": tax.account_head,
                             "against": self.customer,
-                            "credit": flt(
-                                base_amount, tax.precision("tax_amount_after_discount_amount")
-                            ),
+                            "credit": tax_amount,
                             "credit_in_account_currency": (
-                                flt(
-                                    base_amount,
-                                    tax.precision("base_tax_amount_after_discount_amount"),
-                                )
+                                tax_amount
                                 if account_currency == self.company_currency
                                 else flt(amount, tax.precision("tax_amount_after_discount_amount"))
                             ),
