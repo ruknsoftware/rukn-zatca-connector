@@ -125,9 +125,10 @@ def create_sales_invoice_additional_fields_doctype(
             if not is_advance_invoice:
                 settle_return_invoice_paid_from_advance_payment(self)
         else:
-            advance_payments = get_invoice_advance_payments(self)
-            for advance_payment in advance_payments:
-                set_advance_payment_invoice_settling_gl_entries(advance_payment)
+            if settings.advance_payment_depends_on == "Sales Invoice":
+                advance_payments = get_invoice_advance_payments(self)
+                for advance_payment in advance_payments:
+                    set_advance_payment_invoice_settling_gl_entries(advance_payment)
 
     if is_live_sync:
         # We're running in the context of invoice submission (on_submit hook). We only want to run our ZATCA logic if
@@ -255,25 +256,26 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                 )
                 valid = False
             else:
-                for advance_payment in advance_payments:
-                    advance_payment_invoice = advance_payment.copy()
-                    advance_payment_invoice.reference_type = "Sales Invoice"
-                    advance_payment_invoice.reference_name = (
-                        advance_payment.advance_payment_invoice
-                    )
+                if settings.advance_payment_depends_on == "Sales Invoice":
+                    for advance_payment in advance_payments:
+                        advance_payment_invoice = advance_payment.copy()
+                        advance_payment_invoice.reference_type = "Sales Invoice"
+                        advance_payment_invoice.reference_name = (
+                            advance_payment.advance_payment_invoice
+                        )
 
-                    advance_payment_invoice_doc = frappe.get_doc(
-                        "Sales Invoice", advance_payment.advance_payment_invoice
-                    )
-                    item = advance_payment_invoice_doc.items[0]
-                    tax_percent = abs(item.tax_rate or 0.0)
-                    tax_amount = calculate_advance_payment_tax_amount(
-                        advance_payment_invoice, advance_payment_invoice_doc
-                    )
-                    advance_payment_invoice.tax_percent = tax_percent
-                    advance_payment_invoice.tax_amount = tax_amount
+                        advance_payment_invoice_doc = frappe.get_doc(
+                            "Sales Invoice", advance_payment.advance_payment_invoice
+                        )
+                        item = advance_payment_invoice_doc.items[0]
+                        tax_percent = abs(item.tax_rate or 0.0)
+                        tax_amount = calculate_advance_payment_tax_amount(
+                            advance_payment_invoice, advance_payment_invoice_doc
+                        )
+                        advance_payment_invoice.tax_percent = tax_percent
+                        advance_payment_invoice.tax_amount = tax_amount
 
-                    self.append("advance_payment_invoices", advance_payment_invoice)
+                        self.append("advance_payment_invoices", advance_payment_invoice)
         validate_customer_vat_compliance(self, method)
 
     if not valid:
