@@ -18,6 +18,10 @@ on:
     # Run everyday at midnight UTC / 5:30 IST
     - cron: "0 0 * * *"
 
+env:
+  # Configurable number of parallel test builds (reduce to save GitHub Actions minutes)
+  PARALLEL_BUILDS: 2
+
 concurrency:
   group: develop-ksa_compliance-${{ github.event.pull_request.number || github.event.number }}
   cancel-in-progress: true
@@ -263,8 +267,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        build-number: [1, 2, 3, 4]
-    name: Server (Build ${{ matrix.build-number }}/4)
+        build-number: ${{ fromJSON(format('[{0}]', join(range(1, env.PARALLEL_BUILDS + 1), ','))) }}
+    name: Server (Build ${{ matrix.build-number }}/${{ env.PARALLEL_BUILDS }})
 
     services:
       redis-cache:
@@ -380,6 +384,6 @@ jobs:
         working-directory: /home/runner/frappe-bench
         run: |
           bench --site test_site set-config allow_tests true
-          bench --site test_site run-parallel-tests --app ksa_compliance --total-builds 4 --build-number ${{ matrix.build-number }}
+          bench --site test_site run-parallel-tests --app ksa_compliance --total-builds ${{ env.PARALLEL_BUILDS }} --build-number ${{ matrix.build-number }}
         env:
           TYPE: server
