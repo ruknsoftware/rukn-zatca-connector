@@ -17,7 +17,7 @@ from erpnext.accounts.doctype.sales_invoice.sales_invoice import (
 from erpnext.accounts.utils import get_balance_on
 from erpnext.setup.utils import get_exchange_rate
 from frappe import _
-from frappe.utils import flt, strip
+from frappe.utils import cint, flt, strip
 from result import is_ok
 
 from ksa_compliance import logger
@@ -468,3 +468,38 @@ def create_payment_entry_for_advance_payment_invoice(
     payment_entry.save()
     payment_entry.submit()
     return payment_entry
+
+
+class AdvanceSalesInvoice(SalesInvoice):
+    def make_tax_gl_entries(self, gl_entries):
+        enable_discount_accounting = cint(
+            frappe.db.get_single_value("Selling Settings", "enable_discount_accounting")
+        )
+
+        for tax in self.get("taxes"):
+            amount, base_amount = self.get_tax_amounts(tax, enable_discount_accounting)
+
+            if flt(tax.base_tax_amount_after_discount_amount):
+                account_currency = get_account_currency(tax.account_head)
+                gl_entries.append(
+                    self.get_gl_dict(
+                        {
+                            "account": tax.account_head,
+                            "against": self.customer,
+                            "credit": flt(
+                                base_amount, tax.precision("tax_amount_after_discount_amount")
+                            ),
+                            "credit_in_account_currency": (
+                                flt(
+                                    base_amount,
+                                    tax.precision("base_tax_amount_after_discount_amount"),
+                                )
+                                if account_currency == self.company_currency
+                                else flt(amount, tax.precision("tax_amount_after_discount_amount"))
+                            ),
+                            "cost_center": tax.cost_center,
+                        },
+                        account_currency,
+                        item=tax,
+                    )
+                )
