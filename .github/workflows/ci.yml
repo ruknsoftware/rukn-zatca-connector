@@ -257,17 +257,37 @@ jobs:
         id: setup-complete
         run: echo "complete=true" >> $GITHUB_OUTPUT
 
-  # Optimized test jobs that reuse the setup
-  tests:
+  # Generate dynamic matrix for test jobs
+  generate-matrix:
     runs-on: ubuntu-latest
     needs: [check-review, setup-environment]
     if: |
       github.event_name == 'push' || 
       ((github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && needs.check-review.outputs.approved == 'true')
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Generate Matrix
+        id: set-matrix
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const parallelBuilds = parseInt(process.env.PARALLEL_BUILDS);
+            const buildNumbers = Array.from({length: parallelBuilds}, (_, i) => i + 1);
+            const matrix = { "build-number": buildNumbers };
+            console.log('Generated matrix:', JSON.stringify(matrix));
+            core.setOutput('matrix', JSON.stringify(matrix));
+
+  # Optimized test jobs that reuse the setup
+  tests:
+    runs-on: ubuntu-latest
+    needs: [check-review, setup-environment, generate-matrix]
+    if: |
+      github.event_name == 'push' || 
+      ((github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && needs.check-review.outputs.approved == 'true')
     strategy:
       fail-fast: false
-      matrix:
-        build-number: ${{ fromJSON(format('[{0}]', join(range(1, env.PARALLEL_BUILDS + 1), ','))) }}
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
     name: Server (Build ${{ matrix.build-number }}/${{ env.PARALLEL_BUILDS }})
 
     services:
