@@ -7,6 +7,10 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.54.4
+* Avoid Return Invoice Paid Settling From Advance Payment Entry
+* Handle Payment Reconciliation with Advance Payment Depends On
+
 ## 0.54.3
 * Add taxes when settling Sales Invoice from advance payment entry
 * Apply Advance Payment Depends On applicable payments
