@@ -510,6 +510,15 @@ class AdvanceSalesInvoice(SalesInvoice):
             account_currency = get_account_currency(tax.account_head)
             tax_amount = flt(base_amount, tax.precision("tax_amount_after_discount_amount"))
 
+            advance_tax_account_currency = get_account_currency(advance_tax_account)
+
+            if advance_tax_account_currency != self.company_currency:
+                frappe.throw(
+                    _(
+                        "Advance tax account currency ({0}) must match company currency ({1}). "
+                        "Multi-currency handling for advance portion is not supported yet."
+                    ).format(advance_tax_account_currency, self.company_currency)
+                )
             if total_advance_taxes_amount > 0 and advance_tax_account:
                 advance_portion = min(total_advance_taxes_amount, tax_amount)
 
