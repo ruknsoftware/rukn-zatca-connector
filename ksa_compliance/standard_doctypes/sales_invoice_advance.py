@@ -48,10 +48,8 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
                 )
         return advance_payments
 
-    advance_payment_query_condition = (
-        payment_entry.is_advance_payment == 1
-        if settings.advance_payment_depends_on == "Sales Invoice"
-        else payment_entry.is_advance_payment_depends_on_entry == 1
+    advance_payment_query_condition = get_advance_payment_query_condition(
+        payment_entry, settings.advance_payment_depends_on
     )
     return (
         frappe.qb.from_(sales_invoice_advance)
@@ -164,6 +162,9 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
     customer = self.get("customer")
     party_account = get_party_account(party_type="Customer", party=customer, company=company)
     payment_entry = qb.DocType("Payment Entry")
+    advance_payment_query_condition = get_advance_payment_query_condition(
+        payment_entry, settings.advance_payment_depends_on
+    )
     advance_payment_entries_query = (
         qb.from_(payment_entry)
         .select(
@@ -176,7 +177,8 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
             payment_entry.paid_from_account_currency.as_("currency"),
         )
         .where(
-            (payment_entry.paid_from == party_account)
+            advance_payment_query_condition
+            & (payment_entry.paid_from == party_account)
             & (payment_entry.party_type == "Customer")
             & (payment_entry.party == customer)
             & (payment_entry.payment_type == "Receive")
@@ -185,14 +187,6 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
         )
         .orderby(payment_entry.posting_date)
     )
-    if settings.advance_payment_depends_on == "Sales Invoice":
-        advance_payment_entries_query = advance_payment_entries_query.where(
-            (payment_entry.is_advance_payment == 1)
-        )
-    else:
-        advance_payment_entries_query = advance_payment_entries_query.where(
-            (payment_entry.is_advance_payment_depends_on_entry == 1)
-        )
     advance_payment_entries = advance_payment_entries_query.run(as_dict=1)
     advances = []
     advance_allocated = 0
@@ -218,3 +212,11 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
 
         advances.append(advance_row)
     return advances
+
+
+def get_advance_payment_query_condition(payment_entry, advance_payment_depends_on):
+    return (
+        payment_entry.is_advance_payment == 1
+        if advance_payment_depends_on == "Sales Invoice"
+        else payment_entry.is_advance_payment_depends_on_entry == 1
+    )
