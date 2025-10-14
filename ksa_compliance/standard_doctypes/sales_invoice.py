@@ -474,7 +474,7 @@ class AdvanceSalesInvoice(SalesInvoice):
     def make_tax_gl_entries(self, gl_entries):
         settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
         advance_payments = get_invoice_advance_payments(self)
-        if not advance_payments:
+        if not advance_payments or settings.advance_payment_depends_on != "Payment Entry":
             return super().make_tax_gl_entries(gl_entries)
 
         enable_discount_accounting = cint(
