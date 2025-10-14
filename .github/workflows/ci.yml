@@ -1,4 +1,3 @@
-
 name: CI
 
 on:
@@ -16,8 +15,12 @@ on:
   pull_request_review:
     types: [submitted, edited, dismissed]
   schedule:
-    # Run everday at midnight UTC / 5:30 IST
+    # Run everyday at midnight UTC / 5:30 IST
     - cron: "0 0 * * *"
+
+env:
+  # Configurable number of parallel test builds (reduce to save GitHub Actions minutes)
+  PARALLEL_BUILDS: 2
 
 concurrency:
   group: develop-ksa_compliance-${{ github.event.pull_request.number || github.event.number }}
@@ -40,16 +43,15 @@ jobs:
             const checkReviews = require('./.github/scripts/check-reviews.js');
             await checkReviews({ github, context, core });
 
-  tests:
+  # NEW: Shared setup job that runs once and creates artifacts
+  setup-environment:
     runs-on: ubuntu-latest
     needs: check-review
     if: |
       github.event_name == 'push' || 
       ((github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && needs.check-review.outputs.approved == 'true')
-    strategy:
-      fail-fast: false
-    name: Server
-
+    outputs:
+      setup-complete: ${{ steps.setup-complete.outputs.complete }}
     services:
       redis-cache:
         image: redis:alpine
@@ -70,11 +72,6 @@ jobs:
     steps:
       - name: Clone
         uses: actions/checkout@v3
-
-      - name: Find tests
-        run: |
-          echo "Finding tests"
-          grep -rn "def test" > /dev/null
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -132,7 +129,7 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y mariadb-client
 
-      - name: Setup
+      - name: Setup Environment
         run: |
           pip install frappe-bench
           if [ ! -d ~/frappe-bench ]; then
@@ -141,7 +138,7 @@ jobs:
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 
-      - name: Install
+      - name: Install Apps
         working-directory: /home/runner/frappe-bench
         run: |
           # Use the PR branch for pull requests and pull request reviews, otherwise use develop
@@ -159,6 +156,7 @@ jobs:
             BRANCH_NAME="develop"
             REPO_URL="https://github.com/ruknsoftware/rukn-zatca-connector.git"
           fi
+          
           # Remove existing ksa_compliance directory if it exists (from cache)
           if [ -d "apps/ksa_compliance" ]; then
             rm -rf apps/ksa_compliance
@@ -177,7 +175,10 @@ jobs:
           fi
           wait
           bench setup requirements --dev
-          
+
+      - name: Setup Database
+        working-directory: /home/runner/frappe-bench
+        run: |
           # Database optimization: Use backup/restore if available
           if [ -f "sites/test_site.sql" ]; then
             echo "🔄 Restoring database from cache..."
@@ -223,13 +224,224 @@ jobs:
             echo "✅ Database backed up"
           fi
           bench build
-        env:
-          CI: 'Yes'
 
-      - name: Run Tests
+      - name: Prepare Test Environment
+        working-directory: /home/runner/frappe-bench
+        run: |
+          # Run test setup once and create artifacts
+          bench --site test_site set-config allow_tests true
+          
+          # Create test setup artifacts
+          echo "🔧 Preparing test environment artifacts..."
+          
+          # Copy the test setup script from the repository (using GitHub workspace)
+          cp $GITHUB_WORKSPACE/.github/scripts/test_setup.py test_setup_script.py
+          
+          # Run the setup script through bench to ensure proper environment
+          bench --site test_site console < test_setup_script.py
+          
+          # Create a marker file to indicate setup is complete
+          touch test_environment_ready.marker
+
+      - name: Upload Test Environment Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-environment-${{ github.run_id }}
+          path: |
+            /home/runner/frappe-bench/sites/test_site.sql
+            /home/runner/frappe-bench/test_setup_script.py
+            /home/runner/frappe-bench/test_environment_ready.marker
+          retention-days: 1
+
+      - name: Setup Complete
+        id: setup-complete
+        run: echo "complete=true" >> $GITHUB_OUTPUT
+
+  # Generate dynamic matrix for test jobs
+  generate-matrix:
+    runs-on: ubuntu-latest
+    needs: [check-review, setup-environment]
+    if: |
+      github.event_name == 'push' || 
+      ((github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && needs.check-review.outputs.approved == 'true')
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Generate Matrix
+        id: set-matrix
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const parallelBuilds = parseInt(process.env.PARALLEL_BUILDS);
+            const buildNumbers = Array.from({length: parallelBuilds}, (_, i) => i + 1);
+            const matrix = { "build-number": buildNumbers };
+            console.log('Generated matrix:', JSON.stringify(matrix));
+            core.setOutput('matrix', JSON.stringify(matrix));
+
+  # Optimized test jobs that reuse the setup
+  tests:
+    runs-on: ubuntu-latest
+    needs: [check-review, setup-environment, generate-matrix]
+    if: |
+      github.event_name == 'push' || 
+      ((github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && needs.check-review.outputs.approved == 'true')
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+    name: Server (Build ${{ matrix.build-number }})
+
+    services:
+      redis-cache:
+        image: redis:alpine
+        ports:
+          - 13000:6379
+      redis-queue:
+        image: redis:alpine
+        ports:
+          - 11000:6379
+      mariadb:
+        image: mariadb:10.6
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: --health-cmd="mariadb-admin ping" --health-interval=5s --health-timeout=2s --health-retries=3
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          check-latest: true
+
+      - name: Cache pip
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/*requirements.txt', '**/pyproject.toml', '**/setup.py', '**/setup.cfg') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+            ${{ runner.os }}-
+
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: 'echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT'
+
+      - uses: actions/cache@v3
+        id: yarn-cache
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Cache Bench
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/frappe-bench
+            ~/.cache/frappe-bench
+          key: ${{ runner.os }}-bench-${{ hashFiles('**/requirements.txt', '**/package.json', '**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bench-
+
+      - name: Install MariaDB Client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y mariadb-client
+
+      - name: Quick Environment Setup
+        run: |
+          pip install frappe-bench
+          if [ ! -d ~/frappe-bench ]; then
+            bench init --frappe-branch version-15 --skip-redis-config-generation --skip-assets --python "$(which python)" ~/frappe-bench
+          fi
+          mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
+          mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
+
+      - name: Download Test Environment Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: test-environment-${{ github.run_id }}
+          path: /home/runner/frappe-bench/
+
+      - name: Restore Test Environment
+        working-directory: /home/runner/frappe-bench
+        run: |
+          # Restore database from artifact
+          if [ -f "sites/test_site.sql" ]; then
+            echo "🔄 Restoring database from artifact..."
+            # Drop existing site if it exists
+            if [ -d "sites/test_site" ]; then
+              bench drop-site test_site --db-root-password root --force
+            fi
+            # Create new site and restore database
+            bench new-site --db-root-password root --admin-password admin test_site --no-mariadb-socket
+            DB_NAME=$(grep '"db_name"' sites/test_site/site_config.json | sed 's/.*"db_name": *"\([^"]*\)".*/\1/')
+            mariadb --host 127.0.0.1 --port 3306 -u root -proot $DB_NAME < sites/test_site.sql
+            echo "✅ Database restored from artifact"
+          fi
+          
+          # Verify test environment is ready
+          if [ -f "test_environment_ready.marker" ]; then
+            echo "✅ Test environment artifacts verified"
+          else
+            echo "❌ Test environment artifacts not found, running setup..."
+            python test_setup_script.py
+          fi
+          
+          bench build
+
+      - name: Debug - Show Installed Apps
+        working-directory: /home/runner/frappe-bench
+        run: |
+          echo "🔍 Debug: Checking installed apps on test site..."
+          echo "📋 List of installed apps:"
+          bench --site test_site list-apps
+          echo ""
+          echo "📁 App directories in bench:"
+          ls -la apps/
+          echo ""
+          echo "📁 KSA Compliance app structure:"
+          if [ -d "apps/ksa_compliance" ]; then
+            ls -la apps/ksa_compliance/
+            echo ""
+            echo "📁 KSA Compliance ksa_compliance directory:"
+            if [ -d "apps/ksa_compliance/ksa_compliance" ]; then
+              ls -la apps/ksa_compliance/ksa_compliance/
+              echo ""
+              echo "📁 Test directories:"
+              if [ -d "apps/ksa_compliance/ksa_compliance/test" ]; then
+                echo "✅ test directory exists:"
+                ls -la apps/ksa_compliance/ksa_compliance/test/
+              else
+                echo "❌ test directory does not exist"
+              fi
+              if [ -d "apps/ksa_compliance/ksa_compliance/tests" ]; then
+                echo "✅ tests directory exists:"
+                ls -la apps/ksa_compliance/ksa_compliance/tests/
+              else
+                echo "❌ tests directory does not exist"
+              fi
+            else
+              echo "❌ ksa_compliance/ksa_compliance directory does not exist"
+            fi
+          else
+            echo "❌ ksa_compliance app directory does not exist"
+          fi
+
+      - name: Run Tests (Optimized)
         working-directory: /home/runner/frappe-bench
         run: |
           bench --site test_site set-config allow_tests true
-          bench --site test_site run-tests --app ksa_compliance
+          bench --site test_site run-parallel-tests --app ksa_compliance --total-builds ${{ env.PARALLEL_BUILDS }} --build-number ${{ matrix.build-number }}
         env:
           TYPE: server
