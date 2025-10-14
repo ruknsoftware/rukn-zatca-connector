@@ -519,11 +519,7 @@ class AdvanceSalesInvoice(SalesInvoice):
                             "account": advance_tax_account,
                             "against": self.customer,
                             "credit": advance_portion,
-                            "credit_in_account_currency": (
-                                advance_portion
-                                if account_currency == self.company_currency
-                                else advance_portion
-                            ),
+                            "credit_in_account_currency": advance_portion,
                             "cost_center": tax.cost_center,
                         },
                         account_currency,
