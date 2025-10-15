@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.54.7
+* Prevent Cancellation of Advance Payment Entry when Advance Payment depends on Payment Entry
+
 ## 0.54.6
 * Fix Settings Tax Allocation on Advance Payment Entry
 

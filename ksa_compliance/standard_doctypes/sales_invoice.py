@@ -42,6 +42,7 @@ from ksa_compliance.standard_doctypes.sales_invoice_advance import (
     calculate_advance_payment_tax_amount,
     get_invoice_advance_payments,
     get_invoice_applicable_advance_payments,
+    is_advance_payment_condition,
     set_advance_payment_invoice_settling_gl_entries,
 )
 from ksa_compliance.translation import ft
@@ -167,11 +168,16 @@ def _should_enable_zatca_for_invoice(invoice_id: str) -> bool:
 def prevent_cancellation_of_sales_invoice(
     self: SalesInvoice | POSInvoice | PaymentEntry, method
 ) -> None:
-    is_advance_payment = self.doctype == "Payment Entry" and self.is_advance_payment
-    is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
-    if is_phase_2_enabled_for_company or is_advance_payment:
+    settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
+    if not settings:
+        return
+    is_phase_2_enabled_for_company = settings.enable_zatca_integration
+    if is_phase_2_enabled_for_company:
         if self.doctype == "Payment Entry":
-            if not self.is_advance_payment:
+            is_advance_payment = is_advance_payment_condition(
+                self, settings.advance_payment_depends_on
+            )
+            if not is_advance_payment:
                 return
             frappe.throw(
                 msg=_(
