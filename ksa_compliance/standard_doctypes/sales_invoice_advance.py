@@ -26,7 +26,7 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
                 sales_invoice_advance.reference_type, sales_invoice_advance.reference_name
             )
             is_advance_payment = is_advance_payment_condition(
-                settings, settings.advance_payment_depends_on
+                payment_entry, settings.advance_payment_depends_on
             )
             if (
                 is_advance_payment
