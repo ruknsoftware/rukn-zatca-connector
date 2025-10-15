@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.54.6
+* Fix Settings Tax Allocation on Advance Payment Entry
+
 ## 0.54.5
 * Fix Passing Payment Entry on check IS Advance Payment Depends On Entry
 

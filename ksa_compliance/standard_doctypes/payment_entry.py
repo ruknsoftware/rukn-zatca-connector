@@ -110,8 +110,8 @@ def add_tax_gl_entries(doc, method):
     amount = flt(doc.paid_amount)
     net_amount = round(calculate_net_from_gross_included_in_print_rate(amount, tax_rate), 2)
     tax_amount = round(calculate_tax_amount_included_in_print_rate(amount, net_amount), 2)
-    doc.unallocated_tax = tax_amount
-    doc.allocated_tax = 0.0
+    doc.db_set("unallocated_tax", tax_amount)
+    doc.db_set("allocated_tax", 0.0)
     gl_entries.append(
         doc.get_gl_dict(
             {
