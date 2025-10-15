@@ -10,6 +10,9 @@ from frappe.query_builder.custom import ConstantColumn
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     ZATCABusinessSettings,
 )
+from ksa_compliance.standard_doctypes.sales_invoice_advance import (
+    get_advance_payment_query_condition,
+)
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
 
 
@@ -30,12 +33,15 @@ class CustomPaymentReconciliation(PaymentReconciliation):
             return []
         payment_entry_names = [payment_entry.reference_name for payment_entry in payment_entries]
         payment_entry = frappe.qb.DocType("Payment Entry")
+        settings = ZATCABusinessSettings.for_company(self.company)
+        advance_payment_query_condition = get_advance_payment_query_condition(
+            payment_entry, settings.advance_payment_depends_on
+        )
         advance_payment_entries = (
             frappe.qb.from_(payment_entry)
             .select(payment_entry.name)
             .where(
-                (payment_entry.is_advance_payment == 1)
-                & (payment_entry.name.isin(payment_entry_names))
+                advance_payment_query_condition & (payment_entry.name.isin(payment_entry_names))
             )
         ).run(pluck=True)
         if not advance_payment_entries:
@@ -45,8 +51,12 @@ class CustomPaymentReconciliation(PaymentReconciliation):
     def get_payment_entry_conditions(self):
         conditions = super().get_payment_entry_conditions()
         if self.party_type == "Customer":
+            settings = ZATCABusinessSettings.for_company(self.company)
             pe = frappe.qb.DocType("Payment Entry")
-            conditions.append(pe.is_advance_payment == 0)
+            advance_payment_query_condition = get_advance_payment_query_condition(
+                pe, settings.advance_payment_depends_on, reverse=True
+            )
+            conditions.append(advance_payment_query_condition)
         return conditions
 
     def get_invoice_entries(self):

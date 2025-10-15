@@ -25,12 +25,9 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
             payment_entry = frappe.get_doc(
                 sales_invoice_advance.reference_type, sales_invoice_advance.reference_name
             )
-            if settings.advance_payment_depends_on == "Sales Invoice":
-                is_advance_payment = True if payment_entry.is_advance_payment == 1 else False
-            else:
-                is_advance_payment = (
-                    True if payment_entry.is_advance_payment_depends_on_entry == 1 else False
-                )
+            is_advance_payment = is_advance_payment_condition(
+                settings, settings.advance_payment_depends_on
+            )
             if (
                 is_advance_payment
                 and payment_entry.party_type == "Customer"
@@ -214,9 +211,20 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
     return advances
 
 
-def get_advance_payment_query_condition(payment_entry, advance_payment_depends_on):
+def get_advance_payment_query_condition(payment_entry, advance_payment_depends_on, reverse=False):
+    condition_value = 0 if reverse else 1
     return (
-        payment_entry.is_advance_payment == 1
+        payment_entry.is_advance_payment == condition_value
         if advance_payment_depends_on == "Sales Invoice"
-        else payment_entry.is_advance_payment_depends_on_entry == 1
+        else payment_entry.is_advance_payment_depends_on_entry == condition_value
     )
+
+
+def is_advance_payment_condition(payment_entry, advance_payment_depends_on):
+    if advance_payment_depends_on == "Sales Invoice":
+        is_advance_payment = True if payment_entry.is_advance_payment == 1 else False
+    else:
+        is_advance_payment = (
+            True if payment_entry.is_advance_payment_depends_on_entry == 1 else False
+        )
+    return is_advance_payment

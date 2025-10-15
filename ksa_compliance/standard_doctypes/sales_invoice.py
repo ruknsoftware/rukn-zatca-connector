@@ -244,6 +244,14 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
             advance_payments = get_return_against_advance_payments(
                 return_against, abs(self.get("grand_total"))
             )
+            if advance_payments and settings.advance_payment_depends_on == "Payment Entry":
+                frappe.msgprint(
+                    msg=_("Cant Return Invoice Settling From Advance Payment Entry"),
+                    title=_("Validation Error"),
+                    indicator="red",
+                    raise_exception=True,
+                )
+                valid = False
 
         self.advance_payment_invoices = []
         if advance_payments:
