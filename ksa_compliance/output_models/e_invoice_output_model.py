@@ -1063,7 +1063,6 @@ class SalesEinvoice(Einvoice):
     def prepayment_invoice(self):
         sales_invoice_doc = self.sales_invoice_doc
         advance_idx = len(sales_invoice_doc.items)
-        prepayment_invoice = {}
         if sales_invoice_doc.is_return:
             return_against_doc = frappe.get_doc("Sales Invoice", sales_invoice_doc.return_against)
             advance_payments = get_return_against_advance_payments(
@@ -1072,6 +1071,7 @@ class SalesEinvoice(Einvoice):
         else:
             advance_payments = get_invoice_advance_payments(sales_invoice_doc)
         for advance_payment in advance_payments:
+            prepayment_invoice = {}
             if self.business_settings_doc.advance_payment_depends_on == "Sales Invoice":
                 advance_payment_invoice = frappe.get_doc(
                     "Sales Invoice", advance_payment.advance_payment_invoice
