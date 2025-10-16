@@ -1095,7 +1095,9 @@ class SalesEinvoice(Einvoice):
                 prepayment_invoice["issue_time"] = get_time(
                     advance_payment_invoice.creation
                 ).strftime("%H:%M:%S")
-                prepayment_invoice["currency_code"] = get_company_currency(advance_payment_invoice)
+                prepayment_invoice["currency_code"] = (
+                    advance_payment_invoice.paid_from_account_currency
+                )
                 taxes_and_charges = get_taxes_and_charges(advance_payment_invoice)
                 tax_rate = taxes_and_charges.taxes[0].rate
                 amount = flt(advance_payment.allocated_amount)
@@ -1166,9 +1168,7 @@ class AdvancePaymentEntry(Einvoice):
             parent="invoice",
         )
 
-        self.result["invoice"]["currency_code"] = get_company_currency(
-            self.sales_invoice_doc.company
-        )
+        self.result["invoice"]["currency_code"] = self.sales_invoice_doc.paid_from_account_currency
 
         # Default "SAR"
         self.get_text_value(
