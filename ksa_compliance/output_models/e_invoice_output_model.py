@@ -1101,11 +1101,12 @@ class SalesEinvoice(Einvoice):
                 taxes_and_charges = get_taxes_and_charges(advance_payment_invoice)
                 tax_rate = taxes_and_charges.taxes[0].rate
                 amount = flt(advance_payment.allocated_amount)
-                net_amount = round(
-                    calculate_net_from_gross_included_in_print_rate(amount, tax_rate), 2
+                precision = advance_payment_invoice.precision("paid_amount")
+                net_amount = flt(
+                    calculate_net_from_gross_included_in_print_rate(amount, tax_rate), precision
                 )
-                tax_amount = round(
-                    flt(calculate_tax_amount_included_in_print_rate(amount, net_amount)), 2
+                tax_amount = flt(
+                    calculate_tax_amount_included_in_print_rate(amount, net_amount), precision
                 )
                 advance_payment_item = frappe.get_doc(
                     "Item", self.business_settings_doc.advance_payment_item
@@ -1278,9 +1279,14 @@ class AdvancePaymentEntry(Einvoice):
         paid_amount = self.sales_invoice_doc.paid_amount
 
         tax_rate = taxes_and_charges.taxes[0].rate
-        amount = flt(paid_amount)
-        net_amount = round(calculate_net_from_gross_included_in_print_rate(amount, tax_rate), 2)
-        tax_amount = round(flt(calculate_tax_amount_included_in_print_rate(amount, net_amount)), 2)
+        precision = self.sales_invoice_doc.precision("paid_amount")
+        amount = flt(paid_amount, precision)
+        net_amount = flt(
+            calculate_net_from_gross_included_in_print_rate(amount, tax_rate), precision
+        )
+        tax_amount = flt(
+            calculate_tax_amount_included_in_print_rate(amount, net_amount), precision
+        )
 
         self.get_float_value(
             field_name="base_total_taxes_and_charges",
