@@ -1,4 +1,9 @@
 frappe.ui.form.on('Payment Entry', {
+    onload: function(frm) {
+        if (!frm.doc.posting_time && frm.is_new()) {
+            frm.set_value("posting_time", frappe.datetime.now_time());
+        }
+    },
     refresh: function (frm){
         frm.trigger("remove_un_reconcile_button");
 

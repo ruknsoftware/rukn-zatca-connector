@@ -777,6 +777,12 @@ class Einvoice:
             xml_name="issue_date",
             parent="invoice",
         )
+        self.get_time_value(
+            field_name="posting_time",
+            source_doc=self.sales_invoice_doc,
+            xml_name="issue_time",
+            parent="invoice",
+        )
 
         if is_standard:
             # TODO: Review this with business and finalize
@@ -869,13 +875,6 @@ class SalesEinvoice(Einvoice):
 
     def get_e_invoice_details(self, invoice_type: str):
         super().get_e_invoice_details(invoice_type)
-
-        self.get_time_value(
-            field_name="posting_time",
-            source_doc=self.sales_invoice_doc,
-            xml_name="issue_time",
-            parent="invoice",
-        )
 
         self.get_text_value(
             field_name="currency",
@@ -1077,9 +1076,6 @@ class SalesEinvoice(Einvoice):
                 advance_payment_invoice = frappe.get_doc(
                     "Sales Invoice", advance_payment.advance_payment_invoice
                 )
-                prepayment_invoice["issue_time"] = get_time(
-                    advance_payment_invoice.posting_time
-                ).strftime("%H:%M:%S")
                 prepayment_invoice["currency_code"] = advance_payment_invoice.currency
                 tax_amount = calculate_advance_payment_tax_amount(
                     advance_payment, advance_payment_invoice
@@ -1092,9 +1088,6 @@ class SalesEinvoice(Einvoice):
                 advance_payment_invoice = frappe.get_doc(
                     "Payment Entry", advance_payment.reference_name
                 )
-                prepayment_invoice["issue_time"] = get_time(
-                    advance_payment_invoice.creation
-                ).strftime("%H:%M:%S")
                 prepayment_invoice["currency_code"] = (
                     advance_payment_invoice.paid_from_account_currency
                 )
@@ -1123,6 +1116,9 @@ class SalesEinvoice(Einvoice):
             prepayment_invoice["qty"] = 1
 
             prepayment_invoice["issue_date"] = get_date_str(advance_payment_invoice.posting_date)
+            prepayment_invoice["issue_time"] = get_time(
+                advance_payment_invoice.posting_time
+            ).strftime("%H:%M:%S")
 
             allocated_amount = advance_payment.allocated_amount
             prepayment_invoice["allocated_amount"] = allocated_amount
@@ -1161,13 +1157,6 @@ class AdvancePaymentEntry(Einvoice):
 
     def get_e_invoice_details(self, invoice_type: str):
         super().get_e_invoice_details(invoice_type)
-
-        self.get_time_value(
-            field_name="creation",
-            source_doc=self.sales_invoice_doc,
-            xml_name="issue_time",
-            parent="invoice",
-        )
 
         self.result["invoice"]["currency_code"] = self.sales_invoice_doc.paid_from_account_currency
 
