@@ -18,6 +18,7 @@ def add_custom_fields():
                 label="Posting Time",
                 fieldtype="Time",
                 insert_after="posting_date",
+                mandatory_depends_on="eval:doc.is_advance_payment ||  doc.is_advance_payment_depends_on_entry",
                 module=ksa_compliance_module,
             ),
             dict(
