@@ -7,6 +7,10 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.54.8
+* Fix Passing Prepayment Invoices depends on Advance Payment
+* Read Prepayment info depends on Advance Payment for Print Formate
+
 ## 0.54.7
 * Prevent Cancellation of Advance Payment Entry when Advance Payment depends on Payment Entry
 

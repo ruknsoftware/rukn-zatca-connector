@@ -360,6 +360,7 @@ def create_payment_entry_for_advance_payment_invoice(
     payment_entry = frappe.new_doc("Payment Entry")
     payment_entry.payment_type = payment_type
     payment_entry.posting_date = self.posting_date
+    payment_entry.posting_time = self.posting_time
     payment_entry.company = self.company
     payment_entry.party_type = "Customer"
     payment_entry.party = self.customer

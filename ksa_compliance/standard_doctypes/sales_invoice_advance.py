@@ -12,7 +12,12 @@ from frappe.utils import flt
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     ZATCABusinessSettings,
 )
+from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
+from ksa_compliance.utils.update_itemised_tax_data import (
+    calculate_net_from_gross_included_in_print_rate,
+    calculate_tax_amount_included_in_print_rate,
+)
 
 
 def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
@@ -129,18 +134,36 @@ def calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoic
 
 def get_prepayment_info(self: SalesInvoice | POSInvoice):
     advance_payments = get_invoice_advance_payments(self)
+    settings = ZATCABusinessSettings.for_company(self.company)
     for idx, advance_payment in enumerate(advance_payments, start=1):
-        advance_payment_invoice = frappe.get_doc(
-            "Sales Invoice", advance_payment.advance_payment_invoice
-        )
-        item = advance_payment_invoice.items[0]
-        advance_payment["tax_percent"] = abs(item.tax_rate or 0.0)
-        advance_payment["tax_amount"] = calculate_advance_payment_tax_amount(
-            advance_payment, advance_payment_invoice
-        )
-        advance_payment["amount"] = round(
-            advance_payment.allocated_amount - advance_payment["tax_amount"], 2
-        )
+        if settings.advance_payment_depends_on == "Sales Invoice":
+            advance_payment_invoice = frappe.get_doc(
+                "Sales Invoice", advance_payment.advance_payment_invoice
+            )
+            item = advance_payment_invoice.items[0]
+            tax_rate = abs(item.tax_rate or 0.0)
+            tax_amount = calculate_advance_payment_tax_amount(
+                advance_payment, advance_payment_invoice
+            )
+            amount = round(advance_payment.allocated_amount - advance_payment["tax_amount"], 2)
+        else:
+            advance_payment_invoice = frappe.get_doc(
+                "Payment Entry", advance_payment.reference_name
+            )
+            taxes_and_charges = get_taxes_and_charges(advance_payment_invoice)
+            tax_rate = taxes_and_charges.taxes[0].rate
+            precision = self.sales_invoice_doc.precision("paid_amount")
+            amount = flt(advance_payment.allocated_amount, precision)
+            net_amount = flt(
+                calculate_net_from_gross_included_in_print_rate(amount, tax_rate), precision
+            )
+            tax_amount = flt(
+                flt(calculate_tax_amount_included_in_print_rate(amount, net_amount)), precision
+            )
+
+        advance_payment["tax_percent"] = tax_rate
+        advance_payment["tax_amount"] = tax_amount
+        advance_payment["amount"] = amount
         advance_payment["idx"] = idx
     return advance_payments
 

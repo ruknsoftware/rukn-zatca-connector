@@ -14,6 +14,14 @@ def add_custom_fields():
     custom_fields = {
         "Payment Entry": [
             dict(
+                fieldname="posting_time",
+                label="Posting Time",
+                fieldtype="Time",
+                insert_after="posting_date",
+                mandatory_depends_on="eval:doc.is_advance_payment ||  doc.is_advance_payment_depends_on_entry",
+                module=ksa_compliance_module,
+            ),
+            dict(
                 fieldname="is_advance_payment",
                 label="IS Advance Payment",
                 fieldtype="Check",
