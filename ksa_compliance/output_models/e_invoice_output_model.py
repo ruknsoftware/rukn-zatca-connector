@@ -840,6 +840,7 @@ class SalesEinvoice(Einvoice):
     ):
         super().__init__(sales_invoice_additional_fields_doc, invoice_type)
         self.compute_invoice_discount_amount()
+        self.prepayment_invoice()
 
         # After prepayment invoices are collected, recompute payable amount per BR-CO-16 to avoid double subtraction
         prepaid_amount_total = float(self.result.get("prepaid_amount", 0.0) or 0.0)
@@ -1063,6 +1064,7 @@ class SalesEinvoice(Einvoice):
     def prepayment_invoice(self):
         sales_invoice_doc = self.sales_invoice_doc
         advance_idx = len(sales_invoice_doc.items)
+        prepayment_invoice = {}
         if sales_invoice_doc.is_return:
             return_against_doc = frappe.get_doc("Sales Invoice", sales_invoice_doc.return_against)
             advance_payments = get_return_against_advance_payments(
@@ -1071,36 +1073,57 @@ class SalesEinvoice(Einvoice):
         else:
             advance_payments = get_invoice_advance_payments(sales_invoice_doc)
         for advance_payment in advance_payments:
+            if self.business_settings_doc.advance_payment_depends_on == "Sales Invoice":
+                advance_payment_invoice = frappe.get_doc(
+                    "Sales Invoice", advance_payment.advance_payment_invoice
+                )
+                prepayment_invoice["issue_time"] = get_time(
+                    advance_payment_invoice.posting_time
+                ).strftime("%H:%M:%S")
+                prepayment_invoice["currency_code"] = advance_payment_invoice.currency
+                tax_amount = calculate_advance_payment_tax_amount(
+                    advance_payment, advance_payment_invoice
+                )
 
-            advance_payment_invoice = frappe.get_doc(
-                "Sales Invoice", advance_payment.advance_payment_invoice
-            )
+                item = advance_payment_invoice.items[0]
+                prepayment_invoice["item_name"] = item.item_name
+                prepayment_invoice["tax_percent"] = abs(item.tax_rate or 0.0)
+            else:
+                advance_payment_invoice = frappe.get_doc(
+                    "Payment Entry", advance_payment.reference_name
+                )
+                prepayment_invoice["issue_time"] = get_time(
+                    advance_payment_invoice.creation
+                ).strftime("%H:%M:%S")
+                prepayment_invoice["currency_code"] = get_company_currency(advance_payment_invoice)
+                taxes_and_charges = get_taxes_and_charges(advance_payment_invoice)
+                tax_rate = taxes_and_charges.taxes[0].rate
+                amount = flt(advance_payment.allocated_amount)
+                net_amount = round(
+                    calculate_net_from_gross_included_in_print_rate(amount, tax_rate), 2
+                )
+                tax_amount = round(
+                    flt(calculate_tax_amount_included_in_print_rate(amount, net_amount)), 2
+                )
+                advance_payment_item = frappe.get_doc(
+                    "Item", self.business_settings_doc.advance_payment_item
+                )
+                prepayment_invoice["item_name"] = advance_payment_item.item_name
+                prepayment_invoice["tax_percent"] = abs(tax_rate or 0.0)
+
             siaf = frappe.get_last_doc(
                 "Sales Invoice Additional Fields", {"sales_invoice": advance_payment_invoice.name}
             )
-            prepayment_invoice = {}
             advance_idx = advance_idx + 1
             prepayment_invoice["prepayment_invoice_idx"] = advance_idx
             prepayment_invoice["reference_name"] = advance_payment_invoice.name
-            prepayment_invoice["currency_code"] = advance_payment_invoice.currency
             prepayment_invoice["qty"] = 1
 
             prepayment_invoice["issue_date"] = get_date_str(advance_payment_invoice.posting_date)
-            prepayment_invoice["issue_time"] = get_time(
-                advance_payment_invoice.posting_time
-            ).strftime("%H:%M:%S")
 
             allocated_amount = advance_payment.allocated_amount
             prepayment_invoice["allocated_amount"] = allocated_amount
 
-            item = advance_payment_invoice.items[0]
-            prepayment_invoice["item_name"] = item.item_name
-
-            prepayment_invoice["tax_percent"] = abs(item.tax_rate or 0.0)
-
-            tax_amount = calculate_advance_payment_tax_amount(
-                advance_payment, advance_payment_invoice
-            )
             prepayment_invoice["tax_amount"] = tax_amount
 
             taxable_amount = round(allocated_amount - tax_amount, 2)
