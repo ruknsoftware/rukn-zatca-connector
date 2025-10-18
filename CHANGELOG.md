@@ -7,6 +7,9 @@ Add changes to the "Unreleased Changes" section. Once you create a version (and 
 to a section with the version name.
 
 ## Unreleased Changes
+## 0.54.9
+* ZATCA Phase 2 Advance Payment Print Format
+
 ## 0.54.8
 * Fix Passing Prepayment Invoices depends on Advance Payment
 * Read Prepayment info depends on Advance Payment for Print Formate

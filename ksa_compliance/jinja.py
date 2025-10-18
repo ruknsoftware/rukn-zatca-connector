@@ -6,15 +6,22 @@ from typing import Optional, cast
 
 import frappe
 import pyqrcode
+from erpnext.accounts.doctype.payment_entry.payment_entry import PaymentEntry
 from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
 from erpnext.setup.doctype.branch.branch import Branch
+from frappe.utils import flt
 from frappe.utils.data import get_time, getdate
 
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     ZATCABusinessSettings,
 )
 from ksa_compliance.standard_doctypes.sales_invoice_advance import get_prepayment_info
+from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
+from ksa_compliance.utils.update_itemised_tax_data import (
+    calculate_net_from_gross_included_in_print_rate,
+    calculate_tax_amount_included_in_print_rate,
+)
 
 
 def get_zatca_phase_1_qr_for_invoice(invoice_name: str) -> str:
@@ -97,7 +104,31 @@ def generate_qrcode(data: str) -> str:
         return img_str
 
 
-def get_phase_2_print_format_details(sales_invoice: SalesInvoice | POSInvoice) -> dict | None:
+def get_advance_payment_entry_info(payment_entry, settings):
+    taxes_and_charges = get_taxes_and_charges(payment_entry)
+    tax_rate = taxes_and_charges.taxes[0].rate
+    precision = payment_entry.precision("paid_amount")
+    amount = flt(payment_entry.paid_amount, precision)
+    net_amount = flt(calculate_net_from_gross_included_in_print_rate(amount, tax_rate), precision)
+    tax_amount = flt(
+        flt(calculate_tax_amount_included_in_print_rate(amount, net_amount)), precision
+    )
+    advance_payment_item = frappe.get_doc("Item", settings.advance_payment_item)
+    return frappe._dict(
+        {
+            "item_name": advance_payment_item.item_name,
+            "item_code": advance_payment_item.item_code,
+            "amount": amount,
+            "tax_rate": tax_rate,
+            "net_amount": net_amount,
+            "tax_amount": tax_amount,
+        }
+    )
+
+
+def get_phase_2_print_format_details(
+    sales_invoice: SalesInvoice | POSInvoice | PaymentEntry,
+) -> dict | None:
     settings_id = frappe.db.exists(
         "ZATCA Business Settings",
         {"company": sales_invoice.company, "enable_zatca_integration": True},
@@ -114,11 +145,20 @@ def get_phase_2_print_format_details(sales_invoice: SalesInvoice | POSInvoice) -
             if branch_doc.custom_company_address:
                 has_branch_address = True
     seller_other_id, seller_other_id_name = get_seller_other_id(sales_invoice, settings)
-    buyer_other_id, buyer_other_id_name = get_buyer_other_id(sales_invoice.customer)
+    if sales_invoice.doctype == "Payment Entry":
+        customer = sales_invoice.party
+    else:
+        customer = sales_invoice.customer
+    buyer_other_id, buyer_other_id_name = get_buyer_other_id(customer)
     siaf = frappe.get_last_doc(
         "Sales Invoice Additional Fields", {"sales_invoice": sales_invoice.name}
     )
     prepayment_info = get_prepayment_info(sales_invoice)
+    advance_payment_entry = (
+        get_advance_payment_entry_info(sales_invoice, settings)
+        if sales_invoice.doctype == "Payment Entry"
+        else None
+    )
     return {
         "settings": settings,
         "address": {
@@ -135,6 +175,7 @@ def get_phase_2_print_format_details(sales_invoice: SalesInvoice | POSInvoice) -
         "buyer_other_id_name": buyer_other_id_name,
         "siaf": siaf,
         "prepayment_info": prepayment_info,
+        "advance_payment_entry": advance_payment_entry,
     }
 
 

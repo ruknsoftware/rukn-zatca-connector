@@ -152,7 +152,7 @@ def get_prepayment_info(self: SalesInvoice | POSInvoice):
             )
             taxes_and_charges = get_taxes_and_charges(advance_payment_invoice)
             tax_rate = taxes_and_charges.taxes[0].rate
-            precision = self.sales_invoice_doc.precision("paid_amount")
+            precision = self.precision("paid_amount")
             amount = flt(advance_payment.allocated_amount, precision)
             net_amount = flt(
                 calculate_net_from_gross_included_in_print_rate(amount, tax_rate), precision
@@ -160,7 +160,7 @@ def get_prepayment_info(self: SalesInvoice | POSInvoice):
             tax_amount = flt(
                 flt(calculate_tax_amount_included_in_print_rate(amount, net_amount)), precision
             )
-
+            advance_payment["advance_payment_invoice"] = advance_payment_invoice.name
         advance_payment["tax_percent"] = tax_rate
         advance_payment["tax_amount"] = tax_amount
         advance_payment["amount"] = amount
