@@ -6,6 +6,11 @@ requests so that whoever deploys a given version can file the relevant changes u
 Add changes to the "Unreleased Changes" section. Once you create a version (and tag it), move the unreleased changes
 to a section with the version name.
 
+## ⚠️ Compatibility Notice
+> The following updates (**v0.53.8 → v0.54.9**) were **developed and tested on ERPNext v14**.  
+> Compatibility with **ERPNext v15** has **not been verified**.  
+> Use these versions **at your own risk** on v15.
+
 ## Unreleased Changes
 ## 0.54.9
 * ZATCA Phase 2 Advance Payment Print Format
