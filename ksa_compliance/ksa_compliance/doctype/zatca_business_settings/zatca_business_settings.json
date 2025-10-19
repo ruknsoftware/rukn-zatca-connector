@@ -503,6 +503,7 @@
    "label": "Auto Apply Advance Payments"
   },
   {
+   "description": "\u26a0\ufe0f Payment Entry option is still in Beta on Version 15 \u2014 use at your own risk.",
    "fieldname": "advance_payment_depends_on",
    "fieldtype": "Select",
    "label": "Advance Payment Depends On",
@@ -517,7 +518,7 @@
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-10-09 12:38:31.672639",
+ "modified": "2025-10-19 09:46:53.508504",
  "modified_by": "Administrator",
  "module": "KSA Compliance",
  "name": "ZATCA Business Settings",

@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.55.0
+* ⚠️ Payment Entry option is still in Beta on Version 15 — use at your own risk.
+
 ## 0.54.9
 * ZATCA Phase 2 Advance Payment Print Format
 
