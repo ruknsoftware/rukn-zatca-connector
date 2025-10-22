@@ -160,6 +160,8 @@ def return_advance_payment_entry_doc(payment_entry_name, return_amount):
     tax = get_taxes_and_charges(payment_entry_doc).taxes[0]
     tax_rate = tax.rate
     amount = flt(return_amount)
+    if amount > payment_entry_doc.unallocated_amount:
+        frappe.throw(title=_("Invalid Amount"), msg=_("Amount cannot exceed Unallocated Amount."))
     net_amount = round(calculate_net_from_gross_included_in_print_rate(amount, tax_rate), 2)
     tax_amount = round(calculate_tax_amount_included_in_print_rate(amount, net_amount), 2)
 
