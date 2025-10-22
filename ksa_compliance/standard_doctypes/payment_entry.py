@@ -1,3 +1,5 @@
+import json
+
 import frappe
 from erpnext.accounts.general_ledger import (
     make_gl_entries,
@@ -148,3 +150,105 @@ def add_tax_gl_entries(doc, method):
     )
     gl_entries = process_gl_map(gl_entries)
     make_gl_entries(gl_entries)
+
+
+@frappe.whitelist()
+def return_advance_payment_entry_doc(payment_entry, return_amount):
+    payment_entry = json.loads(payment_entry)
+
+    payment_entry_doc = frappe.get_doc("Payment Entry", payment_entry.get("name"))
+    settings = ZATCABusinessSettings.for_company(payment_entry_doc.company)
+    tax = get_taxes_and_charges(payment_entry_doc).taxes[0]
+    tax_rate = tax.rate
+    amount = flt(return_amount)
+    net_amount = round(calculate_net_from_gross_included_in_print_rate(amount, tax_rate), 2)
+    tax_amount = round(calculate_tax_amount_included_in_print_rate(amount, net_amount), 2)
+
+    tax_account_currency = get_account_currency(tax.get("account_head"))
+    if tax_account_currency != payment_entry_doc.company_currency:
+        frappe.throw(
+            _("Currency for {0} must be {1}").format(
+                tax.get("account_head"), payment_entry_doc.company_currency
+            )
+        )
+
+    journal_entry = frappe.new_doc("Journal Entry")
+    journal_entry.advance_payment_entry = payment_entry_doc.name
+    journal_entry.voucher_type = "Journal Entry"
+    journal_entry.company = payment_entry.get("company")
+    journal_entry.posting_date = payment_entry.get("posting_date")
+    journal_entry.cheque_no = payment_entry.get("reference_no")
+    journal_entry.cheque_date = payment_entry.get("reference_date")
+    journal_entry.mode_of_payment = payment_entry.get("mode_of_payment")
+
+    paid_from_currency = get_account_currency(payment_entry.get("paid_from"))
+    paid_to_currency = get_account_currency(payment_entry.get("paid_to"))
+
+    accounts = [
+        {
+            "account": payment_entry.get("paid_from"),
+            "party_type": payment_entry.get("party_type"),
+            "party": payment_entry.get("party"),
+            "credit_in_account_currency": 0.0,
+            "debit_in_account_currency": return_amount,
+            "account_currency": paid_from_currency,
+            "cost_center": payment_entry.get("cost_center"),
+            "reference_type": "Payment Entry",
+            "reference_name": payment_entry.get("name"),
+        },
+        {
+            "account": payment_entry.get("paid_to"),
+            "credit_in_account_currency": return_amount,
+            "debit_in_account_currency": 0.0,
+            "account_currency": paid_to_currency,
+            "cost_center": payment_entry.get("cost_center"),
+            "reference_type": "Payment Entry",
+            "reference_name": payment_entry.get("name"),
+        },
+        {
+            "account": tax.get("account_head"),
+            "credit_in_account_currency": 0.0,
+            "debit_in_account_currency": tax_amount,
+            "account_currency": tax_account_currency,
+            "cost_center": payment_entry.get("cost_center"),
+            "reference_type": "Payment Entry",
+            "reference_name": payment_entry.get("name"),
+        },
+        {
+            "account": settings.advance_payment_tax_account,
+            "credit_in_account_currency": tax_amount,
+            "debit_in_account_currency": 0.0,
+            "account_currency": tax_account_currency,
+            "cost_center": payment_entry.get("cost_center"),
+            "against_account": tax.get("account_head"),
+            "reference_type": "Payment Entry",
+            "reference_name": payment_entry.get("name"),
+        },
+    ]
+    journal_entry.set("accounts", accounts)
+    journal_entry.set_amounts_in_company_currency()
+    journal_entry.set_total_debit_credit()
+    journal_entry.save()
+    journal_entry.submit()
+
+    payment_entry_doc.append(
+        "references",
+        {
+            "reference_doctype": journal_entry.doctype,
+            "reference_name": journal_entry.name,
+            "total_amount": return_amount,
+            "outstanding_amount": 0.0,
+            "allocated_amount": return_amount,
+        },
+    )
+
+    payment_entry_doc.total_allocated_amount += flt(return_amount)
+    payment_entry_doc.base_total_allocated_amount += flt(return_amount)
+    payment_entry_doc.unallocated_amount -= flt(return_amount)
+
+    payment_entry_doc.allocated_tax += tax_amount
+    payment_entry_doc.unallocated_tax -= tax_amount
+    payment_entry_doc.flags.ignore_validate_update_after_submit = True
+    payment_entry_doc.save()
+
+    return journal_entry.name
