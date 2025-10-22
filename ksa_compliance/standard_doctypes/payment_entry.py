@@ -153,10 +153,9 @@ def add_tax_gl_entries(doc, method):
 
 
 @frappe.whitelist()
-def return_advance_payment_entry_doc(payment_entry, return_amount):
-    payment_entry = json.loads(payment_entry)
+def return_advance_payment_entry_doc(payment_entry_name, return_amount):
 
-    payment_entry_doc = frappe.get_doc("Payment Entry", payment_entry.get("name"))
+    payment_entry_doc = frappe.get_doc("Payment Entry", payment_entry_name)
     settings = ZATCABusinessSettings.for_company(payment_entry_doc.company)
     tax = get_taxes_and_charges(payment_entry_doc).taxes[0]
     tax_rate = tax.rate
@@ -175,54 +174,54 @@ def return_advance_payment_entry_doc(payment_entry, return_amount):
     journal_entry = frappe.new_doc("Journal Entry")
     journal_entry.advance_payment_entry = payment_entry_doc.name
     journal_entry.voucher_type = "Journal Entry"
-    journal_entry.company = payment_entry.get("company")
-    journal_entry.posting_date = payment_entry.get("posting_date")
-    journal_entry.cheque_no = payment_entry.get("reference_no")
-    journal_entry.cheque_date = payment_entry.get("reference_date")
-    journal_entry.mode_of_payment = payment_entry.get("mode_of_payment")
+    journal_entry.company = payment_entry_doc.company
+    journal_entry.posting_date = payment_entry_doc.posting_date
+    journal_entry.cheque_no = payment_entry_doc.reference_no
+    journal_entry.cheque_date = payment_entry_doc.reference_date
+    journal_entry.mode_of_payment = payment_entry_doc.mode_of_payment
 
-    paid_from_currency = get_account_currency(payment_entry.get("paid_from"))
-    paid_to_currency = get_account_currency(payment_entry.get("paid_to"))
+    paid_from_currency = get_account_currency(payment_entry_doc.paid_from)
+    paid_to_currency = get_account_currency(payment_entry_doc.paid_to)
 
     accounts = [
         {
-            "account": payment_entry.get("paid_from"),
-            "party_type": payment_entry.get("party_type"),
-            "party": payment_entry.get("party"),
+            "account": payment_entry_doc.paid_from,
+            "party_type": payment_entry_doc.party_type,
+            "party": payment_entry_doc.get("party"),
             "credit_in_account_currency": 0.0,
             "debit_in_account_currency": return_amount,
             "account_currency": paid_from_currency,
-            "cost_center": payment_entry.get("cost_center"),
+            "cost_center": payment_entry_doc.cost_center,
             "reference_type": "Payment Entry",
-            "reference_name": payment_entry.get("name"),
+            "reference_name": payment_entry_name,
         },
         {
-            "account": payment_entry.get("paid_to"),
+            "account": payment_entry_doc.paid_to,
             "credit_in_account_currency": return_amount,
             "debit_in_account_currency": 0.0,
             "account_currency": paid_to_currency,
-            "cost_center": payment_entry.get("cost_center"),
+            "cost_center": payment_entry_doc.cost_center,
             "reference_type": "Payment Entry",
-            "reference_name": payment_entry.get("name"),
+            "reference_name": payment_entry_name,
         },
         {
             "account": tax.get("account_head"),
             "credit_in_account_currency": 0.0,
             "debit_in_account_currency": tax_amount,
             "account_currency": tax_account_currency,
-            "cost_center": payment_entry.get("cost_center"),
+            "cost_center": payment_entry_doc.cost_center,
             "reference_type": "Payment Entry",
-            "reference_name": payment_entry.get("name"),
+            "reference_name": payment_entry_name,
         },
         {
             "account": settings.advance_payment_tax_account,
             "credit_in_account_currency": tax_amount,
             "debit_in_account_currency": 0.0,
             "account_currency": tax_account_currency,
-            "cost_center": payment_entry.get("cost_center"),
+            "cost_center": payment_entry_doc.cost_center,
             "against_account": tax.get("account_head"),
             "reference_type": "Payment Entry",
-            "reference_name": payment_entry.get("name"),
+            "reference_name": payment_entry_name,
         },
     ]
     journal_entry.set("accounts", accounts)

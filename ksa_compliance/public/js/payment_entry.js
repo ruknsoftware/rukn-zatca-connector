@@ -34,7 +34,7 @@ frappe.ui.form.on('Payment Entry', {
                             frappe.call({
                                 method: "ksa_compliance.standard_doctypes.payment_entry.return_advance_payment_entry_doc",
                                 args: {
-                                    payment_entry: frm.doc,
+                                    payment_entry_name: frm.doc.name,
                                     return_amount: values.amount,
                                 },
                                 callback: function(r) {
