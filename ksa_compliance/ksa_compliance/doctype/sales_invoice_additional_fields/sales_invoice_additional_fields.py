@@ -42,7 +42,6 @@ from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_preco
     ZATCAPrecomputedInvoice,
 )
 from ksa_compliance.output_models.e_invoice_output_model import (
-    AdvanceJournalEntry,
     AdvancePaymentEntry,
     SalesEinvoice,
 )
@@ -244,12 +243,8 @@ class SalesInvoiceAdditionalFields(Document):
 
         self.invoice_counter = pre_invoice_counter + 1
         self.previous_invoice_hash = pre_invoice_hash
-        if self.invoice_doctype == "Payment Entry":
+        if self.invoice_doctype in ("Payment Entry", "Journal Entry"):
             einvoice = AdvancePaymentEntry(
-                sales_invoice_additional_fields_doc=self, invoice_type=invoice_type
-            )
-        elif self.invoice_doctype == "Journal Entry":
-            einvoice = AdvanceJournalEntry(
                 sales_invoice_additional_fields_doc=self, invoice_type=invoice_type
             )
         else:
