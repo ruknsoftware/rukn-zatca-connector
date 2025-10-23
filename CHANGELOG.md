@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.55.2
+* Add Patche to fetch Advance Payment Entry on Journal Entry
+
 ## 0.55.1
 * Return Amount From Advance Payment Entry
   * Added a new button, “Return Advance Payment,” on the Payment Entry form.
