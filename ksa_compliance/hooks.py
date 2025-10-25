@@ -146,7 +146,10 @@ override_doctype_class = {
 
 doc_events = {
     "Sales Invoice": {
-        "on_submit": "ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype",
+        "on_submit": [
+            "ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype",
+            "ksa_compliance.standard_doctypes.sales_invoice.update_advance_payment_entry_tax_allocation",
+        ],
         "validate": "ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice",
         "before_validate": "ksa_compliance.standard_doctypes.sales_invoice.auto_apply_advance_payments",
         "before_cancel": "ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice",

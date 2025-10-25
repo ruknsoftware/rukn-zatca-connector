@@ -1102,6 +1102,9 @@ class SalesEinvoice(Einvoice):
                 tax_amount = flt(
                     calculate_tax_amount_included_in_print_rate(amount, net_amount), precision
                 )
+                # cap the calculated tax amount at the unallocated_tax value.
+                if tax_amount > advance_payment_invoice.unallocated_tax:
+                    tax_amount = advance_payment_invoice.unallocated_tax
                 advance_payment_item = frappe.get_doc(
                     "Item", self.business_settings_doc.advance_payment_item
                 )
