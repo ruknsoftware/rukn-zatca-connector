@@ -512,13 +512,9 @@ class AdvanceSalesInvoice(SalesInvoice):
         total_advance_taxes_amount = 0
 
         for advance_payment in advance_payments:
-            advance_payment_tax = calculate_advance_payment_tax_amount(advance_payment, self)
-            advance_payment_entry_doc = frappe.get_doc(
-                "Payment Entry", advance_payment.reference_name
+            advance_payment_tax = calculate_advance_payment_tax_amount(
+                advance_payment, self, settings.advance_payment_depends_on
             )
-            if advance_payment_tax > advance_payment_entry_doc.unallocated_tax:
-                advance_payment_tax = advance_payment_entry_doc.unallocated_tax
-
             total_advance_taxes_amount += advance_payment_tax
 
         advance_tax_account = settings.advance_payment_tax_account
@@ -590,11 +586,10 @@ def update_advance_payment_entry_tax_allocation(self, method):
 
     advance_payments = get_invoice_advance_payments(self)
     for advance_payment in advance_payments:
-        advance_payment_tax = calculate_advance_payment_tax_amount(advance_payment, self)
+        advance_payment_tax = calculate_advance_payment_tax_amount(
+            advance_payment, self, settings.advance_payment_depends_on
+        )
         advance_payment_entry_doc = frappe.get_doc("Payment Entry", advance_payment.reference_name)
-        # cap the calculated tax amount at the unallocated_tax value.
-        if advance_payment_tax > advance_payment_entry_doc.unallocated_tax:
-            advance_payment_tax = advance_payment_entry_doc.unallocated_tax
         advance_payment_entry_doc.allocated_tax = (
             advance_payment_entry_doc.allocated_tax + advance_payment_tax
         )
