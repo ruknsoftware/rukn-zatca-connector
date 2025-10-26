@@ -13,10 +13,15 @@ from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_busines
     ZATCABusinessSettings,
 )
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
+from ksa_compliance.zatca_guard import is_zatca_enabled
 
 
 @frappe.whitelist()
 def make_sales_return(source_name, target_doc=None):
+    if not is_zatca_enabled():
+        # Call the original ERPNext function if ZATCA is disabled
+        return erpnext_make_return_doc("Sales Invoice", source_name, target_doc)
+    
     sales_invoice = frappe.get_doc("Sales Invoice", source_name)
     settings = ZATCABusinessSettings.for_company(sales_invoice.company)
     if settings and invoice_has_advance_item(sales_invoice, settings):

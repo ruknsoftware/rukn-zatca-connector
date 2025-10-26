@@ -1,10 +1,16 @@
 import frappe
-from erpnext.controllers.taxes_and_totals import get_itemised_tax
+from erpnext.controllers.taxes_and_totals import get_itemised_tax, update_itemised_tax_data as original_update_itemised_tax_data
 from frappe import _
 from frappe.utils import flt
 
+from ksa_compliance.zatca_guard import is_zatca_enabled
+
 
 def update_itemised_tax_data(doc):
+    if not is_zatca_enabled():
+        # Call the original ERPNext function if ZATCA is disabled
+        return original_update_itemised_tax_data(doc)
+    
     if not doc.items:
         return
 

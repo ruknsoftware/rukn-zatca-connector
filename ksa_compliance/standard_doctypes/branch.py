@@ -5,9 +5,13 @@ from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_busines
 )
 from ksa_compliance.throw import fthrow
 from ksa_compliance.translation import ft
+from ksa_compliance.zatca_guard import is_zatca_enabled
 
 
 def validate_branch(doc, method):
+    if not is_zatca_enabled():
+        return
+    
     validate_mandatory_crn(doc)
     validate_duplicate_crn(doc)
 

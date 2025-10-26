@@ -18,9 +18,13 @@ from ksa_compliance.utils.update_itemised_tax_data import (
     calculate_net_from_gross_included_in_print_rate,
     calculate_tax_amount_included_in_print_rate,
 )
+from ksa_compliance.zatca_guard import is_zatca_enabled
 
 
 def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
+    if not is_zatca_enabled():
+        return []
+    
     sales_invoice_advance = frappe.qb.DocType("Sales Invoice Advance")
     payment_entry = frappe.qb.DocType("Payment Entry")
     advance_payments = []
@@ -76,6 +80,9 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
 
 
 def set_advance_payment_invoice_settling_gl_entries(advance_payment, is_return=False):
+    if not is_zatca_enabled():
+        return
+    
     advance_payment_invoice = frappe.get_doc(
         "Sales Invoice", advance_payment.advance_payment_invoice
     )
@@ -133,6 +140,9 @@ def calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoic
 
 
 def get_prepayment_info(self: SalesInvoice | POSInvoice):
+    if not is_zatca_enabled():
+        return []
+    
     advance_payments = get_invoice_advance_payments(self)
     settings = ZATCABusinessSettings.for_company(self.company)
     for idx, advance_payment in enumerate(advance_payments, start=1):
@@ -170,6 +180,9 @@ def get_prepayment_info(self: SalesInvoice | POSInvoice):
 
 @frappe.whitelist()
 def get_invoice_applicable_advance_payments(self, is_validate=False):
+    if not is_zatca_enabled():
+        return []
+    
     if isinstance(self, str):
         self = json.loads(self)
         self = cast(SalesInvoice, frappe.get_doc(self))
