@@ -509,23 +509,12 @@ class AdvanceSalesInvoice(SalesInvoice):
             frappe.db.get_single_value("Selling Settings", "enable_discount_accounting")
         )
 
-        advance_payments = get_invoice_advance_payments(self)
         total_advance_taxes_amount = 0
 
         for advance_payment in advance_payments:
-            advance_payment_tax = calculate_advance_payment_tax_amount(advance_payment, self)
-            advance_payment_entry_doc = frappe.get_doc(
-                "Payment Entry", advance_payment.reference_name
+            advance_payment_tax = calculate_advance_payment_tax_amount(
+                advance_payment, self, settings.advance_payment_depends_on
             )
-            advance_payment_entry_doc.allocated_tax = (
-                advance_payment_entry_doc.allocated_tax + advance_payment_tax
-            )
-            advance_payment_entry_doc.unallocated_tax = abs(
-                advance_payment_entry_doc.unallocated_tax - advance_payment_tax
-            )
-            advance_payment_entry_doc.flags.ignore_validate_update_after_submit = True
-            advance_payment_entry_doc.save()
-
             total_advance_taxes_amount += advance_payment_tax
 
         advance_tax_account = settings.advance_payment_tax_account
@@ -585,3 +574,27 @@ class AdvanceSalesInvoice(SalesInvoice):
                         item=tax,
                     )
                 )
+
+
+def update_advance_payment_entry_tax_allocation(self, method):
+    settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
+    if not settings:
+        logger.info(
+            f"Skipping additional fields for {self.name} because of missing ZATCA settings"
+        )
+        return
+
+    advance_payments = get_invoice_advance_payments(self)
+    for advance_payment in advance_payments:
+        advance_payment_tax = calculate_advance_payment_tax_amount(
+            advance_payment, self, settings.advance_payment_depends_on
+        )
+        advance_payment_entry_doc = frappe.get_doc("Payment Entry", advance_payment.reference_name)
+        advance_payment_entry_doc.allocated_tax = (
+            advance_payment_entry_doc.allocated_tax + advance_payment_tax
+        )
+        advance_payment_entry_doc.unallocated_tax = abs(
+            advance_payment_entry_doc.unallocated_tax - advance_payment_tax
+        )
+        advance_payment_entry_doc.flags.ignore_validate_update_after_submit = True
+        advance_payment_entry_doc.save()
