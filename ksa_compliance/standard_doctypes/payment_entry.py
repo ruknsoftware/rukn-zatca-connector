@@ -21,7 +21,7 @@ from ksa_compliance.zatca_guard import is_zatca_enabled
 def prevent_settling_advance_invoice_from_payment_entry_references(doc, method):
     if not is_zatca_enabled():
         return
-    
+
     invoice_names = [
         ref.reference_name for ref in doc.references if ref.reference_doctype == "Sales Invoice"
     ]
@@ -86,7 +86,7 @@ def set_advance_payment_entry_settling_references(payment_entry):
 def add_tax_gl_entries(doc, method):
     if not is_zatca_enabled():
         return
-    
+
     settings = ZATCABusinessSettings.for_company(doc.company)
     if (
         not settings

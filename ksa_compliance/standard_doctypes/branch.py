@@ -11,7 +11,7 @@ from ksa_compliance.zatca_guard import is_zatca_enabled
 def validate_branch(doc, method):
     if not is_zatca_enabled():
         return
-    
+
     validate_mandatory_crn(doc)
     validate_duplicate_crn(doc)
 

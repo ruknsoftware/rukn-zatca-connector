@@ -25,7 +25,7 @@ class CustomPaymentReconciliation(PaymentReconciliation):
         """
         if not is_zatca_enabled():
             return super().get_payment_entries()
-        
+
         frappe_version = frappe.__version__
         if self.party_type == "Customer" and frappe_version.startswith("15"):
             return self.get_non_advance_payment_entries()
@@ -34,7 +34,7 @@ class CustomPaymentReconciliation(PaymentReconciliation):
     def get_non_advance_payment_entries(self):
         if not is_zatca_enabled():
             return super().get_payment_entries()
-        
+
         payment_entries = super().get_payment_entries()
         if not payment_entries:
             return []
@@ -58,7 +58,7 @@ class CustomPaymentReconciliation(PaymentReconciliation):
     def get_payment_entry_conditions(self):
         if not is_zatca_enabled():
             return super().get_payment_entry_conditions()
-        
+
         conditions = super().get_payment_entry_conditions()
         if self.party_type == "Customer":
             settings = ZATCABusinessSettings.for_company(self.company)
@@ -72,7 +72,7 @@ class CustomPaymentReconciliation(PaymentReconciliation):
     def get_invoice_entries(self):
         if not is_zatca_enabled():
             return super().get_invoice_entries()
-        
+
         frappe_version = frappe.__version__
         # Fetch JVs, Sales and Purchase Invoices for 'invoices' to reconcile against
 
@@ -123,7 +123,7 @@ class CustomPaymentReconciliation(PaymentReconciliation):
     def get_return_invoices(self):
         if not is_zatca_enabled():
             return super().get_return_invoices()
-        
+
         voucher_type = "Sales Invoice" if self.party_type == "Customer" else "Purchase Invoice"
         doc = qb.DocType(voucher_type)
 

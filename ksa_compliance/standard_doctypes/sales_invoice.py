@@ -69,7 +69,7 @@ def create_sales_invoice_additional_fields_doctype(
 ):
     if not is_zatca_enabled():
         return
-    
+
     if self.doctype == "Sales Invoice" and not _should_enable_zatca_for_invoice(self.name):
         logger.info(f"Skipping additional fields for {self.name} because it's before start date")
         return
@@ -174,7 +174,7 @@ def prevent_cancellation_of_sales_invoice(
 ) -> None:
     if not is_zatca_enabled():
         return
-    
+
     settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
     if not settings:
         return
@@ -208,7 +208,7 @@ def prevent_cancellation_of_sales_invoice(
 def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
     if not is_zatca_enabled():
         return
-    
+
     valid = True
     is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
     if (
@@ -311,7 +311,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
 def validate_customer_vat_compliance(self, method):
     if not is_zatca_enabled():
         return
-    
+
     settings = ZATCABusinessSettings.for_company(self.company)
     if not settings or not settings.enable_zatca_integration:
         return
@@ -343,7 +343,7 @@ def validate_customer_vat_compliance(self, method):
 def auto_apply_advance_payments(self: SalesInvoice, method):
     if not is_zatca_enabled():
         return
-    
+
     settings = ZATCABusinessSettings.for_company(self.company)
     if (
         not settings
@@ -505,10 +505,14 @@ class AdvanceSalesInvoice(SalesInvoice):
     def make_tax_gl_entries(self, gl_entries):
         if not is_zatca_enabled():
             return super().make_tax_gl_entries(gl_entries)
-        
+
         settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
         advance_payments = get_invoice_advance_payments(self)
-        if not advance_payments or not settings or settings.advance_payment_depends_on != "Payment Entry":
+        if (
+            not advance_payments
+            or not settings
+            or settings.advance_payment_depends_on != "Payment Entry"
+        ):
             return super().make_tax_gl_entries(gl_entries)
 
         enable_discount_accounting = cint(

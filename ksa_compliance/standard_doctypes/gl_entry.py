@@ -10,7 +10,7 @@ from ksa_compliance.zatca_guard import is_zatca_enabled
 def set_party_details_on_advance_invoice(self, method):
     if not is_zatca_enabled():
         return
-    
+
     if self.voucher_type == "Sales Invoice":
         sales_invoice = frappe.get_doc("Sales Invoice", self.voucher_no)
         settings = ZATCABusinessSettings.for_company(sales_invoice.company)

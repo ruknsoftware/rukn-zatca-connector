@@ -14,7 +14,7 @@ from ksa_compliance.zatca_guard import is_zatca_enabled
 def get_return_against_advance_payments(return_against, grand_total):
     if not is_zatca_enabled():
         return []
-    
+
     return_against_advance_payments = get_invoice_advance_payments(return_against)
     return_advance_payments = []
     return_allocated = 0
@@ -44,7 +44,7 @@ def settle_return_invoice_paid_from_advance_payment(self):
     """
     if not is_zatca_enabled():
         return
-    
+
     return_against = frappe.get_doc(self.doctype, self.return_against)
     return_against_advance_payments = get_return_against_advance_payments(
         return_against, abs(self.get("grand_total"))

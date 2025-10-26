@@ -52,7 +52,7 @@ def unreconcile_from_advance_payment(
 def prevent_un_reconcile_advance_payments(self, method):
     if not is_zatca_enabled():
         return
-    
+
     if hasattr(self, "enable_unreconcile_from_advance_payment"):
         setattr(self, "enable_unreconcile_from_advance_payment", False)
         return
