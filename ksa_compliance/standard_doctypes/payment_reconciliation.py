@@ -14,6 +14,7 @@ from ksa_compliance.standard_doctypes.sales_invoice_advance import (
     get_advance_payment_query_condition,
 )
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
+from ksa_compliance.zatca_guard import is_zatca_enabled
 
 
 class CustomPaymentReconciliation(PaymentReconciliation):
@@ -22,12 +23,18 @@ class CustomPaymentReconciliation(PaymentReconciliation):
         """
         HANDLE CHANGING ON LOGIC ON GETTING PAYMENT ENTRIES BETWEEN VERSION 14 AND 15
         """
+        if not is_zatca_enabled(self.company):
+            return super().get_payment_entries()
+
         frappe_version = frappe.__version__
         if self.party_type == "Customer" and frappe_version.startswith("15"):
             return self.get_non_advance_payment_entries()
         return super().get_payment_entries()
 
     def get_non_advance_payment_entries(self):
+        if not is_zatca_enabled(self.company):
+            return super().get_payment_entries()
+
         payment_entries = super().get_payment_entries()
         if not payment_entries:
             return []
@@ -49,6 +56,9 @@ class CustomPaymentReconciliation(PaymentReconciliation):
         return [pe for pe in payment_entries if pe.reference_name not in advance_payment_entries]
 
     def get_payment_entry_conditions(self):
+        if not is_zatca_enabled(self.company):
+            return super().get_payment_entry_conditions()
+
         conditions = super().get_payment_entry_conditions()
         if self.party_type == "Customer":
             settings = ZATCABusinessSettings.for_company(self.company)
@@ -60,6 +70,9 @@ class CustomPaymentReconciliation(PaymentReconciliation):
         return conditions
 
     def get_invoice_entries(self):
+        if not is_zatca_enabled(self.company):
+            return super().get_invoice_entries()
+
         frappe_version = frappe.__version__
         # Fetch JVs, Sales and Purchase Invoices for 'invoices' to reconcile against
 
@@ -108,6 +121,9 @@ class CustomPaymentReconciliation(PaymentReconciliation):
         self.add_invoice_entries(filtered_non_reconciled_invoices)
 
     def get_return_invoices(self):
+        if not is_zatca_enabled(self.company):
+            return super().get_return_invoices()
+
         voucher_type = "Sales Invoice" if self.party_type == "Customer" else "Purchase Invoice"
         doc = qb.DocType(voucher_type)
 

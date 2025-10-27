@@ -15,9 +15,13 @@ from ksa_compliance.utils.update_itemised_tax_data import (
     calculate_net_from_gross_included_in_print_rate,
     calculate_tax_amount_included_in_print_rate,
 )
+from ksa_compliance.zatca_guard import is_zatca_enabled
 
 
 def prevent_settling_advance_invoice_from_payment_entry_references(doc, method):
+    if not is_zatca_enabled(doc.company):
+        return
+
     invoice_names = [
         ref.reference_name for ref in doc.references if ref.reference_doctype == "Sales Invoice"
     ]
@@ -80,6 +84,9 @@ def set_advance_payment_entry_settling_references(payment_entry):
 
 
 def add_tax_gl_entries(doc, method):
+    if not is_zatca_enabled(doc.company):
+        return
+
     settings = ZATCABusinessSettings.for_company(doc.company)
     if (
         not settings

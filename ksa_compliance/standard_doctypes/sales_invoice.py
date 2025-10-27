@@ -51,6 +51,7 @@ from ksa_compliance.utils.return_invoice_paid_from_advance_payment import (
     get_return_against_advance_payments,
     settle_return_invoice_paid_from_advance_payment,
 )
+from ksa_compliance.zatca_guard import is_zatca_enabled
 
 IGNORED_INVOICES = set()
 
@@ -66,6 +67,9 @@ def clear_additional_fields_ignore_list() -> None:
 def create_sales_invoice_additional_fields_doctype(
     self: SalesInvoice | POSInvoice | PaymentEntry, method
 ):
+    if not is_zatca_enabled(self.company):
+        return
+
     if self.doctype == "Sales Invoice" and not _should_enable_zatca_for_invoice(self.name):
         logger.info(f"Skipping additional fields for {self.name} because it's before start date")
         return
@@ -168,6 +172,9 @@ def _should_enable_zatca_for_invoice(invoice_id: str) -> bool:
 def prevent_cancellation_of_sales_invoice(
     self: SalesInvoice | POSInvoice | PaymentEntry, method
 ) -> None:
+    if not is_zatca_enabled(self.company):
+        return
+
     settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
     if not settings:
         return
@@ -199,6 +206,9 @@ def prevent_cancellation_of_sales_invoice(
 
 
 def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
+    if not is_zatca_enabled(self.company):
+        return
+
     valid = True
     is_phase_2_enabled_for_company = ZATCABusinessSettings.is_enabled_for_company(self.company)
     if (
@@ -299,8 +309,11 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
 
 
 def validate_customer_vat_compliance(self, method):
+    if not is_zatca_enabled(self.company):
+        return
+
     settings = ZATCABusinessSettings.for_company(self.company)
-    if not settings.enable_zatca_integration:
+    if not settings or not settings.enable_zatca_integration:
         return
     customer = frappe.get_doc("Customer", self.get("customer") or self.get("party"))
     is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
@@ -328,6 +341,9 @@ def validate_customer_vat_compliance(self, method):
 
 
 def auto_apply_advance_payments(self: SalesInvoice, method):
+    if not is_zatca_enabled(self.company):
+        return
+
     settings = ZATCABusinessSettings.for_company(self.company)
     if (
         not settings
@@ -487,9 +503,16 @@ def create_payment_entry_for_advance_payment_invoice(
 
 class AdvanceSalesInvoice(SalesInvoice):
     def make_tax_gl_entries(self, gl_entries):
+        if not is_zatca_enabled(self.company):
+            return super().make_tax_gl_entries(gl_entries)
+
         settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
         advance_payments = get_invoice_advance_payments(self)
-        if not advance_payments or settings.advance_payment_depends_on != "Payment Entry":
+        if (
+            not advance_payments
+            or not settings
+            or settings.advance_payment_depends_on != "Payment Entry"
+        ):
             return super().make_tax_gl_entries(gl_entries)
 
         enable_discount_accounting = cint(
