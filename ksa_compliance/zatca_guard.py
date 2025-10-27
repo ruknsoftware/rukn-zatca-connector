@@ -23,20 +23,25 @@ def is_zatca_enabled(company: str = None) -> bool:
     """
     if not frappe.db.exists("DocType", "KSA Compliance Settings"):
         return False
-    
-    global_enabled = cint(frappe.db.get_single_value("KSA Compliance Settings", "enable_zatca_integration"))
+
+    global_enabled = cint(
+        frappe.db.get_single_value("KSA Compliance Settings", "enable_zatca_integration")
+    )
     if not global_enabled:
         return False
-    
+
     if not company:
         return global_enabled
-    
+
     if frappe.db.exists("DocType", "ZATCA Business Settings"):
         try:
-            from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import ZATCABusinessSettings
+            from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
+                ZATCABusinessSettings,
+            )
+
             settings = ZATCABusinessSettings.for_company(company)
             return bool(settings and settings.enable_zatca_integration)
         except ImportError:
             pass
-    
+
     return global_enabled
