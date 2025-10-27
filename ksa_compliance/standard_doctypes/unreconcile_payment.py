@@ -96,7 +96,13 @@ class CustomUnreconcilePayment(UnreconcilePayment):
     def on_submit(self):
         if self.voucher_type == "Payment Entry":
             payment_entry = frappe.get_doc(self.voucher_type, self.voucher_no)
+            # If ZATCA isn't enabled for this company, fallback to ERPNext default behavior
+            if not is_zatca_enabled(payment_entry.company):
+                return super(CustomUnreconcilePayment, self).on_submit()
+
             settings = ZATCABusinessSettings.for_company(payment_entry.company)
+            if not settings:
+                return super(CustomUnreconcilePayment, self).on_submit()
             is_advance_payment = is_advance_payment_condition(
                 payment_entry, settings.advance_payment_depends_on
             )
