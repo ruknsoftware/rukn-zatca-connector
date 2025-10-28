@@ -158,6 +158,17 @@ def add_custom_fields():
                 module=ksa_compliance_module,
             )
         ],
+        "Journal Entry": [
+            dict(
+                fieldname="advance_payment_entry",
+                label="Advance Payment Entry",
+                fieldtype="Link",
+                options="Payment Entry",
+                insert_after="voucher_type",
+                read_only=True,
+                module=ksa_compliance_module,
+            )
+        ],
     }
     create_custom_fields(custom_fields)
 

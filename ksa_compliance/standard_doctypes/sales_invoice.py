@@ -3,6 +3,7 @@ from datetime import date
 import frappe
 import frappe.utils.background_jobs
 from erpnext.accounts.doctype.account.account import get_account_currency
+from erpnext.accounts.doctype.journal_entry.journal_entry import JournalEntry
 from erpnext.accounts.doctype.payment_entry.payment_entry import (
     PaymentEntry,
     get_account_details,
@@ -64,7 +65,7 @@ def clear_additional_fields_ignore_list() -> None:
 
 
 def create_sales_invoice_additional_fields_doctype(
-    self: SalesInvoice | POSInvoice | PaymentEntry, method
+    self: SalesInvoice | POSInvoice | PaymentEntry | JournalEntry, method
 ):
     settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
     if not settings.enable_zatca_integration:
@@ -93,6 +94,8 @@ def create_sales_invoice_additional_fields_doctype(
         logger.info(f"Skipping additional fields for {self.name} because it's consolidated")
         return
     if self.doctype == "Payment Entry" and not self.is_advance_payment_depends_on_entry:
+        return
+    if self.doctype == "Journal Entry" and not self.advance_payment_entry:
         return
 
     si_additional_fields_doc = SalesInvoiceAdditionalFields.create_for_invoice(
@@ -168,7 +171,7 @@ def _should_enable_zatca_for_invoice(invoice_id: str) -> bool:
 
 
 def prevent_cancellation_of_sales_invoice(
-    self: SalesInvoice | POSInvoice | PaymentEntry, method
+    self: SalesInvoice | POSInvoice | PaymentEntry | JournalEntry, method
 ) -> None:
     settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
     if not settings or not settings.enable_zatca_integration:
@@ -189,6 +192,16 @@ def prevent_cancellation_of_sales_invoice(
                     frappe.utils.get_link_to_form(
                         self.invoice_doctype, self.advance_payment_invoice
                     ),
+                ),
+                title=_("This Action Is Not Allowed"),
+            )
+        if self.doctype == "Journal Entry" and self.advance_payment_entry:
+            frappe.throw(
+                msg=_(
+                    "You cannot cancel {0} according to ZATCA Advance Invoice {1}.",
+                ).format(
+                    self.name,
+                    frappe.utils.get_link_to_form("Payment Entry", self.advance_payment_entry),
                 ),
                 title=_("This Action Is Not Allowed"),
             )
@@ -506,23 +519,12 @@ class AdvanceSalesInvoice(SalesInvoice):
             frappe.db.get_single_value("Selling Settings", "enable_discount_accounting")
         )
 
-        advance_payments = get_invoice_advance_payments(self)
         total_advance_taxes_amount = 0
 
         for advance_payment in advance_payments:
-            advance_payment_tax = calculate_advance_payment_tax_amount(advance_payment, self)
-            advance_payment_entry_doc = frappe.get_doc(
-                "Payment Entry", advance_payment.reference_name
+            advance_payment_tax = calculate_advance_payment_tax_amount(
+                advance_payment, self, settings.advance_payment_depends_on
             )
-            advance_payment_entry_doc.allocated_tax = (
-                advance_payment_entry_doc.allocated_tax + advance_payment_tax
-            )
-            advance_payment_entry_doc.unallocated_tax = abs(
-                advance_payment_entry_doc.unallocated_tax - advance_payment_tax
-            )
-            advance_payment_entry_doc.flags.ignore_validate_update_after_submit = True
-            advance_payment_entry_doc.save()
-
             total_advance_taxes_amount += advance_payment_tax
 
         advance_tax_account = settings.advance_payment_tax_account
@@ -582,3 +584,27 @@ class AdvanceSalesInvoice(SalesInvoice):
                         item=tax,
                     )
                 )
+
+
+def update_advance_payment_entry_tax_allocation(self, method):
+    settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
+    if not settings:
+        logger.info(
+            f"Skipping additional fields for {self.name} because of missing ZATCA settings"
+        )
+        return
+
+    advance_payments = get_invoice_advance_payments(self)
+    for advance_payment in advance_payments:
+        advance_payment_tax = calculate_advance_payment_tax_amount(
+            advance_payment, self, settings.advance_payment_depends_on
+        )
+        advance_payment_entry_doc = frappe.get_doc("Payment Entry", advance_payment.reference_name)
+        advance_payment_entry_doc.allocated_tax = (
+            advance_payment_entry_doc.allocated_tax + advance_payment_tax
+        )
+        advance_payment_entry_doc.unallocated_tax = abs(
+            advance_payment_entry_doc.unallocated_tax - advance_payment_tax
+        )
+        advance_payment_entry_doc.flags.ignore_validate_update_after_submit = True
+        advance_payment_entry_doc.save()

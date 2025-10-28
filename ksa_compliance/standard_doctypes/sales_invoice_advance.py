@@ -49,6 +49,7 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
                         reference_row=sales_invoice_advance.reference_row,
                         advance_amount=sales_invoice_advance.advance_amount,
                         advance_payment_invoice=payment_entry.advance_payment_invoice,
+                        unallocated_tax=payment_entry.unallocated_tax,
                     )
                 )
         return advance_payments
@@ -68,6 +69,7 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
             sales_invoice_advance.reference_row,
             sales_invoice_advance.advance_amount,
             payment_entry.advance_payment_invoice,
+            payment_entry.unallocated_tax,
         )
         .where(
             advance_payment_query_condition
@@ -134,11 +136,23 @@ def set_advance_payment_invoice_settling_gl_entries(advance_payment, is_return=F
     advance_payment_invoice.make_gl_entries(advance_gl_entries)
 
 
-def calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice):
-    tax_amount = (
-        advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges
-    ) / advance_payment_invoice.grand_total
-    return round(tax_amount, 2)
+def calculate_advance_payment_tax_amount(
+    advance_payment, advance_payment_invoice, advance_payment_depends_on=None
+):
+    precision = advance_payment_invoice.precision("base_total_taxes_and_charges")
+    tax_amount = flt(
+        (advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges)
+        / advance_payment_invoice.grand_total,
+        precision,
+    )
+    # cap the calculated tax amount at the unallocated_tax value.
+    if (
+        advance_payment_depends_on == "Payment Entry"
+        and tax_amount > advance_payment.unallocated_tax
+    ):
+        tax_amount = advance_payment.unallocated_tax
+
+    return tax_amount
 
 
 def get_prepayment_info(self: SalesInvoice | POSInvoice):

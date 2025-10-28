@@ -12,6 +12,20 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.55.3
+* Cap the Calculated Tax Amount at the unallocated_tax value Advance Payment Entry.
+
+## 0.55.2
+* Add Patche to fetch Advance Payment Entry on Journal Entry
+
+## 0.55.1
+* Return Amount From Advance Payment Entry
+  * Added a new button, “Return Advance Payment,” on the Payment Entry form.
+  * Includes a dialog for specifying the return amount with validation against the unallocated amount.
+  * Journal Entry Creation
+  * Implemented automatic creation of a Journal Entry when returning an advance payment.
+  * Avoid canceling Journal Entries involved in ZATCA submissions.
+
 ## 0.55.0
 * ⚠️ Payment Entry option is still in Beta on Version 15 — use at your own risk.
 
