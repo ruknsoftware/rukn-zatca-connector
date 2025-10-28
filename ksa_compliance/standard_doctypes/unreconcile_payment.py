@@ -51,7 +51,7 @@ def unreconcile_from_advance_payment(
 
 def prevent_un_reconcile_advance_payments(self, method):
     settings = ZATCABusinessSettings.for_company(self.company)
-    if getattr(settings, "enable_zatca_integration", False):
+    if not settings or not getattr(settings, "enable_zatca_integration", False):
         return
     if hasattr(self, "enable_unreconcile_from_advance_payment"):
         setattr(self, "enable_unreconcile_from_advance_payment", False)

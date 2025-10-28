@@ -23,7 +23,7 @@ from ksa_compliance.zatca_guard import is_zatca_enabled
 
 def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
     settings = ZATCABusinessSettings.for_company(self.company)
-    if getattr(settings, "enable_zatca_integration", False):
+    if not settings or not getattr(settings, "enable_zatca_integration", False):
         return []
     sales_invoice_advance = frappe.qb.DocType("Sales Invoice Advance")
     payment_entry = frappe.qb.DocType("Payment Entry")
@@ -157,7 +157,7 @@ def calculate_advance_payment_tax_amount(
 
 def get_prepayment_info(self: SalesInvoice | POSInvoice):
     settings = ZATCABusinessSettings.for_company(self.company)
-    if getattr(settings, "enable_zatca_integration", False):
+    if not settings or not getattr(settings, "enable_zatca_integration", False):
         return []
     advance_payments = get_invoice_advance_payments(self)
     for idx, advance_payment in enumerate(advance_payments, start=1):
@@ -200,7 +200,7 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
         self = cast(SalesInvoice, frappe.get_doc(self))
     company = self.get("company")
     settings = ZATCABusinessSettings.for_company(company)
-    if getattr(settings, "enable_zatca_integration", False):
+    if not getattr(settings, "enable_zatca_integration", False):
         return []
     if not settings or not settings.auto_apply_advance_payments:
         return []
