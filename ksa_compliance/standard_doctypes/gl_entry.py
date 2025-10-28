@@ -10,7 +10,8 @@ def set_party_details_on_advance_invoice(self, method):
     if self.voucher_type == "Sales Invoice":
         sales_invoice = frappe.get_doc("Sales Invoice", self.voucher_no)
         settings = ZATCABusinessSettings.for_company(sales_invoice.company)
-
+        if not settings.enable_zatca_integration:
+            return
         if settings and invoice_has_advance_item(sales_invoice, settings):
             income_account = sales_invoice.items[0].income_account
             if not self.party and self.account == income_account:

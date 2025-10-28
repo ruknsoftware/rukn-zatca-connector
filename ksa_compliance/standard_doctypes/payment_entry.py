@@ -23,7 +23,7 @@ def prevent_settling_advance_invoice_from_payment_entry_references(doc, method):
     ]
 
     settings = ZATCABusinessSettings.for_company(doc.company)
-    if not settings or not invoice_names:
+    if not settings or not invoice_names or not settings.enable_zatca_integration:
         return
     sales_invoice_item = frappe.qb.DocType("Sales Invoice Item")
     sales_invoice = frappe.qb.DocType("Sales Invoice")
@@ -83,6 +83,7 @@ def add_tax_gl_entries(doc, method):
     settings = ZATCABusinessSettings.for_company(doc.company)
     if (
         not settings
+        or not settings.enable_zatca_integration
         or settings.advance_payment_depends_on != "Payment Entry"
         or not doc.is_advance_payment_depends_on_entry
         or doc.payment_type not in ("Receive", "Pay")

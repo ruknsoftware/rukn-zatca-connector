@@ -17,6 +17,7 @@ from ksa_compliance.standard_doctypes.sales_invoice_advance import (
     get_invoice_advance_payments,
     is_advance_payment_condition,
 )
+from ksa_compliance.zatca_guard import is_zatca_enabled
 
 
 def unreconcile_from_advance_payment(
@@ -49,13 +50,15 @@ def unreconcile_from_advance_payment(
 
 
 def prevent_un_reconcile_advance_payments(self, method):
+    settings = ZATCABusinessSettings.for_company(payment_entry.company)
+    if not settings.enable_zatca_integration:
+        return
     if hasattr(self, "enable_unreconcile_from_advance_payment"):
         setattr(self, "enable_unreconcile_from_advance_payment", False)
         return
     valid = True
     if self.voucher_type == "Payment Entry":
         payment_entry = frappe.get_doc(self.voucher_type, self.voucher_no)
-        settings = ZATCABusinessSettings.for_company(payment_entry.company)
         is_advance_payment = is_advance_payment_condition(
             payment_entry, settings.advance_payment_depends_on
         )
@@ -88,7 +91,12 @@ class CustomUnreconcilePayment(UnreconcilePayment):
     def on_submit(self):
         if self.voucher_type == "Payment Entry":
             payment_entry = frappe.get_doc(self.voucher_type, self.voucher_no)
+            if not is_zatca_enabled(payment_entry.company):
+                return super(CustomUnreconcilePayment, self).on_submit()
+
             settings = ZATCABusinessSettings.for_company(payment_entry.company)
+            if not settings:
+                return super(CustomUnreconcilePayment, self).on_submit()
             is_advance_payment = is_advance_payment_condition(
                 payment_entry, settings.advance_payment_depends_on
             )
