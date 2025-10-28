@@ -1,5 +1,7 @@
 import frappe
-from erpnext.controllers.taxes_and_totals import get_itemised_tax
+from erpnext.controllers.taxes_and_totals import (
+    get_itemised_tax,
+)
 from erpnext.controllers.taxes_and_totals import (
     update_itemised_tax_data as original_update_itemised_tax_data,
 )
