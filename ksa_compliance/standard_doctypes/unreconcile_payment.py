@@ -91,11 +91,8 @@ class CustomUnreconcilePayment(UnreconcilePayment):
     def on_submit(self):
         if self.voucher_type == "Payment Entry":
             payment_entry = frappe.get_doc(self.voucher_type, self.voucher_no)
-            if not is_zatca_enabled(payment_entry.company):
-                return super(CustomUnreconcilePayment, self).on_submit()
-
             settings = ZATCABusinessSettings.for_company(payment_entry.company)
-            if not settings:
+            if not settings or not getattr(settings, "enable_zatca_integration", False):
                 return super(CustomUnreconcilePayment, self).on_submit()
             is_advance_payment = is_advance_payment_condition(
                 payment_entry, settings.advance_payment_depends_on
@@ -108,6 +105,9 @@ class CustomUnreconcilePayment(UnreconcilePayment):
                 self.unreconcile_advance_payment()
             else:
                 super(CustomUnreconcilePayment, self).on_submit()
+        else:
+            # Handle Journal Entry and other voucher types
+            super(CustomUnreconcilePayment, self).on_submit()
 
     def unreconcile_advance_payment(self):
         # todo: more granular unreconciliation
