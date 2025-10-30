@@ -47,6 +47,7 @@ from ksa_compliance.standard_doctypes.sales_invoice_advance import (
     set_advance_payment_invoice_settling_gl_entries,
 )
 from ksa_compliance.translation import ft
+from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
 from ksa_compliance.utils.return_invoice_paid_from_advance_payment import (
     get_return_against_advance_payments,
@@ -287,14 +288,14 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                 )
                 valid = False
             else:
-                if settings.advance_payment_depends_on == "Sales Invoice":
-                    for advance_payment in advance_payments:
-                        advance_payment_invoice = advance_payment.copy()
+                for advance_payment in advance_payments:
+                    advance_payment_invoice = advance_payment.copy()
+
+                    if settings.advance_payment_depends_on == "Sales Invoice":
                         advance_payment_invoice.reference_type = "Sales Invoice"
                         advance_payment_invoice.reference_name = (
                             advance_payment.advance_payment_invoice
                         )
-
                         advance_payment_invoice_doc = frappe.get_doc(
                             "Sales Invoice", advance_payment.advance_payment_invoice
                         )
@@ -305,8 +306,26 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
                         )
                         advance_payment_invoice.tax_percent = tax_percent
                         advance_payment_invoice.tax_amount = tax_amount
+                    else:
+                        advance_payment_invoice.reference_type = "Payment Entry"
+                        advance_payment_invoice.reference_name = advance_payment.reference_name
+                        advance_payment_invoice_doc = frappe.get_doc(
+                            "Payment Entry", advance_payment.reference_name
+                        )
+                        taxes_and_charges = get_taxes_and_charges(advance_payment_invoice_doc)
+                        tax_percent = taxes_and_charges.taxes[0].rate
+                        tax_amount = calculate_advance_payment_tax_amount(
+                            advance_payment,
+                            self,
+                            settings.advance_payment_depends_on,
+                        )
+                        advance_payment_invoice.tax_percent = tax_percent
+                        advance_payment_invoice.tax_amount = tax_amount
+                        advance_payment_invoice.allocated_tax = tax_amount
+                        advance_payment_invoice.unallocated_tax = 0.0
 
-                        self.append("advance_payment_invoices", advance_payment_invoice)
+                    self.append("advance_payment_invoices", advance_payment_invoice)
+
         validate_customer_vat_compliance(self, method)
 
     if not valid:
