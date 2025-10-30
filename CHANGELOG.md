@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.55.5
+* Add Advance Payment Entry log Sales Invoice Advance Payment table
+
 ## 0.55.3
 * Cap the Calculated Tax Amount at the unallocated_tax value Advance Payment Entry.
 
