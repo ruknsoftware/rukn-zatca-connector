@@ -18,13 +18,16 @@ from ksa_compliance.utils.update_itemised_tax_data import (
     calculate_net_from_gross_included_in_print_rate,
     calculate_tax_amount_included_in_print_rate,
 )
+from ksa_compliance.zatca_guard import is_zatca_enabled
 
 
 def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
+    settings = ZATCABusinessSettings.for_company(self.company)
+    if not settings or not getattr(settings, "enable_zatca_integration", False):
+        return []
     sales_invoice_advance = frappe.qb.DocType("Sales Invoice Advance")
     payment_entry = frappe.qb.DocType("Payment Entry")
     advance_payments = []
-    settings = ZATCABusinessSettings.for_company(self.company)
     if hasattr(self, "__unsaved"):
         for sales_invoice_advance in self.advances:
             payment_entry = frappe.get_doc(
@@ -78,6 +81,12 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
 
 
 def set_advance_payment_invoice_settling_gl_entries(advance_payment, is_return=False):
+    company = frappe.db.get_value(
+        "Sales Invoice", advance_payment.advance_payment_invoice, "company"
+    )
+    if not is_zatca_enabled(company):
+        return
+
     advance_payment_invoice = frappe.get_doc(
         "Sales Invoice", advance_payment.advance_payment_invoice
     )
@@ -147,8 +156,10 @@ def calculate_advance_payment_tax_amount(
 
 
 def get_prepayment_info(self: SalesInvoice | POSInvoice):
-    advance_payments = get_invoice_advance_payments(self)
     settings = ZATCABusinessSettings.for_company(self.company)
+    if not settings or not getattr(settings, "enable_zatca_integration", False):
+        return []
+    advance_payments = get_invoice_advance_payments(self)
     for idx, advance_payment in enumerate(advance_payments, start=1):
         if settings.advance_payment_depends_on == "Sales Invoice":
             advance_payment_invoice = frappe.get_doc(
@@ -189,6 +200,8 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
         self = cast(SalesInvoice, frappe.get_doc(self))
     company = self.get("company")
     settings = ZATCABusinessSettings.for_company(company)
+    if not getattr(settings, "enable_zatca_integration", False):
+        return []
     if not settings or not settings.auto_apply_advance_payments:
         return []
     if invoice_has_advance_item(self, settings) or self.get("is_return"):

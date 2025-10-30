@@ -189,23 +189,3 @@ def add_property_setters():
 
         ps_doc.module = ksa_compliance_module
         ps_doc.save(ignore_permissions=True)
-
-
-def after_migrate():
-
-    doctype = "Mode of Payment"
-    fieldname = "custom_zatca_payment_means_code"
-    setter_name = f"{doctype}-{fieldname}-reqd"
-
-    if not frappe.db.exists("Property Setter", setter_name):
-        ps_doc = make_property_setter(
-            doctype=doctype,
-            fieldname=fieldname,
-            property="reqd",
-            value="1",
-            property_type="Check",
-            for_doctype=False,
-        )
-
-        ps_doc.module = ksa_compliance_module
-        ps_doc.save(ignore_permissions=True)
