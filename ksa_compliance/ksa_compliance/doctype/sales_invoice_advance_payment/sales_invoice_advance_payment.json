@@ -15,7 +15,9 @@
   "advance_amount",
   "allocated_amount",
   "tax_amount",
-  "tax_percent"
+  "tax_percent",
+  "allocated_tax",
+  "unallocated_tax"
  ],
  "fields": [
   {
@@ -111,12 +113,26 @@
    "label": "Tax Percent",
    "non_negative": 1,
    "read_only": 1
+  },
+  {
+   "fieldname": "allocated_tax",
+   "fieldtype": "Currency",
+   "label": "Allocated Tax",
+   "options": "Company:company:default_currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "unallocated_tax",
+   "fieldtype": "Currency",
+   "label": "Unallocated Tax",
+   "options": "Company:company:default_currency",
+   "read_only": 1
   }
  ],
  "index_web_pages_for_search": 1,
  "istable": 1,
  "links": [],
- "modified": "2025-07-10 21:42:55.143925",
+ "modified": "2025-10-30 14:05:20.150976",
  "modified_by": "Administrator",
  "module": "KSA Compliance",
  "name": "Sales Invoice Advance Payment",
