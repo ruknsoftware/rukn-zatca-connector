@@ -16,7 +16,6 @@ echo "✅ Site created successfully!"
 
 echo "⚙️  Setting site config..."
 bench --site $SITE_NAME set-config allow_tests true
-bench --site $SITE_NAME set-config developer_mode 1
 
 echo "📦 Installing ERPNext..."
 bench --site $SITE_NAME install-app erpnext
