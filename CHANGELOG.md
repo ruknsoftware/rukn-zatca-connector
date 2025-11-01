@@ -15,6 +15,15 @@ to a section with the version name.
 ## 0.55.5
 * Add Advance Payment Entry log Sales Invoice Advance Payment table
 
+## 0.55.4
+* Add ZATCA integration safeguards across modules
+  * Implement is_zatca_enabled check to prevent processing when ZATCA integration is disabled
+  * Update ZATCA integration checks across Branch, GL Entry, Payment Entry, Payment Reconciliation, and Sales Invoice modules
+  * Add ZATCA enabled validation in Sales Invoice Advance, Unreconcile Payment, and return invoice utilities
+* Remove required property setter for custom_zatca_payment_means_code in Mode of Payment
+* Remove after_migrate hook from install process
+* Add automated test script for ZATCA setup and validation
+
 ## 0.55.3
 * Cap the Calculated Tax Amount at the unallocated_tax value Advance Payment Entry.
 
