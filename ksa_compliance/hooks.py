@@ -80,7 +80,6 @@ jinja = {
 # before_install = "ksa_compliance.install.before_install"
 after_install = "ksa_compliance.install.after_install"
 
-after_migrate = "ksa_compliance.install.after_migrate"
 
 # Uninstallation
 # ------------
@@ -129,6 +128,7 @@ after_migrate = "ksa_compliance.install.after_migrate"
 override_doctype_class = {
     "Payment Reconciliation": "ksa_compliance.standard_doctypes.payment_reconciliation.CustomPaymentReconciliation",
     "Unreconcile Payment": "ksa_compliance.standard_doctypes.unreconcile_payment.CustomUnreconcilePayment",
+    "Sales Invoice": "ksa_compliance.standard_doctypes.sales_invoice.AdvanceSalesInvoice",
 }
 
 # Document Events
@@ -145,18 +145,32 @@ override_doctype_class = {
 
 doc_events = {
     "Sales Invoice": {
-        "on_submit": "ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype",
+        "on_submit": [
+            "ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype",
+            "ksa_compliance.standard_doctypes.sales_invoice.update_advance_payment_entry_tax_allocation",
+        ],
         "validate": "ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice",
         "before_validate": "ksa_compliance.standard_doctypes.sales_invoice.auto_apply_advance_payments",
         "before_cancel": "ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice",
     },
     "Payment Entry": {
-        "validate": "ksa_compliance.standard_doctypes.payment_entry.prevent_settling_advance_invoice_from_payment_entry_references",
+        "on_submit": [
+            "ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype",
+            "ksa_compliance.standard_doctypes.payment_entry.add_tax_gl_entries",
+        ],
+        "validate": [
+            "ksa_compliance.standard_doctypes.sales_invoice.validate_customer_vat_compliance",
+            "ksa_compliance.standard_doctypes.payment_entry.prevent_settling_advance_invoice_from_payment_entry_references",
+        ],
         "before_cancel": "ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice",
     },
     "POS Invoice": {
         "on_submit": "ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype",
         "validate": "ksa_compliance.standard_doctypes.sales_invoice.validate_sales_invoice",
+        "before_cancel": "ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice",
+    },
+    "Journal Entry": {
+        "on_submit": "ksa_compliance.standard_doctypes.sales_invoice.create_sales_invoice_additional_fields_doctype",
         "before_cancel": "ksa_compliance.standard_doctypes.sales_invoice.prevent_cancellation_of_sales_invoice",
     },
     "Branch": {
@@ -198,6 +212,7 @@ scheduler_events = {"hourly_long": ["ksa_compliance.background_jobs.sync_e_invoi
 before_tests = [
     "ksa_compliance.test.test_setup.custom_erpnext_setup",
     "ksa_compliance.test.test_setup.data_setup",
+    "ksa_compliance.ksa_compliance.test.zatca_test_preparation.prepare_system_for_zatca_tests",
 ]
 
 # Overriding Methods

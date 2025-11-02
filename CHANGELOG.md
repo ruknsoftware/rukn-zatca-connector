@@ -6,11 +6,114 @@ requests so that whoever deploys a given version can file the relevant changes u
 Add changes to the "Unreleased Changes" section. Once you create a version (and tag it), move the unreleased changes
 to a section with the version name.
 
-## Unreleased Changes
-## 0.52.8
-* Add Mode Of Payment Account custom filed
-* Fetch Mode of Payment Account and Setup Reference Fields Depends on This
+## ⚠️ Compatibility Notice
+> The following updates (**v0.53.8 → v0.54.9**) were **developed and tested on ERPNext v14**.  
+> Compatibility with **ERPNext v15** has **not been verified**.  
+> Use these versions **at your own risk** on v15.
 
+## Unreleased Changes
+## 0.55.5
+* Add Advance Payment Entry log Sales Invoice Advance Payment table
+
+## 0.55.4
+* Add ZATCA integration safeguards across modules
+  * Implement is_zatca_enabled check to prevent processing when ZATCA integration is disabled
+  * Update ZATCA integration checks across Branch, GL Entry, Payment Entry, Payment Reconciliation, and Sales Invoice modules
+  * Add ZATCA enabled validation in Sales Invoice Advance, Unreconcile Payment, and return invoice utilities
+* Remove required property setter for custom_zatca_payment_means_code in Mode of Payment
+* Remove after_migrate hook from install process
+* Add automated test script for ZATCA setup and validation
+
+## 0.55.3
+* Cap the Calculated Tax Amount at the unallocated_tax value Advance Payment Entry.
+
+## 0.55.2
+* Add Patche to fetch Advance Payment Entry on Journal Entry
+
+## 0.55.1
+* Return Amount From Advance Payment Entry
+  * Added a new button, “Return Advance Payment,” on the Payment Entry form.
+  * Includes a dialog for specifying the return amount with validation against the unallocated amount.
+  * Journal Entry Creation
+  * Implemented automatic creation of a Journal Entry when returning an advance payment.
+  * Avoid canceling Journal Entries involved in ZATCA submissions.
+
+## 0.55.0
+* ⚠️ Payment Entry option is still in Beta on Version 15 — use at your own risk.
+
+## 0.54.9
+* ZATCA Phase 2 Advance Payment Print Format
+
+## 0.54.8
+* Fix Passing Prepayment Invoices depends on Advance Payment
+* Read Prepayment info depends on Advance Payment for Print Formate
+
+## 0.54.7
+* Prevent Cancellation of Advance Payment Entry when Advance Payment depends on Payment Entry
+
+## 0.54.6
+* Fix Settings Tax Allocation on Advance Payment Entry
+
+## 0.54.5
+* Fix Passing Payment Entry on check IS Advance Payment Depends On Entry
+
+## 0.54.4
+* Avoid Return Invoice Paid Settling From Advance Payment Entry
+* Handle Payment Reconciliation with Advance Payment Depends On
+
+## 0.54.3
+* Add taxes when settling Sales Invoice from advance payment entry
+* Apply Advance Payment Depends On applicable payments
+
+* 
+## 0.54.2
+* Enhance Test Performance
+
+## 0.54.1
+* Reverse GL Entries for Advance Payment Taxes
+
+## 0.54.0
+* Fix Read Zatca Category from Tax Category
+
+## 0.53.9
+* Fix Adding Advance Payment Tax Account
+
+## 0.53.8
+* Add Methods Advance Payment Depends on Payment Entry and Sales Invoice
+* Add new Settings for Advance Payment Taxes
+* Send Advance Payment Entry to ZATCA
+
+## 0.53.7
+* Add Rounding App to Test Site
+
+## 0.53.6
+* Prepare Test System for ZATCA Integration
+
+## 0.53.5
+* Create Intal Test for ZATCA Buissness Settings Phase 1
+
+## 0.53.4
+* Create Intal Test for ZATCA EGS
+
+## 0.53.3
+* Create Intal Test for SI Counting Settings
+
+## 0.53.2
+* Create Intal Test for Precomputed Sales Invoice
+* Fix Bug in Handling QR for Precomputed Sales Invoice
+
+## 0.53.1
+* FIX No Permission for ZATCA Business Settings
+
+## 0.53.0
+* Reduce Time for Github Actions
+
+## 0.52.9
+* Refactor Test and Create Initial Test for Sales Invoice Additional Fields
+
+## 0.52.8
+* Add Mode Of Payment Account Custom Filed
+* Fetch Mode of Payment Account and Setup Reference Fields Depends on This
 ## 0.52.7
 * Refactor Test and Move Logic to Buissness ZATCA Phase 2
 

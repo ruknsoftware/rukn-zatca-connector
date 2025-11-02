@@ -10,7 +10,14 @@ from erpnext.accounts.utils import (
 from frappe import _, qb
 from frappe.utils import flt
 
-from ksa_compliance.standard_doctypes.sales_invoice_advance import get_invoice_advance_payments
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
+    ZATCABusinessSettings,
+)
+from ksa_compliance.standard_doctypes.sales_invoice_advance import (
+    get_invoice_advance_payments,
+    is_advance_payment_condition,
+)
+from ksa_compliance.zatca_guard import is_zatca_enabled
 
 
 def unreconcile_from_advance_payment(
@@ -43,14 +50,20 @@ def unreconcile_from_advance_payment(
 
 
 def prevent_un_reconcile_advance_payments(self, method):
+    settings = ZATCABusinessSettings.for_company(self.company)
+    if not settings or not getattr(settings, "enable_zatca_integration", False):
+        return
     if hasattr(self, "enable_unreconcile_from_advance_payment"):
         setattr(self, "enable_unreconcile_from_advance_payment", False)
         return
     valid = True
     if self.voucher_type == "Payment Entry":
         payment_entry = frappe.get_doc(self.voucher_type, self.voucher_no)
+        is_advance_payment = is_advance_payment_condition(
+            payment_entry, settings.advance_payment_depends_on
+        )
         if (
-            payment_entry.is_advance_payment == 1
+            is_advance_payment
             and payment_entry.payment_type == "Receive"
             and payment_entry.party_type == "Customer"
         ):
@@ -78,14 +91,23 @@ class CustomUnreconcilePayment(UnreconcilePayment):
     def on_submit(self):
         if self.voucher_type == "Payment Entry":
             payment_entry = frappe.get_doc(self.voucher_type, self.voucher_no)
+            settings = ZATCABusinessSettings.for_company(payment_entry.company)
+            if not settings or not getattr(settings, "enable_zatca_integration", False):
+                return super(CustomUnreconcilePayment, self).on_submit()
+            is_advance_payment = is_advance_payment_condition(
+                payment_entry, settings.advance_payment_depends_on
+            )
             if (
-                payment_entry.is_advance_payment == 1
+                is_advance_payment
                 and payment_entry.party_type == "Customer"
                 and payment_entry.payment_type == "Receive"
             ):
                 self.unreconcile_advance_payment()
             else:
                 super(CustomUnreconcilePayment, self).on_submit()
+        else:
+            # Handle Journal Entry and other voucher types
+            super(CustomUnreconcilePayment, self).on_submit()
 
     def unreconcile_advance_payment(self):
         # todo: more granular unreconciliation

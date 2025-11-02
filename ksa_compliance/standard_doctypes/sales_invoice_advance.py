@@ -12,10 +12,19 @@ from frappe.utils import flt
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     ZATCABusinessSettings,
 )
+from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
+from ksa_compliance.utils.update_itemised_tax_data import (
+    calculate_net_from_gross_included_in_print_rate,
+    calculate_tax_amount_included_in_print_rate,
+)
+from ksa_compliance.zatca_guard import is_zatca_enabled
 
 
 def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
+    settings = ZATCABusinessSettings.for_company(self.company)
+    if not settings or not getattr(settings, "enable_zatca_integration", False):
+        return []
     sales_invoice_advance = frappe.qb.DocType("Sales Invoice Advance")
     payment_entry = frappe.qb.DocType("Payment Entry")
     advance_payments = []
@@ -24,8 +33,11 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
             payment_entry = frappe.get_doc(
                 sales_invoice_advance.reference_type, sales_invoice_advance.reference_name
             )
+            is_advance_payment = is_advance_payment_condition(
+                payment_entry, settings.advance_payment_depends_on
+            )
             if (
-                payment_entry.is_advance_payment == 1
+                is_advance_payment
                 and payment_entry.party_type == "Customer"
                 and payment_entry.payment_type == "Receive"
             ):
@@ -37,10 +49,14 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
                         reference_row=sales_invoice_advance.reference_row,
                         advance_amount=sales_invoice_advance.advance_amount,
                         advance_payment_invoice=payment_entry.advance_payment_invoice,
+                        unallocated_tax=payment_entry.unallocated_tax,
                     )
                 )
         return advance_payments
 
+    advance_payment_query_condition = get_advance_payment_query_condition(
+        payment_entry, settings.advance_payment_depends_on
+    )
     return (
         frappe.qb.from_(sales_invoice_advance)
         .join(payment_entry)
@@ -53,9 +69,10 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
             sales_invoice_advance.reference_row,
             sales_invoice_advance.advance_amount,
             payment_entry.advance_payment_invoice,
+            payment_entry.unallocated_tax,
         )
         .where(
-            (payment_entry.is_advance_payment == 1)
+            advance_payment_query_condition
             & (payment_entry.payment_type == "Receive")
             & (payment_entry.party_type == "Customer")
             & (sales_invoice_advance.parent == self.name)
@@ -64,6 +81,12 @@ def get_invoice_advance_payments(self: SalesInvoice | POSInvoice):
 
 
 def set_advance_payment_invoice_settling_gl_entries(advance_payment, is_return=False):
+    company = frappe.db.get_value(
+        "Sales Invoice", advance_payment.advance_payment_invoice, "company"
+    )
+    if not is_zatca_enabled(company):
+        return
+
     advance_payment_invoice = frappe.get_doc(
         "Sales Invoice", advance_payment.advance_payment_invoice
     )
@@ -113,27 +136,59 @@ def set_advance_payment_invoice_settling_gl_entries(advance_payment, is_return=F
     advance_payment_invoice.make_gl_entries(advance_gl_entries)
 
 
-def calculate_advance_payment_tax_amount(advance_payment, advance_payment_invoice):
-    tax_amount = (
-        advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges
-    ) / advance_payment_invoice.grand_total
-    return round(tax_amount, 2)
+def calculate_advance_payment_tax_amount(
+    advance_payment, advance_payment_invoice, advance_payment_depends_on=None
+):
+    precision = advance_payment_invoice.precision("base_total_taxes_and_charges")
+    tax_amount = flt(
+        (advance_payment.allocated_amount * advance_payment_invoice.base_total_taxes_and_charges)
+        / advance_payment_invoice.grand_total,
+        precision,
+    )
+    # cap the calculated tax amount at the unallocated_tax value.
+    if (
+        advance_payment_depends_on == "Payment Entry"
+        and tax_amount > advance_payment.unallocated_tax
+    ):
+        tax_amount = advance_payment.unallocated_tax
+
+    return tax_amount
 
 
 def get_prepayment_info(self: SalesInvoice | POSInvoice):
+    settings = ZATCABusinessSettings.for_company(self.company)
+    if not settings or not getattr(settings, "enable_zatca_integration", False):
+        return []
     advance_payments = get_invoice_advance_payments(self)
     for idx, advance_payment in enumerate(advance_payments, start=1):
-        advance_payment_invoice = frappe.get_doc(
-            "Sales Invoice", advance_payment.advance_payment_invoice
-        )
-        item = advance_payment_invoice.items[0]
-        advance_payment["tax_percent"] = abs(item.tax_rate or 0.0)
-        advance_payment["tax_amount"] = calculate_advance_payment_tax_amount(
-            advance_payment, advance_payment_invoice
-        )
-        advance_payment["amount"] = round(
-            advance_payment.allocated_amount - advance_payment["tax_amount"], 2
-        )
+        if settings.advance_payment_depends_on == "Sales Invoice":
+            advance_payment_invoice = frappe.get_doc(
+                "Sales Invoice", advance_payment.advance_payment_invoice
+            )
+            item = advance_payment_invoice.items[0]
+            tax_rate = abs(item.tax_rate or 0.0)
+            tax_amount = calculate_advance_payment_tax_amount(
+                advance_payment, advance_payment_invoice
+            )
+            amount = round(advance_payment.allocated_amount - advance_payment["tax_amount"], 2)
+        else:
+            advance_payment_invoice = frappe.get_doc(
+                "Payment Entry", advance_payment.reference_name
+            )
+            taxes_and_charges = get_taxes_and_charges(advance_payment_invoice)
+            tax_rate = taxes_and_charges.taxes[0].rate
+            precision = self.precision("paid_amount")
+            amount = flt(advance_payment.allocated_amount, precision)
+            net_amount = flt(
+                calculate_net_from_gross_included_in_print_rate(amount, tax_rate), precision
+            )
+            tax_amount = flt(
+                flt(calculate_tax_amount_included_in_print_rate(amount, net_amount)), precision
+            )
+            advance_payment["advance_payment_invoice"] = advance_payment_invoice.name
+        advance_payment["tax_percent"] = tax_rate
+        advance_payment["tax_amount"] = tax_amount
+        advance_payment["amount"] = amount
         advance_payment["idx"] = idx
     return advance_payments
 
@@ -145,6 +200,8 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
         self = cast(SalesInvoice, frappe.get_doc(self))
     company = self.get("company")
     settings = ZATCABusinessSettings.for_company(company)
+    if not getattr(settings, "enable_zatca_integration", False):
+        return []
     if not settings or not settings.auto_apply_advance_payments:
         return []
     if invoice_has_advance_item(self, settings) or self.get("is_return"):
@@ -152,7 +209,10 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
     customer = self.get("customer")
     party_account = get_party_account(party_type="Customer", party=customer, company=company)
     payment_entry = qb.DocType("Payment Entry")
-    advance_payment_entries = (
+    advance_payment_query_condition = get_advance_payment_query_condition(
+        payment_entry, settings.advance_payment_depends_on
+    )
+    advance_payment_entries_query = (
         qb.from_(payment_entry)
         .select(
             ConstantColumn("Payment Entry").as_("reference_type"),
@@ -164,16 +224,17 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
             payment_entry.paid_from_account_currency.as_("currency"),
         )
         .where(
-            (payment_entry.paid_from == party_account)
+            advance_payment_query_condition
+            & (payment_entry.paid_from == party_account)
             & (payment_entry.party_type == "Customer")
             & (payment_entry.party == customer)
             & (payment_entry.payment_type == "Receive")
             & (payment_entry.docstatus == 1)
             & (payment_entry.unallocated_amount.gt(0))
-            & (payment_entry.is_advance_payment == 1)
         )
         .orderby(payment_entry.posting_date)
-    ).run(as_dict=1)
+    )
+    advance_payment_entries = advance_payment_entries_query.run(as_dict=1)
     advances = []
     advance_allocated = 0
     for advance_payment in advance_payment_entries:
@@ -198,3 +259,22 @@ def get_invoice_applicable_advance_payments(self, is_validate=False):
 
         advances.append(advance_row)
     return advances
+
+
+def get_advance_payment_query_condition(payment_entry, advance_payment_depends_on, reverse=False):
+    condition_value = 0 if reverse else 1
+    return (
+        payment_entry.is_advance_payment == condition_value
+        if advance_payment_depends_on == "Sales Invoice"
+        else payment_entry.is_advance_payment_depends_on_entry == condition_value
+    )
+
+
+def is_advance_payment_condition(payment_entry, advance_payment_depends_on):
+    if advance_payment_depends_on == "Sales Invoice":
+        is_advance_payment = True if payment_entry.is_advance_payment == 1 else False
+    else:
+        is_advance_payment = (
+            True if payment_entry.is_advance_payment_depends_on_entry == 1 else False
+        )
+    return is_advance_payment

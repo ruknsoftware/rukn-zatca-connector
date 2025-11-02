@@ -16,7 +16,9 @@ class ZATCAIntegrationLog(Document):
 
         e_invoice_file: DF.Attach | None
         invoice_additional_fields_reference: DF.Link
-        invoice_doctype: DF.Literal["Sales Invoice", "POS Invoice"]
+        invoice_doctype: DF.Literal[
+            "Sales Invoice", "POS Invoice", "Payment Entry", "Journal Entry"
+        ]
         invoice_reference: DF.DynamicLink
         status: DF.Literal[
             "",

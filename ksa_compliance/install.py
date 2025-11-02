@@ -14,12 +14,37 @@ def add_custom_fields():
     custom_fields = {
         "Payment Entry": [
             dict(
+                fieldname="posting_time",
+                label="Posting Time",
+                fieldtype="Time",
+                insert_after="posting_date",
+                mandatory_depends_on="eval:doc.is_advance_payment ||  doc.is_advance_payment_depends_on_entry",
+                module=ksa_compliance_module,
+            ),
+            dict(
                 fieldname="is_advance_payment",
                 label="IS Advance Payment",
                 fieldtype="Check",
                 insert_after="payment_type",
                 module=ksa_compliance_module,
                 read_only=True,
+            ),
+            dict(
+                fieldname="is_advance_payment_depends_on_entry",
+                label="IS Advance Payment Depends On Entry",
+                fieldtype="Check",
+                insert_after="is_advance_payment",
+                module=ksa_compliance_module,
+            ),
+            dict(
+                fieldname="advance_payment_entry_taxes_and_charges",
+                label="Advance Payment Entry Sales Taxes and Charges",
+                fieldtype="Link",
+                options="Sales Taxes and Charges Template",
+                insert_after="is_advance_payment_depends_on_entry",
+                read_only_depends_on="eval:!doc.is_advance_payment_depends_on_entry",
+                mandatory_depends_on="eval:doc.is_advance_payment_depends_on_entry",
+                module=ksa_compliance_module,
             ),
             dict(
                 fieldname="invoice_doctype",
@@ -37,6 +62,24 @@ def add_custom_fields():
                 fieldtype="Dynamic Link",
                 options="invoice_doctype",
                 insert_after="invoice_doctype",
+                module=ksa_compliance_module,
+                read_only=True,
+            ),
+            dict(
+                fieldname="allocated_tax",
+                label="Allocated Tax",
+                fieldtype="Currency",
+                options="Company:company:default_currency",
+                insert_after="base_total_allocated_amount",
+                module=ksa_compliance_module,
+                read_only=True,
+            ),
+            dict(
+                fieldname="unallocated_tax",
+                label="Unallocated Tax",
+                fieldtype="Currency",
+                options="Company:company:default_currency",
+                insert_after="unallocated_amount",
                 module=ksa_compliance_module,
                 read_only=True,
             ),
@@ -115,6 +158,17 @@ def add_custom_fields():
                 module=ksa_compliance_module,
             )
         ],
+        "Journal Entry": [
+            dict(
+                fieldname="advance_payment_entry",
+                label="Advance Payment Entry",
+                fieldtype="Link",
+                options="Payment Entry",
+                insert_after="voucher_type",
+                read_only=True,
+                module=ksa_compliance_module,
+            )
+        ],
     }
     create_custom_fields(custom_fields)
 
@@ -131,26 +185,6 @@ def add_property_setters():
             value='["mode_of_payment", "enabled", "type", "accounts", "custom_zatca_payment_means_code"]',
             property_type="Data",
             for_doctype=True,
-        )
-
-        ps_doc.module = ksa_compliance_module
-        ps_doc.save(ignore_permissions=True)
-
-
-def after_migrate():
-
-    doctype = "Mode of Payment"
-    fieldname = "custom_zatca_payment_means_code"
-    setter_name = f"{doctype}-{fieldname}-reqd"
-
-    if not frappe.db.exists("Property Setter", setter_name):
-        ps_doc = make_property_setter(
-            doctype=doctype,
-            fieldname=fieldname,
-            property="reqd",
-            value="1",
-            property_type="Check",
-            for_doctype=False,
         )
 
         ps_doc.module = ksa_compliance_module
