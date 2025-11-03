@@ -26,11 +26,7 @@ def custom_erpnext_setup():
         "domain": "Manufacturing",
     })
 
-    if not frappe.is_setup_complete():
-        from frappe.desk.page.setup_wizard.setup_wizard import setup_complete as frappe_setup_complete  # type: ignore[import]
-
-        frappe_setup_complete(setup_args)
-    elif not frappe.db.exists("Company", TEST_COMPANY_NAME):
+    if not frappe.db.exists("Company", TEST_COMPANY_NAME):
         from erpnext.setup.setup_wizard.setup_wizard import setup_complete as erpnext_setup_complete  # type: ignore[import]
 
         erpnext_setup_complete(setup_args)
