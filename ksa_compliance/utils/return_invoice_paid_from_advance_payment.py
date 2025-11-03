@@ -4,6 +4,7 @@ from erpnext.accounts.utils import reconcile_against_document
 from frappe.utils import flt
 
 from ksa_compliance.standard_doctypes.sales_invoice_advance import (
+    calculate_advance_payment_tax_amount,
     get_invoice_advance_payments,
     set_advance_payment_invoice_settling_gl_entries,
 )
@@ -19,6 +20,10 @@ def get_return_against_advance_payments(return_against, grand_total):
     return_against_advance_payments = get_invoice_advance_payments(return_against)
     return_advance_payments = []
     return_allocated = 0
+    advance_payment_invoices = {
+        advance_payment_invoice.reference_name: advance_payment_invoice
+        for advance_payment_invoice in return_against.advance_payment_invoices
+    }
     for return_against_advance_payment in return_against_advance_payments:
         amount = grand_total
         allocated_amount = min(
@@ -29,12 +34,19 @@ def get_return_against_advance_payments(return_against, grand_total):
         return_allocated += flt(allocated_amount)
         return_advance_payment = return_against_advance_payment.copy()
         return_advance_payment.allocated_amount = allocated_amount
+        return_advance_payment.advance_payment_allocated_tax = advance_payment_invoices[
+            return_against_advance_payment.reference_name
+        ].allocated_tax
+        return_advance_payment.advance_payment_unallocated_tax = advance_payment_invoices[
+            return_against_advance_payment.reference_name
+        ].unallocated_tax
+
         return_advance_payments.append(return_advance_payment)
 
     return return_advance_payments
 
 
-def settle_return_invoice_paid_from_advance_payment(self):
+def settle_return_invoice_paid_from_advance_payment(self, settings):
     """
     Steps:
     1. Get advance payments allocated to the original (return_against) invoice.
@@ -55,14 +67,15 @@ def settle_return_invoice_paid_from_advance_payment(self):
         allocated_amount = return_against_advance_payment.allocated_amount
 
         # Create GL entries to reflect settlement for the advance invoice.
-        set_advance_payment_invoice_settling_gl_entries(
-            frappe._dict(
-                allocated_amount=allocated_amount,
-                reference_name=self.name,
-                advance_payment_invoice=return_against_advance_payment.advance_payment_invoice,
-            ),
-            True,
-        )
+        if settings.advance_payment_depends_on == "Sales Invoice":
+            set_advance_payment_invoice_settling_gl_entries(
+                frappe._dict(
+                    allocated_amount=allocated_amount,
+                    reference_name=self.name,
+                    advance_payment_invoice=return_against_advance_payment.advance_payment_invoice,
+                ),
+                True,
+            )
 
         reference_allocated_amount = frappe.get_value(
             "Payment Entry Reference",
@@ -73,6 +86,7 @@ def settle_return_invoice_paid_from_advance_payment(self):
             "allocated_amount",
         )
 
+        update_advance_payment_tax_allocation(self, return_against_advance_payment, settings)
         # Unreconcile Advance Invoice from Payment Entry After paid from gls
         unreconcile_from_advance_payment(
             company=self.company,
@@ -84,13 +98,14 @@ def settle_return_invoice_paid_from_advance_payment(self):
         )
 
         # Create GL entries for settlement for the return_against invoice.
-        set_advance_payment_invoice_settling_gl_entries(
-            frappe._dict(
-                allocated_amount=allocated_amount,
-                reference_name=self.name,
-                advance_payment_invoice=self.return_against,
+        if settings.advance_payment_depends_on == "Sales Invoice":
+            set_advance_payment_invoice_settling_gl_entries(
+                frappe._dict(
+                    allocated_amount=allocated_amount,
+                    reference_name=self.name,
+                    advance_payment_invoice=self.return_against,
+                )
             )
-        )
 
         # Reconcile any difference in allocated amounts.
         if reference_allocated_amount != allocated_amount:
@@ -148,3 +163,46 @@ def build_reconcile_against_document(
             if return_against.get(dim.fieldname):
                 x.update({dim.fieldname: return_against.get(dim.fieldname)})
     reconcile_against_document(lst, active_dimensions=active_dimensions)
+
+
+def update_advance_payment_tax_allocation(self, advance_payment, settings):
+    advance_payment_tax = calculate_advance_payment_tax_amount(
+        advance_payment, self, settings.advance_payment_depends_on
+    )
+    advance_payment_entry_doc = frappe.get_doc("Payment Entry", advance_payment.reference_name)
+
+    if self.is_return:
+        advance_payment_entry_doc.allocated_tax = abs(
+            advance_payment_entry_doc.allocated_tax - advance_payment_tax
+        )
+        advance_payment_entry_doc.unallocated_tax = (
+            advance_payment_entry_doc.unallocated_tax + advance_payment_tax
+        )
+
+        updated_allocated_tax = abs(
+            advance_payment.advance_payment_allocated_tax - advance_payment_tax
+        )
+        updated_unallocated_tax = (
+            advance_payment.advance_payment_unallocated_tax + advance_payment_tax
+        )
+        sales_invoice_advance_payment = frappe.qb.DocType("Sales Invoice Advance Payment")
+        query = (
+            frappe.qb.update(sales_invoice_advance_payment)
+            .set(sales_invoice_advance_payment.allocated_tax, updated_allocated_tax)
+            .set(sales_invoice_advance_payment.unallocated_tax, updated_unallocated_tax)
+            .where(
+                (sales_invoice_advance_payment.parent == self.return_against)
+                & (sales_invoice_advance_payment.reference_name == advance_payment_entry_doc.name)
+            )
+        )
+        query.run()
+    else:
+        advance_payment_entry_doc.allocated_tax = (
+            advance_payment_entry_doc.allocated_tax + advance_payment_tax
+        )
+        advance_payment_entry_doc.unallocated_tax = abs(
+            advance_payment_entry_doc.unallocated_tax - advance_payment_tax
+        )
+
+    advance_payment_entry_doc.flags.ignore_validate_update_after_submit = True
+    advance_payment_entry_doc.save()
