@@ -146,11 +146,13 @@ def calculate_advance_payment_tax_amount(
         precision,
     )
     # cap the calculated tax amount at the unallocated_tax value.
-    if (
-        advance_payment_depends_on == "Payment Entry"
-        and tax_amount > advance_payment.unallocated_tax
-    ):
-        tax_amount = advance_payment.unallocated_tax
+    if advance_payment_depends_on == "Payment Entry":
+        if advance_payment_invoice.is_return:
+            if tax_amount > advance_payment.advance_payment_allocated_tax:
+                tax_amount = advance_payment.advance_payment_allocated_tax
+        else:
+            if tax_amount > advance_payment.unallocated_tax:
+                tax_amount = advance_payment.unallocated_tax
 
     return tax_amount
 
