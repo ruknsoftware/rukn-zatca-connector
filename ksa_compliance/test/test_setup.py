@@ -65,6 +65,7 @@ def custom_erpnext_setup():
     setup_zatca_business_settings(TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, full_onboarding=True)
 
     frappe.db.commit()
+
 def data_setup():
     setup_zatca_business_settings(TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, full_onboarding=False)
     setup_compliance_check_data(TEST_COMPANY_NAME)
