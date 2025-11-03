@@ -12,6 +12,8 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.55.6
+* Skip VAT compliance validation for Payment Entries that are not against customers to avoid lookup errors when saving supplier payments
 ## 0.55.5
 * Add Advance Payment Entry log Sales Invoice Advance Payment table
 
