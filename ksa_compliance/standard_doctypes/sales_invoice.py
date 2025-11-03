@@ -52,6 +52,7 @@ from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_ite
 from ksa_compliance.utils.return_invoice_paid_from_advance_payment import (
     get_return_against_advance_payments,
     settle_return_invoice_paid_from_advance_payment,
+    update_advance_payment_tax_allocation,
 )
 
 IGNORED_INVOICES = set()
@@ -130,7 +131,7 @@ def create_sales_invoice_additional_fields_doctype(
                 set_advance_payment_entry_settling_references(payment_entry)
         if self.is_return:
             if not is_advance_invoice:
-                settle_return_invoice_paid_from_advance_payment(self)
+                settle_return_invoice_paid_from_advance_payment(self, settings)
         else:
             if settings.advance_payment_depends_on == "Sales Invoice":
                 advance_payments = get_invoice_advance_payments(self)
@@ -256,24 +257,18 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
         advance_payments = get_invoice_advance_payments(self)
         if self.is_return:
             return_against = frappe.get_doc(self.doctype, self.return_against)
-            if is_advance_invoice and abs(self.grand_total) > return_against.outstanding_amount:
+            advance_payments = get_return_against_advance_payments(
+                return_against, abs(self.get("grand_total"))
+            )
+            if (is_advance_invoice or advance_payments) and abs(
+                self.grand_total
+            ) > return_against.outstanding_amount:
                 frappe.msgprint(
                     _("Cant Return exceeds the outstanding amount {0} of Advance Invoice").format(
                         return_against.outstanding_amount
                     ),
                     title=_("Validation Error"),
                     indicator="red",
-                )
-                valid = False
-            advance_payments = get_return_against_advance_payments(
-                return_against, abs(self.get("grand_total"))
-            )
-            if advance_payments and settings.advance_payment_depends_on == "Payment Entry":
-                frappe.msgprint(
-                    msg=_("Cant Return Invoice Settling From Advance Payment Entry"),
-                    title=_("Validation Error"),
-                    indicator="red",
-                    raise_exception=True,
                 )
                 valid = False
 
@@ -531,7 +526,13 @@ def create_payment_entry_for_advance_payment_invoice(
 class AdvanceSalesInvoice(SalesInvoice):
     def make_tax_gl_entries(self, gl_entries):
         settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
-        advance_payments = get_invoice_advance_payments(self)
+        if self.is_return:
+            return_against = frappe.get_doc("Sales Invoice", self.return_against)
+            advance_payments = get_return_against_advance_payments(
+                return_against, abs(self.grand_total)
+            )
+        else:
+            advance_payments = get_invoice_advance_payments(self)
         if (
             not advance_payments
             or not settings
@@ -618,18 +619,9 @@ def update_advance_payment_entry_tax_allocation(self, method):
             f"Skipping additional fields for {self.name} because of missing ZATCA settings"
         )
         return
+    if self.is_return:
+        return
 
     advance_payments = get_invoice_advance_payments(self)
     for advance_payment in advance_payments:
-        advance_payment_tax = calculate_advance_payment_tax_amount(
-            advance_payment, self, settings.advance_payment_depends_on
-        )
-        advance_payment_entry_doc = frappe.get_doc("Payment Entry", advance_payment.reference_name)
-        advance_payment_entry_doc.allocated_tax = (
-            advance_payment_entry_doc.allocated_tax + advance_payment_tax
-        )
-        advance_payment_entry_doc.unallocated_tax = abs(
-            advance_payment_entry_doc.unallocated_tax - advance_payment_tax
-        )
-        advance_payment_entry_doc.flags.ignore_validate_update_after_submit = True
-        advance_payment_entry_doc.save()
+        update_advance_payment_tax_allocation(self, advance_payment, settings)
