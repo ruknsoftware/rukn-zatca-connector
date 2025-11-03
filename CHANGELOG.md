@@ -12,6 +12,13 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.55.8
+* Settling Return Invoice paid from Advance Payment Entry
+  * Enable Return Invoices
+  * Update Tax Allocations
+  * Mapped Outstanding Amount When return the Invoice
+  * Calculate Advance Tax Depends on Sales Invoice Advances Allocation tax
+
 ## 0.55.6
 * Skip VAT Compliance Validation for Payment Entries that are Not Against Customers to Avoid Lookup Errors when Saving Supplier Payments
 ## 0.55.5
