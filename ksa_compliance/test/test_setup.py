@@ -7,29 +7,33 @@ from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY,
 
 def custom_erpnext_setup():
     frappe.clear_cache()
-    from erpnext.setup.setup_wizard.setup_wizard import setup_complete
+    current_year = now_datetime().year
+    setup_args = frappe._dict({
+        "currency": SAUDI_CURRENCY,
+        "company_name": TEST_COMPANY_NAME,
+        "country": SAUDI_COUNTRY,
+        "full_name": "Test User",
+        "timezone": "Asia/Riyadh",
+        "company_abbr": "RUKN",
+        "industry": "Manufacturing",
+        "fy_start_date": f"{current_year}-01-01",
+        "fy_end_date": f"{current_year}-12-31",
+        "language": "English",
+        "company_tagline": "ZATCA Testing",
+        "email": "test@example.com",
+        "password": "test",
+        "chart_of_accounts": "Standard",
+        "domain": "Manufacturing",
+    })
 
+    if not frappe.is_setup_complete():
+        from frappe.desk.page.setup_wizard.setup_wizard import setup_complete as frappe_setup_complete  # type: ignore[import]
 
-    if not frappe.db.exists("Company", TEST_COMPANY_NAME):
-        current_year = now_datetime().year
-        setup_complete(
-            frappe._dict({
-                "currency": SAUDI_CURRENCY,
-                "company_name": TEST_COMPANY_NAME,
-                "country": SAUDI_COUNTRY,
-                "full_name": "Test User",
-                "timezone": "Asia/Riyadh",
-                "company_abbr": "RUKN",
-                "industry": "Manufacturing",
-                "fy_start_date": f"{current_year}-01-01",
-                "fy_end_date": f"{current_year}-12-31",
-                "language": "english",
-                "company_tagline": "ZATCA Testing",
-                "email": "test@example.com",
-                "password": "test",
-                "chart_of_accounts": "Standard",
-            })
-        )
+        frappe_setup_complete(setup_args)
+    elif not frappe.db.exists("Company", TEST_COMPANY_NAME):
+        from erpnext.setup.setup_wizard.setup_wizard import setup_complete as erpnext_setup_complete  # type: ignore[import]
+
+        erpnext_setup_complete(setup_args)
 
     if frappe.db.exists("Country", SAUDI_COUNTRY):
         frappe.db.set_value("Country", SAUDI_COUNTRY, "code", "SA")
@@ -65,7 +69,6 @@ def custom_erpnext_setup():
     setup_zatca_business_settings(TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, full_onboarding=True)
 
     frappe.db.commit()
-
 def data_setup():
     setup_zatca_business_settings(TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, full_onboarding=False)
     setup_compliance_check_data(TEST_COMPANY_NAME)
