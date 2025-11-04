@@ -572,6 +572,13 @@ class AdvanceSalesInvoice(SalesInvoice):
                         "Multi-currency handling for advance portion is not supported yet."
                     ).format(advance_tax_account_currency, self.company_currency)
                 )
+            if account_currency != self.company_currency:
+                frappe.throw(
+                    _(
+                        "Tax account currency ({0}) must match company currency ({1}). "
+                        "Multi-currency handling for Invoice Paid From Advance Payment Entry is not supported yet."
+                    ).format(account_currency, self.company_currency)
+                )
             if total_advance_taxes_amount > 0 and advance_tax_account:
                 advance_portion = min(total_advance_taxes_amount, tax_amount)
                 gl_entries.append(
@@ -602,15 +609,7 @@ class AdvanceSalesInvoice(SalesInvoice):
                             "against": self.customer,
                             "credit": tax_amount * -1 if self.is_return else tax_amount,
                             "credit_in_account_currency": (
-                                tax_amount * -1
-                                if self.is_return
-                                else (
-                                    tax_amount
-                                    if account_currency == self.company_currency
-                                    else flt(
-                                        amount, tax.precision("tax_amount_after_discount_amount")
-                                    )
-                                )
+                                tax_amount * -1 if self.is_return else tax_amount
                             ),
                             "cost_center": tax.cost_center,
                         },
