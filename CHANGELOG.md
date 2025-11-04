@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.55.8
+* Update Advance Payment Entry Sales Taxes and Charges Filed Depends On
+
 ## 0.55.7
 * Prevent Send Payment Entry to ZATCA when Party Type not Customer
 
