@@ -12,8 +12,8 @@ def custom_erpnext_setup():
 
     if not frappe.db.exists("Company", TEST_COMPANY_NAME):
         current_year = now_datetime().year
-        setup_complete(
-            frappe._dict({
+        args = frappe._dict(
+            {
                 "currency": SAUDI_CURRENCY,
                 "company_name": TEST_COMPANY_NAME,
                 "country": SAUDI_COUNTRY,
@@ -29,7 +29,8 @@ def custom_erpnext_setup():
                 "password": "test",
                 "chart_of_accounts": "Standard",
             })
-        )
+        setup_complete(args)
+        frappe.call("frappe.desk.page.setup_wizard.setup_wizard.setup_complete", args)
 
     if frappe.db.exists("Country", SAUDI_COUNTRY):
         frappe.db.set_value("Country", SAUDI_COUNTRY, "code", "SA")
