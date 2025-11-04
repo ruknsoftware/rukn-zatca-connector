@@ -14,7 +14,7 @@ to a section with the version name.
 ## Unreleased Changes
 
 ## 0.55.8
-* FIX AUTOMATED SETUP WIZARD COMPLETION
+* Fix Automated Setup Wizard Completion
 
 ## 0.55.7
 * Prevent Send Payment Entry to ZATCA when Party Type not Customer
