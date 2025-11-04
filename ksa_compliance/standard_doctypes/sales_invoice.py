@@ -551,7 +551,7 @@ class AdvanceSalesInvoice(SalesInvoice):
             advance_payment_tax = calculate_advance_payment_tax_amount(
                 advance_payment, self, settings.advance_payment_depends_on
             )
-            total_advance_taxes_amount += advance_payment_tax
+            total_advance_taxes_amount += abs(advance_payment_tax)
 
         advance_tax_account = settings.advance_payment_tax_account
 
@@ -561,7 +561,7 @@ class AdvanceSalesInvoice(SalesInvoice):
                 continue
 
             account_currency = get_account_currency(tax.account_head)
-            tax_amount = flt(base_amount, tax.precision("tax_amount_after_discount_amount"))
+            tax_amount = abs(flt(base_amount, tax.precision("tax_amount_after_discount_amount")))
 
             advance_tax_account_currency = get_account_currency(advance_tax_account)
 
@@ -574,14 +574,15 @@ class AdvanceSalesInvoice(SalesInvoice):
                 )
             if total_advance_taxes_amount > 0 and advance_tax_account:
                 advance_portion = min(total_advance_taxes_amount, tax_amount)
-
                 gl_entries.append(
                     self.get_gl_dict(
                         {
                             "account": advance_tax_account,
                             "against": self.customer,
-                            "credit": advance_portion,
-                            "credit_in_account_currency": advance_portion,
+                            "credit": advance_portion * -1 if self.is_return else advance_portion,
+                            "credit_in_account_currency": (
+                                advance_portion * -1 if self.is_return else advance_portion
+                            ),
                             "cost_center": tax.cost_center,
                         },
                         account_currency,
@@ -593,16 +594,23 @@ class AdvanceSalesInvoice(SalesInvoice):
                 tax_amount -= advance_portion
 
             if tax_amount > 0:
+
                 gl_entries.append(
                     self.get_gl_dict(
                         {
                             "account": tax.account_head,
                             "against": self.customer,
-                            "credit": tax_amount,
+                            "credit": tax_amount * -1 if self.is_return else tax_amount,
                             "credit_in_account_currency": (
-                                tax_amount
-                                if account_currency == self.company_currency
-                                else flt(amount, tax.precision("tax_amount_after_discount_amount"))
+                                tax_amount * -1
+                                if self.is_return
+                                else (
+                                    tax_amount
+                                    if account_currency == self.company_currency
+                                    else flt(
+                                        amount, tax.precision("tax_amount_after_discount_amount")
+                                    )
+                                )
                             ),
                             "cost_center": tax.cost_center,
                         },
