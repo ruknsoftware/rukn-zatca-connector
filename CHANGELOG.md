@@ -12,6 +12,10 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+
+## 0.55.8
+* FIX AUTOMATED SETUP WIZARD COMPLETION
+
 ## 0.55.7
 * Prevent Send Payment Entry to ZATCA when Party Type not Customer
 
