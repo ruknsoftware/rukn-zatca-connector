@@ -12,7 +12,7 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
-## 0.55.8
+## 0.55.9
 * Settling Return Invoice paid from Advance Payment Entry
   * Enable Return Invoices
   * Update Tax Allocations
