@@ -7,7 +7,8 @@ from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY,
 
 def custom_erpnext_setup():
     frappe.clear_cache()
-    from erpnext.setup.setup_wizard.setup_wizard import setup_complete
+    from erpnext.setup.setup_wizard.setup_wizard import setup_complete_erpnext
+    from frappe.desk.page.setup_wizard.setup_wizard import setup_complete_frappe
 
 
     if not frappe.db.exists("Company", TEST_COMPANY_NAME):
@@ -29,8 +30,8 @@ def custom_erpnext_setup():
                 "password": "test",
                 "chart_of_accounts": "Standard",
             })
-        setup_complete(args)
-        frappe.call("frappe.desk.page.setup_wizard.setup_wizard.setup_complete", args)
+        setup_complete_erpnext(args)
+        setup_complete_frappe(args)
 
     if frappe.db.exists("Country", SAUDI_COUNTRY):
         frappe.db.set_value("Country", SAUDI_COUNTRY, "code", "SA")
