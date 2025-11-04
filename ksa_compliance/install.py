@@ -34,6 +34,7 @@ def add_custom_fields():
                 label="IS Advance Payment Depends On Entry",
                 fieldtype="Check",
                 insert_after="is_advance_payment",
+                depends_on="eval:doc.party_type == 'Customer'",
                 module=ksa_compliance_module,
             ),
             dict(

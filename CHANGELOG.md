@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.55.7
+* Prevent Send Payment Entry to ZATCA when Party Type not Customer
+
 ## 0.55.6
 * Skip VAT Compliance Validation for Payment Entries that are Not Against Customers to Avoid Lookup Errors when Saving Supplier Payments
 ## 0.55.5
