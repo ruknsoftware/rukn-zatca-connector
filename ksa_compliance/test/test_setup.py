@@ -7,8 +7,8 @@ from ksa_compliance.test.test_constants import TEST_COMPANY_NAME, SAUDI_COUNTRY,
 
 def custom_erpnext_setup():
     frappe.clear_cache()
-    from erpnext.setup.setup_wizard.setup_wizard import setup_complete_erpnext
-    from frappe.desk.page.setup_wizard.setup_wizard import setup_complete_frappe
+    from erpnext.setup.setup_wizard.setup_wizard import setup_complete as setup_complete_erpnext
+    from frappe.desk.page.setup_wizard.setup_wizard import setup_complete as  setup_complete_frappe
 
 
     if not frappe.db.exists("Company", TEST_COMPANY_NAME):
