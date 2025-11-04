@@ -44,6 +44,7 @@ def add_custom_fields():
                 options="Sales Taxes and Charges Template",
                 insert_after="is_advance_payment_depends_on_entry",
                 read_only_depends_on="eval:!doc.is_advance_payment_depends_on_entry",
+                depends_on="eval:doc.is_advance_payment_depends_on_entry",
                 mandatory_depends_on="eval:doc.is_advance_payment_depends_on_entry",
                 module=ksa_compliance_module,
             ),
