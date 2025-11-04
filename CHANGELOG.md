@@ -13,8 +13,15 @@ to a section with the version name.
 
 ## Unreleased Changes
 
-## 0.55.8
+## 0.55.9
 * Fix Automated Setup Wizard Completion
+
+## 0.55.8
+* Settling Return Invoice paid from Advance Payment Entry
+  * Enable Return Invoices
+  * Update Tax Allocations
+  * Mapped Outstanding Amount When return the Invoice
+  * Calculate Advance Tax Depends on Sales Invoice Advances Allocation tax
 
 ## 0.55.7
 * Prevent Send Payment Entry to ZATCA when Party Type not Customer
