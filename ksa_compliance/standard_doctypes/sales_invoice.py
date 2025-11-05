@@ -94,7 +94,9 @@ def create_sales_invoice_additional_fields_doctype(
     if self.doctype == "Sales Invoice" and self.is_consolidated:
         logger.info(f"Skipping additional fields for {self.name} because it's consolidated")
         return
-    if self.doctype == "Payment Entry" and not self.is_advance_payment_depends_on_entry:
+    if self.doctype == "Payment Entry" and (
+        not self.is_advance_payment_depends_on_entry or self.party_type != "Customer"
+    ):
         return
     if self.doctype == "Journal Entry" and not self.advance_payment_entry:
         return
@@ -338,7 +340,14 @@ def validate_customer_vat_compliance(self, method):
     settings = ZATCABusinessSettings.for_company(self.company)
     if not getattr(settings, "enable_zatca_integration", False):
         return
-    customer = frappe.get_doc("Customer", self.get("customer") or self.get("party"))
+    if self.doctype == "Payment Entry" and self.party_type != "Customer":
+        return
+
+    customer_name = self.get("customer") or self.get("party")
+    if not customer_name:
+        return
+
+    customer = frappe.get_doc("Customer", customer_name)
     is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
         [strip(x.value) for x in customer.custom_additional_ids]
     )
