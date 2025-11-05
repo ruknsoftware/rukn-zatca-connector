@@ -12,6 +12,12 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.66.0
+* Settling Return Invoice paid from Advance Payment Entry
+  * Enable Return Invoices
+  * Update Tax Allocations
+  * Mapped Outstanding Amount When return the Invoice
+  * Calculate Advance Tax Depends on Sales Invoice Advances Allocation tax
 
 ## 0.55.9
 * Fix Automated Setup Wizard Completion
