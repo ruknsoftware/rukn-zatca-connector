@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.66.1
+* Return exceeds outstanding on sales invoices paid from payment advance
+
 ## 0.66.0
 * Settling Return Invoice paid from Advance Payment Entry
   * Enable Return Invoices
