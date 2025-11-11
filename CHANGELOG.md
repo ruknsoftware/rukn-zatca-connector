@@ -12,8 +12,12 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.66.3
+* Fix Cancellation Invoices according to ZATCA
+
 ## 0.66.2
 * Fix Update Outstanding for Self Depends on Invoice Has advance Item
+
 ## 0.66.1
 * Return exceeds outstanding on sales invoices paid from payment advance
 
