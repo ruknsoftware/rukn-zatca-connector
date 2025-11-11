@@ -209,12 +209,13 @@ def prevent_cancellation_of_sales_invoice(
                 ),
                 title=_("This Action Is Not Allowed"),
             )
-        frappe.throw(
-            msg=_(
-                "You cannot cancel {0} according to ZATCA Regulations.",
-            ).format(self.doctype),
-            title=_("This Action Is Not Allowed"),
-        )
+        if self.doctype in ("Sales Invoice", "POS Invoice"):
+            frappe.throw(
+                msg=_(
+                    "You cannot cancel {0} according to ZATCA Regulations.",
+                ).format(self.doctype),
+                title=_("This Action Is Not Allowed"),
+            )
 
 
 def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
