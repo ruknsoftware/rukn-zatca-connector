@@ -12,7 +12,7 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
-## 0.66.2
+## 0.66.3
 * Fix Cancellation Invoices according to ZATCA
 
 ## 0.66.2
