@@ -518,7 +518,7 @@ def create_payment_entry_for_advance_payment_invoice(
 class AdvanceSalesInvoice(SalesInvoice):
     def make_tax_gl_entries(self, gl_entries):
         settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
-        if self.is_return:
+        if self.is_return and self.return_against:
             return_against = frappe.get_doc("Sales Invoice", self.return_against)
             advance_payments = get_return_against_advance_payments(
                 return_against, abs(self.grand_total)
