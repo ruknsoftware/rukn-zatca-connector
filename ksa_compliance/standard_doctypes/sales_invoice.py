@@ -518,6 +518,8 @@ def create_payment_entry_for_advance_payment_invoice(
 class AdvanceSalesInvoice(SalesInvoice):
     def make_tax_gl_entries(self, gl_entries):
         settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
+        if not getattr(settings, "enable_zatca_integration", False):
+            return super().make_tax_gl_entries(gl_entries)
         if self.is_return:
             return_against = frappe.get_doc("Sales Invoice", self.return_against)
             advance_payments = get_return_against_advance_payments(
@@ -525,12 +527,7 @@ class AdvanceSalesInvoice(SalesInvoice):
             )
         else:
             advance_payments = get_invoice_advance_payments(self)
-        if (
-            not advance_payments
-            or not settings
-            or settings.advance_payment_depends_on != "Payment Entry"
-            or not getattr(settings, "enable_zatca_integration", False)
-        ):
+        if not advance_payments or settings.advance_payment_depends_on != "Payment Entry":
             return super().make_tax_gl_entries(gl_entries)
 
         enable_discount_accounting = cint(
