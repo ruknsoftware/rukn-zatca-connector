@@ -42,12 +42,20 @@ def get_return_against_advance_payments(return_against, grand_total):
         elif advance_invoice_ref and advance_invoice_ref in advance_payment_invoices:
             advance_payment_invoice = advance_payment_invoices[advance_invoice_ref]
         if advance_payment_invoice:
-            return_advance_payment.advance_payment_allocated_tax = advance_payment_invoice.allocated_tax
-            return_advance_payment.advance_payment_unallocated_tax = advance_payment_invoice.unallocated_tax
+            return_advance_payment.advance_payment_allocated_tax = (
+                advance_payment_invoice.allocated_tax
+            )
+            return_advance_payment.advance_payment_unallocated_tax = (
+                advance_payment_invoice.unallocated_tax
+            )
         else:
             payment_entry = frappe.get_doc("Payment Entry", payment_entry_ref)
-            return_advance_payment.advance_payment_allocated_tax = getattr(payment_entry, "allocated_tax", 0)
-            return_advance_payment.advance_payment_unallocated_tax = getattr(payment_entry, "unallocated_tax", 0)
+            return_advance_payment.advance_payment_allocated_tax = getattr(
+                payment_entry, "allocated_tax", 0
+            )
+            return_advance_payment.advance_payment_unallocated_tax = getattr(
+                payment_entry, "unallocated_tax", 0
+            )
 
         return_advance_payments.append(return_advance_payment)
 
