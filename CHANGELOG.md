@@ -12,6 +12,11 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.66.5
+* Fix KeyError in Return Invoice Paid From Advance Payment
+  * Add Multi-Level Lookup Strategy for Advance Payment Tax Information
+  * Handle Both Payment Entry and Sales Invoice Reference Keys
+  
 ## 0.66.4
 * Fix Sales Invoice Return Against Null Check in Tax GL Entries
   * Handle Return Invoices Without Return Against Field Set
