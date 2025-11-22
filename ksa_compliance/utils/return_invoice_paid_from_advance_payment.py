@@ -3,6 +3,9 @@ from erpnext.accounts.doctype.accounting_dimension.accounting_dimension import g
 from erpnext.accounts.utils import reconcile_against_document
 from frappe.utils import flt
 
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
+    ZATCABusinessSettings,
+)
 from ksa_compliance.standard_doctypes.sales_invoice_advance import (
     calculate_advance_payment_tax_amount,
     get_invoice_advance_payments,
@@ -16,14 +19,16 @@ def get_return_against_advance_payments(return_against, grand_total):
     company = getattr(return_against, "company", None)
     if not is_zatca_enabled(company):
         return []
-
+    settings = ZATCABusinessSettings.for_company(return_against.company)
     return_against_advance_payments = get_invoice_advance_payments(return_against)
     return_advance_payments = []
     return_allocated = 0
-    advance_payment_invoices = {
-        advance_payment_invoice.reference_name: advance_payment_invoice
-        for advance_payment_invoice in return_against.advance_payment_invoices
-    }
+
+    if settings.advance_payment_depends_on == "Payment Entry":
+        advance_payment_invoices = {
+            advance_payment_invoice.reference_name: advance_payment_invoice
+            for advance_payment_invoice in return_against.advance_payment_invoices
+        }
     for return_against_advance_payment in return_against_advance_payments:
         amount = grand_total
         allocated_amount = min(
@@ -34,12 +39,14 @@ def get_return_against_advance_payments(return_against, grand_total):
         return_allocated += flt(allocated_amount)
         return_advance_payment = return_against_advance_payment.copy()
         return_advance_payment.allocated_amount = allocated_amount
-        return_advance_payment.advance_payment_allocated_tax = advance_payment_invoices[
-            return_against_advance_payment.reference_name
-        ].allocated_tax
-        return_advance_payment.advance_payment_unallocated_tax = advance_payment_invoices[
-            return_against_advance_payment.reference_name
-        ].unallocated_tax
+
+        if settings.advance_payment_depends_on == "Payment Entry":
+            return_advance_payment.advance_payment_allocated_tax = advance_payment_invoices[
+                return_against_advance_payment.reference_name
+            ].allocated_tax
+            return_advance_payment.advance_payment_unallocated_tax = advance_payment_invoices[
+                return_against_advance_payment.reference_name
+            ].unallocated_tax
 
         return_advance_payments.append(return_advance_payment)
 
@@ -166,6 +173,8 @@ def build_reconcile_against_document(
 
 
 def update_advance_payment_tax_allocation(self, advance_payment, settings):
+    if settings.advance_payment_depends_on != "Payment Entry":
+        return
     advance_payment_tax = calculate_advance_payment_tax_amount(
         advance_payment, self, settings.advance_payment_depends_on
     )

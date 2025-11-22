@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.66.5
+* Fix Calculate tax allocation Depends On Advance Payment
+
 ## 0.66.4
 * Fix Sales Invoice Return Against Null Check in Tax GL Entries
   * Handle Return Invoices Without Return Against Field Set
