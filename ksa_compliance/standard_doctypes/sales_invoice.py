@@ -52,6 +52,7 @@ from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_ite
 from ksa_compliance.utils.return_invoice_paid_from_advance_payment import (
     get_return_against_advance_payments,
     settle_return_invoice_paid_from_advance_payment,
+    update_advance_payment_tax_allocation,
 )
 
 IGNORED_INVOICES = set()
@@ -132,7 +133,7 @@ def create_sales_invoice_additional_fields_doctype(
                 set_advance_payment_entry_settling_references(payment_entry)
         if self.is_return:
             if not is_advance_invoice:
-                settle_return_invoice_paid_from_advance_payment(self)
+                settle_return_invoice_paid_from_advance_payment(self, settings)
         else:
             if settings.advance_payment_depends_on == "Sales Invoice":
                 advance_payments = get_invoice_advance_payments(self)
@@ -208,12 +209,13 @@ def prevent_cancellation_of_sales_invoice(
                 ),
                 title=_("This Action Is Not Allowed"),
             )
-        frappe.throw(
-            msg=_(
-                "You cannot cancel {0} according to ZATCA Regulations.",
-            ).format(self.doctype),
-            title=_("This Action Is Not Allowed"),
-        )
+        if self.doctype in ("Sales Invoice", "POS Invoice"):
+            frappe.throw(
+                msg=_(
+                    "You cannot cancel {0} according to ZATCA Regulations.",
+                ).format(self.doctype),
+                title=_("This Action Is Not Allowed"),
+            )
 
 
 def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
@@ -258,26 +260,9 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
         advance_payments = get_invoice_advance_payments(self)
         if self.is_return:
             return_against = frappe.get_doc(self.doctype, self.return_against)
-            if is_advance_invoice and abs(self.grand_total) > return_against.outstanding_amount:
-                frappe.msgprint(
-                    _("Cant Return exceeds the outstanding amount {0} of Advance Invoice").format(
-                        return_against.outstanding_amount
-                    ),
-                    title=_("Validation Error"),
-                    indicator="red",
-                )
-                valid = False
             advance_payments = get_return_against_advance_payments(
                 return_against, abs(self.get("grand_total"))
             )
-            if advance_payments and settings.advance_payment_depends_on == "Payment Entry":
-                frappe.msgprint(
-                    msg=_("Cant Return Invoice Settling From Advance Payment Entry"),
-                    title=_("Validation Error"),
-                    indicator="red",
-                    raise_exception=True,
-                )
-                valid = False
 
         self.advance_payment_invoices = []
         if advance_payments:
@@ -533,13 +518,16 @@ def create_payment_entry_for_advance_payment_invoice(
 class AdvanceSalesInvoice(SalesInvoice):
     def make_tax_gl_entries(self, gl_entries):
         settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
-        advance_payments = get_invoice_advance_payments(self)
-        if (
-            not advance_payments
-            or not settings
-            or settings.advance_payment_depends_on != "Payment Entry"
-            or not getattr(settings, "enable_zatca_integration", False)
-        ):
+        if not getattr(settings, "enable_zatca_integration", False):
+            return super().make_tax_gl_entries(gl_entries)
+        if self.is_return:
+            return_against = frappe.get_doc("Sales Invoice", self.return_against)
+            advance_payments = get_return_against_advance_payments(
+                return_against, abs(self.grand_total)
+            )
+        else:
+            advance_payments = get_invoice_advance_payments(self)
+        if not advance_payments or settings.advance_payment_depends_on != "Payment Entry":
             return super().make_tax_gl_entries(gl_entries)
 
         enable_discount_accounting = cint(
@@ -552,7 +540,7 @@ class AdvanceSalesInvoice(SalesInvoice):
             advance_payment_tax = calculate_advance_payment_tax_amount(
                 advance_payment, self, settings.advance_payment_depends_on
             )
-            total_advance_taxes_amount += advance_payment_tax
+            total_advance_taxes_amount += abs(advance_payment_tax)
 
         advance_tax_account = settings.advance_payment_tax_account
 
@@ -562,7 +550,7 @@ class AdvanceSalesInvoice(SalesInvoice):
                 continue
 
             account_currency = get_account_currency(tax.account_head)
-            tax_amount = flt(base_amount, tax.precision("tax_amount_after_discount_amount"))
+            tax_amount = abs(flt(base_amount, tax.precision("tax_amount_after_discount_amount")))
 
             advance_tax_account_currency = get_account_currency(advance_tax_account)
 
@@ -573,16 +561,24 @@ class AdvanceSalesInvoice(SalesInvoice):
                         "Multi-currency handling for advance portion is not supported yet."
                     ).format(advance_tax_account_currency, self.company_currency)
                 )
+            if account_currency != self.company_currency:
+                frappe.throw(
+                    _(
+                        "Tax account currency ({0}) must match company currency ({1}). "
+                        "Multi-currency handling for Invoice Paid From Advance Payment Entry is not supported yet."
+                    ).format(account_currency, self.company_currency)
+                )
             if total_advance_taxes_amount > 0 and advance_tax_account:
                 advance_portion = min(total_advance_taxes_amount, tax_amount)
-
                 gl_entries.append(
                     self.get_gl_dict(
                         {
                             "account": advance_tax_account,
                             "against": self.customer,
-                            "credit": advance_portion,
-                            "credit_in_account_currency": advance_portion,
+                            "credit": advance_portion * -1 if self.is_return else advance_portion,
+                            "credit_in_account_currency": (
+                                advance_portion * -1 if self.is_return else advance_portion
+                            ),
                             "cost_center": tax.cost_center,
                         },
                         account_currency,
@@ -594,16 +590,15 @@ class AdvanceSalesInvoice(SalesInvoice):
                 tax_amount -= advance_portion
 
             if tax_amount > 0:
+
                 gl_entries.append(
                     self.get_gl_dict(
                         {
                             "account": tax.account_head,
                             "against": self.customer,
-                            "credit": tax_amount,
+                            "credit": tax_amount * -1 if self.is_return else tax_amount,
                             "credit_in_account_currency": (
-                                tax_amount
-                                if account_currency == self.company_currency
-                                else flt(amount, tax.precision("tax_amount_after_discount_amount"))
+                                tax_amount * -1 if self.is_return else tax_amount
                             ),
                             "cost_center": tax.cost_center,
                         },
@@ -620,18 +615,9 @@ def update_advance_payment_entry_tax_allocation(self, method):
             f"Skipping additional fields for {self.name} because of missing ZATCA settings"
         )
         return
+    if self.is_return:
+        return
 
     advance_payments = get_invoice_advance_payments(self)
     for advance_payment in advance_payments:
-        advance_payment_tax = calculate_advance_payment_tax_amount(
-            advance_payment, self, settings.advance_payment_depends_on
-        )
-        advance_payment_entry_doc = frappe.get_doc("Payment Entry", advance_payment.reference_name)
-        advance_payment_entry_doc.allocated_tax = (
-            advance_payment_entry_doc.allocated_tax + advance_payment_tax
-        )
-        advance_payment_entry_doc.unallocated_tax = abs(
-            advance_payment_entry_doc.unallocated_tax - advance_payment_tax
-        )
-        advance_payment_entry_doc.flags.ignore_validate_update_after_submit = True
-        advance_payment_entry_doc.save()
+        update_advance_payment_tax_allocation(self, advance_payment, settings)

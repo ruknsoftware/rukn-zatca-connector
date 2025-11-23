@@ -12,6 +12,28 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.66.5
+* Fix Calculate tax allocation Depends On Advance Payment
+
+## 0.66.4
+* Fix Sales Invoice Return Against Null Check in Tax GL Entries
+  * Handle Return Invoices Without Return Against Field Set
+
+## 0.66.3
+* Fix Cancellation Invoices according to ZATCA
+
+## 0.66.2
+* Fix Update Outstanding for Self Depends on Invoice Has advance Item
+
+## 0.66.1
+* Return exceeds outstanding on sales invoices paid from payment advance
+
+## 0.66.0
+* Settling Return Invoice paid from Advance Payment Entry
+  * Enable Return Invoices
+  * Update Tax Allocations
+  * Mapped Outstanding Amount When return the Invoice
+  * Calculate Advance Tax Depends on Sales Invoice Advances Allocation tax
 
 ## 0.55.9
 * Fix Automated Setup Wizard Completion
