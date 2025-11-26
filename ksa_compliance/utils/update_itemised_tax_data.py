@@ -13,8 +13,8 @@ from ksa_compliance.zatca_guard import is_zatca_enabled
 
 def update_itemised_tax_data(doc):
     company = getattr(doc, "company", None)
-    if not is_zatca_enabled(company):
-        return original_update_itemised_tax_data(doc)
+    # if not is_zatca_enabled(company):
+    #     return original_update_itemised_tax_data(doc)
     if not doc.items:
         return
 
