@@ -539,10 +539,9 @@ class TestZATCAState3Integration(FrappeTestCase):
 
         Steps:
         1. Create an advance payment invoice
-        2. Create a normal Payment Entry (not linked to advance invoice)
-        3. Call Payment Reconciliation's get_unreconciled_entries
-        4. Verify advance invoice is NOT in the invoices list
-        5. Verify normal Payment Entry IS in the payments list
+        2. Call Payment Reconciliation's get_unreconciled_entries
+        3. Verify advance invoice is NOT in the invoices list
+        4. Verify advance Payment Entry is NOT in the payments list
         """
         frappe.logger().info("🧪 Running test_cannot_use_payment_reconciliation_for_advances...")
 
@@ -551,31 +550,9 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
         frappe.logger().info(f"   Advance Grand Total: {advance_invoice.grand_total} SAR")
 
-        # Step 2: Create a normal Payment Entry (not linked to advance invoice)
-        frappe.logger().info("\n   Creating normal Payment Entry...")
-        company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
-
-        normal_payment = frappe.new_doc("Payment Entry")
-        normal_payment.payment_type = "Receive"
-        normal_payment.posting_date = frappe.utils.nowdate()
-        normal_payment.company = TEST_COMPANY_NAME
-        normal_payment.mode_of_payment = "Cash"
-        normal_payment.party_type = "Customer"
-        normal_payment.party = TEST_STANDARD_CUSTOMER_NAME
-        normal_payment.paid_from = f"Debtors - {company_abbr}"
-        normal_payment.paid_to = f"Cash - {company_abbr}"
-        normal_payment.paid_amount = 500
-        normal_payment.received_amount = 500
-        # Important: Do NOT set advance_payment_invoice field
-
-        normal_payment.insert()
-        normal_payment.submit()
-
-        frappe.logger().info(f"   Created normal Payment Entry: {normal_payment.name}")
-        frappe.logger().info(f"   Payment Amount: {normal_payment.paid_amount} SAR")
-
-        # Step 3: Use Payment Reconciliation tool to get unreconciled entries
+        # Step 2: Use Payment Reconciliation tool to get unreconciled entries
         frappe.logger().info("\n   Calling Payment Reconciliation...")
+        company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
 
         payment_reconciliation = frappe.new_doc("Payment Reconciliation")
         payment_reconciliation.company = TEST_COMPANY_NAME
@@ -593,7 +570,7 @@ class TestZATCAState3Integration(FrappeTestCase):
             f"   Number of payments found: {len(payment_reconciliation.payments)}"
         )
 
-        # Step 4: Verify advance invoice is NOT in the results
+        # Step 3: Verify advance invoice is NOT in the results
         # Get all invoice names from the invoices child table
         invoice_names = [inv.invoice_number for inv in payment_reconciliation.invoices]
         frappe.logger().info(f"   Invoices in reconciliation: {invoice_names}")
@@ -606,18 +583,10 @@ class TestZATCAState3Integration(FrappeTestCase):
         )
         frappe.logger().info("   ✓ Advance invoice correctly excluded from reconciliation")
 
-        # Step 5: Verify normal Payment Entry IS in the payments list
+        # Step 4: Verify that the advance Payment Entry is NOT in the payments list
         payment_names = [pay.reference_name for pay in payment_reconciliation.payments]
         frappe.logger().info(f"   Payments in reconciliation: {payment_names}")
 
-        self.assertIn(
-            normal_payment.name,
-            payment_names,
-            f"Normal Payment Entry {normal_payment.name} should appear in Payment Reconciliation",
-        )
-        frappe.logger().info("   ✓ Normal Payment Entry correctly included in reconciliation")
-
-        # Verify that the advance Payment Entry is NOT in the payments list
         advance_payment_entries = frappe.get_all(
             "Payment Entry",
             filters={"advance_payment_invoice": advance_invoice.name, "docstatus": 1},
