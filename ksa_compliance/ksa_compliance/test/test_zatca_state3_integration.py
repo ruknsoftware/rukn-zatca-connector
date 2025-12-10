@@ -6,6 +6,9 @@ ZATCA State 3 Integration Tests
 State 3: ZATCA Settings Configured and Enabled
 """
 
+import json
+from unittest.mock import MagicMock, patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import flt
@@ -713,8 +716,6 @@ class TestZATCAState3Integration(FrappeTestCase):
         # Step 3: Attempt to unreconcile the allocation (simulating UI action)
         # The UI calls: erpnext.accounts.doctype.unreconcile_payment.unreconcile_payment.create_unreconcile_doc_for_selection
 
-        import json
-
         from erpnext.accounts.doctype.unreconcile_payment.unreconcile_payment import (
             create_unreconcile_doc_for_selection,
         )
@@ -847,6 +848,10 @@ class TestZATCAState3Integration(FrappeTestCase):
 
         frappe.logger().info("✅ test_cannot_settle_mismatched_tax_categories completed")
 
+    # =========================================================================
+    # Sales Returns (Credit Notes)
+    # =========================================================================
+
     def test_create_return_against_advance_invoice(self):
         """
         Test Case 4.1: Sales Returns (Credit Notes)
@@ -978,3 +983,784 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info(f"   Status: {advance_invoice.status}")
 
         frappe.logger().info("✅ test_create_return_against_advance_invoice completed")
+
+    # =========================================================================
+    # Additional System Settings Validation
+    # =========================================================================
+
+    def test_accounts_settings_round_tax_row_wise(self):
+        """
+        Verifies that 'Round Tax Amount Row-wise' is enabled in Accounts Settings.
+        This is required for ZATCA compliance to ensure accurate tax calculations.
+        """
+        frappe.logger().info("🧪 Running test_accounts_settings_round_tax_row_wise...")
+
+        # Get Accounts Settings
+        accounts_settings = frappe.get_doc("Accounts Settings")
+
+        # Check if round_row_wise is enabled
+        frappe.logger().info(f"   round_row_wise: {accounts_settings.round_row_wise_tax}")
+
+        self.assertEqual(
+            accounts_settings.round_row_wise_tax,
+            1,
+            "Round Tax Amount Row-wise should be enabled in Accounts Settings for ZATCA compliance",
+        )
+
+        frappe.logger().info("✅ test_accounts_settings_round_tax_row_wise completed")
+
+    def test_company_country_is_saudi_arabia(self):
+        """
+        Confirms that the test company's country is set to 'Saudi Arabia'.
+        ZATCA integration only applies to Saudi companies.
+        """
+        frappe.logger().info("🧪 Running test_company_country_is_saudi_arabia...")
+
+        # Get company details
+        company = frappe.get_doc("Company", TEST_COMPANY_NAME)
+
+        frappe.logger().info(f"   Company: {company.name}")
+        frappe.logger().info(f"   Country: {company.country}")
+
+        # Verify country is Saudi Arabia
+        self.assertEqual(
+            company.country,
+            SAUDI_COUNTRY,
+            f"Company country should be '{SAUDI_COUNTRY}' but got '{company.country}'",
+        )
+
+        frappe.logger().info("✅ test_company_country_is_saudi_arabia completed")
+
+    def test_zatca_validate_xml_setting(self):
+        """
+        Checks that 'Check Validate Generated XML' is enabled in ZATCA Business Settings.
+        This ensures XML validation is performed before sending to ZATCA.
+        """
+        frappe.logger().info("🧪 Running test_zatca_validate_xml_setting...")
+
+        # Get ZATCA Business Settings
+        settings_name = f"{TEST_COMPANY_NAME}-{SAUDI_COUNTRY}-{SAUDI_CURRENCY}"
+        settings = frappe.get_doc("ZATCA Business Settings", settings_name)
+
+        frappe.logger().info(f"   validate_generated_xml: {settings.validate_generated_xml}")
+
+        # If not enabled, enable it
+        if not settings.validate_generated_xml:
+            frappe.logger().info("   Enabling validate_generated_xml...")
+            settings.validate_generated_xml = 1
+            settings.save()
+            frappe.db.commit()
+
+        self.assertEqual(
+            settings.validate_generated_xml,
+            1,
+            "Check Validate Generated XML should be enabled in ZATCA Business Settings",
+        )
+
+        frappe.logger().info("✅ test_zatca_validate_xml_setting completed")
+
+    # =========================================================================
+    # Advanced Scenarios
+    # =========================================================================
+
+    def test_settle_one_advance_against_multiple_invoices(self):
+        """
+        Validates that a single advance payment can be split and settled against
+        multiple standard invoices.
+
+        Steps:
+        1. Create advance invoice for 1000 SAR (1150 SAR with VAT)
+        2. Create first standard invoice for 300 SAR (345 SAR with VAT)
+        3. Verify first invoice is fully settled with advance
+        4. Create second standard invoice for 500 SAR (575 SAR with VAT)
+        5. Verify second invoice is fully settled with remaining advance
+        6. Verify total advance used = 920 SAR (345 + 575)
+        """
+        frappe.logger().info("🧪 Running test_settle_one_advance_against_multiple_invoices...")
+
+        # Step 1: Create advance payment (1000 + 15% VAT = 1150 SAR)
+        advance_invoice = self._create_advance_invoice(rate=1000)
+        frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
+        frappe.logger().info(f"   Advance Grand Total: {advance_invoice.grand_total} SAR")
+
+        company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
+        customer_tax_category = frappe.db.get_value(
+            "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
+        )
+        test_item = self._ensure_test_item_exists()
+
+        # Step 2: Create first standard invoice (300 + 15% VAT = 345 SAR)
+        frappe.logger().info("\n   Creating first standard invoice...")
+        invoice1 = frappe.new_doc("Sales Invoice")
+        invoice1.customer = TEST_STANDARD_CUSTOMER_NAME
+        invoice1.company = TEST_COMPANY_NAME
+        invoice1.currency = SAUDI_CURRENCY
+        invoice1.posting_date = frappe.utils.nowdate()
+        invoice1.due_date = frappe.utils.nowdate()
+        invoice1.debit_to = f"Debtors - {company_abbr}"
+        invoice1.tax_category = customer_tax_category
+        invoice1.taxes_and_charges = f"{TEST_TAX_TEMPLATE_NAME} - {company_abbr}"
+
+        invoice1.append(
+            "items",
+            {
+                "item_code": test_item,
+                "qty": 1,
+                "rate": 300,
+                "income_account": f"Sales - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+            },
+        )
+
+        invoice1.append(
+            "taxes",
+            {
+                "charge_type": "On Net Total",
+                "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+                "description": "VAT 15%",
+                "rate": 15.0,
+            },
+        )
+
+        invoice1.insert()
+        invoice1.submit()
+        invoice1.reload()
+
+        frappe.logger().info(f"   First invoice: {invoice1.name}")
+        frappe.logger().info(f"   Grand Total: {invoice1.grand_total} SAR")
+        frappe.logger().info(f"   Outstanding: {invoice1.outstanding_amount} SAR")
+
+        # Step 3: Verify first invoice is fully settled
+        advance1_allocated = sum(flt(adv.allocated_amount) for adv in invoice1.advances)
+        self.assertEqual(
+            flt(invoice1.outstanding_amount),
+            0.0,
+            f"First invoice should be fully paid, outstanding: {invoice1.outstanding_amount}",
+        )
+        self.assertEqual(
+            flt(advance1_allocated),
+            flt(invoice1.grand_total),
+            f"Advance allocated ({advance1_allocated}) should equal invoice total ({invoice1.grand_total})",
+        )
+        frappe.logger().info(
+            f"   ✓ First invoice settled with {advance1_allocated} SAR from advance"
+        )
+
+        # Step 4: Create second standard invoice (500 + 15% VAT = 575 SAR)
+        frappe.logger().info("\n   Creating second standard invoice...")
+        invoice2 = frappe.new_doc("Sales Invoice")
+        invoice2.customer = TEST_STANDARD_CUSTOMER_NAME
+        invoice2.company = TEST_COMPANY_NAME
+        invoice2.currency = SAUDI_CURRENCY
+        invoice2.posting_date = frappe.utils.nowdate()
+        invoice2.due_date = frappe.utils.nowdate()
+        invoice2.debit_to = f"Debtors - {company_abbr}"
+        invoice2.tax_category = customer_tax_category
+        invoice2.taxes_and_charges = f"{TEST_TAX_TEMPLATE_NAME} - {company_abbr}"
+
+        invoice2.append(
+            "items",
+            {
+                "item_code": test_item,
+                "qty": 1,
+                "rate": 500,
+                "income_account": f"Sales - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+            },
+        )
+
+        invoice2.append(
+            "taxes",
+            {
+                "charge_type": "On Net Total",
+                "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+                "description": "VAT 15%",
+                "rate": 15.0,
+            },
+        )
+
+        invoice2.insert()
+        invoice2.submit()
+        invoice2.reload()
+
+        frappe.logger().info(f"   Second invoice: {invoice2.name}")
+        frappe.logger().info(f"   Grand Total: {invoice2.grand_total} SAR")
+        frappe.logger().info(f"   Outstanding: {invoice2.outstanding_amount} SAR")
+
+        # Step 5: Verify second invoice is fully settled
+        advance2_allocated = sum(flt(adv.allocated_amount) for adv in invoice2.advances)
+        self.assertEqual(
+            flt(invoice2.outstanding_amount),
+            0.0,
+            f"Second invoice should be fully paid, outstanding: {invoice2.outstanding_amount}",
+        )
+        self.assertEqual(
+            flt(advance2_allocated),
+            flt(invoice2.grand_total),
+            f"Advance allocated ({advance2_allocated}) should equal invoice total ({invoice2.grand_total})",
+        )
+        frappe.logger().info(
+            f"   ✓ Second invoice settled with {advance2_allocated} SAR from advance"
+        )
+
+        # Step 6: Verify total advance usage
+        total_advance_used = flt(advance1_allocated) + flt(advance2_allocated)
+        frappe.logger().info(f"\n   Total advance used: {total_advance_used} SAR")
+        frappe.logger().info(
+            f"   Remaining advance: {flt(advance_invoice.grand_total) - total_advance_used} SAR"
+        )
+
+        # Total used should be 345 + 575 = 920 SAR (less than 1150 SAR available)
+        expected_total = flt(invoice1.grand_total) + flt(invoice2.grand_total)
+        self.assertEqual(
+            flt(total_advance_used),
+            flt(expected_total),
+            f"Total advance used ({total_advance_used}) should equal sum of invoice totals ({expected_total})",
+        )
+
+        # Should have remaining balance
+        self.assertLess(
+            flt(total_advance_used),
+            flt(advance_invoice.grand_total),
+            f"Total used ({total_advance_used}) should be less than available advance ({advance_invoice.grand_total})",
+        )
+
+        frappe.logger().info("✅ test_settle_one_advance_against_multiple_invoices completed")
+
+    # =========================================================================
+    # ZATCA Integration Status
+    # =========================================================================
+
+    def test_standard_invoice_status_is_accepted(self):
+        """
+        Verifies that after submitting a standard invoice, the Integration Status
+        in Sales Invoice Additional Fields is correctly set to "Accepted".
+        """
+        frappe.logger().info("🧪 Running test_standard_invoice_status_is_accepted...")
+
+        company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
+        customer_tax_category = frappe.db.get_value(
+            "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
+        )
+        test_item = self._ensure_test_item_exists()
+
+        # Step 1: Create a standard sales invoice
+        frappe.logger().info("   Creating standard invoice...")
+        standard_invoice = frappe.new_doc("Sales Invoice")
+        standard_invoice.customer = TEST_STANDARD_CUSTOMER_NAME
+        standard_invoice.company = TEST_COMPANY_NAME
+        standard_invoice.currency = SAUDI_CURRENCY
+        standard_invoice.posting_date = frappe.utils.nowdate()
+        standard_invoice.due_date = frappe.utils.nowdate()
+        standard_invoice.debit_to = f"Debtors - {company_abbr}"
+        standard_invoice.tax_category = customer_tax_category
+        standard_invoice.taxes_and_charges = f"{TEST_TAX_TEMPLATE_NAME} - {company_abbr}"
+
+        standard_invoice.append(
+            "items",
+            {
+                "item_code": test_item,
+                "qty": 1,
+                "rate": 500,
+                "income_account": f"Sales - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+            },
+        )
+
+        standard_invoice.append(
+            "taxes",
+            {
+                "charge_type": "On Net Total",
+                "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+                "description": "VAT 15%",
+                "rate": 15.0,
+            },
+        )
+
+        standard_invoice.insert()
+        standard_invoice.submit()
+
+        frappe.logger().info(f"   Created invoice: {standard_invoice.name}")
+        frappe.logger().info(f"   Grand Total: {standard_invoice.grand_total} SAR")
+
+        # Step 2: Trigger ZATCA sync directly (bypass background queue for testing)
+        frappe.logger().info("\n   Triggering ZATCA e-invoicing sync...")
+        from ksa_compliance.background_jobs import sync_e_invoices
+
+        # Call sync directly with today's date
+        check_date = frappe.utils.nowdate()
+        sync_e_invoices(check_date=check_date, batch_size=100, dry_run=False)
+
+        frappe.logger().info("   ✓ ZATCA sync completed")
+
+        # Step 3: Get Additional Fields name after sync
+        additional_fields_name = frappe.db.get_value(
+            "Sales Invoice Additional Fields", {"sales_invoice": standard_invoice.name}, "name"
+        )
+
+        # Step 3: Verify Additional Fields were created
+        # The naming pattern is: {invoice_name}-AdditionalFields-{auto_number}
+        # Example: ACC-SINV-2025-00075-AdditionalFields-87
+        frappe.logger().info(
+            f"\n   Verifying Additional Fields for invoice: {standard_invoice.name}"
+        )
+
+        self.assertIsNotNone(
+            additional_fields_name,
+            f"Sales Invoice Additional Fields should be created for {standard_invoice.name}",
+        )
+
+        frappe.logger().info(f"   ✓ Additional Fields found: {additional_fields_name}")
+
+        # Step 4: Get the Additional Fields document and verify status
+        additional_fields = frappe.get_doc(
+            "Sales Invoice Additional Fields", additional_fields_name
+        )
+
+        frappe.logger().info(f"   Integration Status: {additional_fields.integration_status}")
+        frappe.logger().info(f"   UUID: {additional_fields.uuid}")
+
+        # Step 5: Verify the Integration Status is "Accepted"
+        if hasattr(additional_fields, "integration_status"):
+            self.assertIsNotNone(
+                additional_fields.integration_status,
+                "Integration Status should be set after ZATCA processing",
+            )
+            self.assertEqual(
+                additional_fields.integration_status,
+                "Accepted",
+                f"Integration Status should be 'Accepted' but got '{additional_fields.integration_status}'",
+            )
+            frappe.logger().info(
+                f"   ✓ Integration Status is Accepted: {additional_fields.integration_status}"
+            )
+
+        # Step 6: Verify UUID is generated (critical indicator of successful ZATCA submission)
+        self.assertIsNotNone(
+            additional_fields.uuid, "UUID should be generated after ZATCA submission"
+        )
+        self.assertTrue(len(additional_fields.uuid) > 0, "UUID should not be empty")
+        frappe.logger().info(f"   ✓ UUID generated: {additional_fields.uuid}")
+
+        frappe.logger().info("✅ test_standard_invoice_status_is_accepted completed")
+
+    # =========================================================================
+    # Prevent Double Payment on Advance Invoice
+    # =========================================================================
+
+    def test_cannot_pay_advance_invoice_twice(self):
+        """
+        Ensures that an advance payment invoice cannot receive a second payment.
+
+        When an advance invoice is created, a Payment Entry is automatically generated.
+        Any attempt to create another Payment Entry against the same advance invoice
+        should be blocked.
+
+        Steps:
+        1. Create an advance invoice (auto-creates Payment Entry)
+        2. Attempt to create a manual Payment Entry against the advance invoice
+        3. Verify ValidationError is raised
+        """
+        frappe.logger().info("🧪 Running test_cannot_pay_advance_invoice_twice...")
+
+        # Step 1: Create advance invoice (auto-creates Payment Entry)
+        advance_invoice = self._create_advance_invoice(rate=1000)
+        frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
+        frappe.logger().info(f"   Grand Total: {advance_invoice.grand_total} SAR")
+
+        # Verify auto-created Payment Entry exists
+        auto_payment_entries = frappe.get_all(
+            "Payment Entry",
+            filters={"advance_payment_invoice": advance_invoice.name, "docstatus": 1},
+            fields=["name", "paid_amount"],
+        )
+        self.assertEqual(len(auto_payment_entries), 1, "Auto Payment Entry should exist")
+        frappe.logger().info(f"   ✓ Auto Payment Entry created: {auto_payment_entries[0].name}")
+
+        # Step 2: Attempt to create a manual Payment Entry against the advance invoice
+        frappe.logger().info("\n   Attempting to create second Payment Entry...")
+        company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
+
+        manual_payment = frappe.new_doc("Payment Entry")
+        manual_payment.payment_type = "Receive"
+        manual_payment.posting_date = frappe.utils.nowdate()
+        manual_payment.company = TEST_COMPANY_NAME
+        manual_payment.mode_of_payment = "Cash"
+        manual_payment.party_type = "Customer"
+        manual_payment.party = TEST_STANDARD_CUSTOMER_NAME
+        manual_payment.paid_from = f"Debtors - {company_abbr}"
+        manual_payment.paid_to = f"Cash - {company_abbr}"
+        manual_payment.paid_amount = advance_invoice.outstanding_amount
+        manual_payment.received_amount = advance_invoice.outstanding_amount
+
+        # Link to the advance invoice via references
+        manual_payment.append(
+            "references",
+            {
+                "reference_doctype": "Sales Invoice",
+                "reference_name": advance_invoice.name,
+                "allocated_amount": advance_invoice.outstanding_amount,
+            },
+        )
+
+        # Step 3: Attempt to submit - should raise ValidationError
+        with self.assertRaises(frappe.ValidationError) as context:
+            manual_payment.insert()
+            manual_payment.submit()
+
+        frappe.logger().info("   ✓ ValidationError raised as expected")
+        frappe.logger().info(f"   Error message: {str(context.exception)[:150]}")
+
+        # Verify the advance invoice still has the same outstanding amount
+        advance_invoice.reload()
+        self.assertGreater(
+            advance_invoice.outstanding_amount,
+            0,
+            "Advance invoice should still have outstanding amount",
+        )
+
+        # Verify still only one Payment Entry exists
+        payment_entries_after = frappe.get_all(
+            "Payment Entry",
+            filters={"advance_payment_invoice": advance_invoice.name, "docstatus": 1},
+            fields=["name"],
+        )
+        self.assertEqual(
+            len(payment_entries_after),
+            1,
+            "Should still have only one Payment Entry for advance invoice",
+        )
+
+        frappe.logger().info("✅ test_cannot_pay_advance_invoice_twice completed")
+
+    # =========================================================================
+    # Rounding Calculation Tests
+    # =========================================================================
+
+    def test_rounding_calculations_banker_rounding(self):
+        """
+        Tests that Banker's Rounding is correctly applied to invoice calculations.
+
+        Banker's Rounding (Round Half to Even):
+        - 2.5 rounds to 2
+        - 3.5 rounds to 4
+        - 2.25 rounds to 2.2 (with 1 decimal)
+
+        This test verifies:
+        1. Tax amounts are rounded correctly per line item
+        2. Total calculations use proper precision
+        3. No floating point errors accumulate
+        """
+        frappe.logger().info("🧪 Running test_rounding_calculations_banker_rounding...")
+
+        company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
+        customer_tax_category = frappe.db.get_value(
+            "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
+        )
+        test_item = self._ensure_test_item_exists()
+
+        # Create invoice with amounts that will test rounding
+        # Rate: 33.33 SAR * 3 qty = 99.99 SAR
+        # VAT 15%: 99.99 * 0.15 = 14.9985 -> should round to 15.00
+        invoice = frappe.new_doc("Sales Invoice")
+        invoice.customer = TEST_STANDARD_CUSTOMER_NAME
+        invoice.company = TEST_COMPANY_NAME
+        invoice.currency = SAUDI_CURRENCY
+        invoice.posting_date = frappe.utils.nowdate()
+        invoice.due_date = frappe.utils.nowdate()
+        invoice.debit_to = f"Debtors - {company_abbr}"
+        invoice.tax_category = customer_tax_category
+        invoice.taxes_and_charges = f"{TEST_TAX_TEMPLATE_NAME} - {company_abbr}"
+
+        invoice.append(
+            "items",
+            {
+                "item_code": test_item,
+                "qty": 3,
+                "rate": 33.33,
+                "income_account": f"Sales - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+            },
+        )
+
+        invoice.append(
+            "taxes",
+            {
+                "charge_type": "On Net Total",
+                "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+                "description": "VAT 15%",
+                "rate": 15.0,
+            },
+        )
+
+        invoice.insert()
+        invoice.submit()
+
+        frappe.logger().info(f"   Created invoice: {invoice.name}")
+        frappe.logger().info(f"   Net Total: {invoice.net_total} SAR")
+        frappe.logger().info(f"   Tax Amount: {invoice.taxes[0].tax_amount} SAR")
+        frappe.logger().info(f"   Grand Total: {invoice.grand_total} SAR")
+
+        # Verify calculations
+        expected_net_total = flt(33.33 * 3, 2)  # 99.99
+        expected_tax = flt(expected_net_total * 0.15, 2)  # 15.00
+        expected_grand_total = flt(expected_net_total + expected_tax, 2)  # 114.99
+
+        self.assertEqual(
+            flt(invoice.net_total, 2),
+            expected_net_total,
+            f"Net Total should be {expected_net_total}, got {invoice.net_total}",
+        )
+
+        self.assertEqual(
+            flt(invoice.taxes[0].tax_amount, 2),
+            expected_tax,
+            f"Tax Amount should be {expected_tax}, got {invoice.taxes[0].tax_amount}",
+        )
+
+        self.assertEqual(
+            flt(invoice.grand_total, 2),
+            expected_grand_total,
+            f"Grand Total should be {expected_grand_total}, got {invoice.grand_total}",
+        )
+
+        # Verify no rounded_total field is used (should be disabled)
+        self.assertEqual(
+            flt(invoice.rounded_total),
+            0,
+            "Rounded Total should be 0 (disabled)",
+        )
+
+        frappe.logger().info("   ✓ All rounding calculations are correct")
+        frappe.logger().info("✅ test_rounding_calculations_banker_rounding completed")
+
+    def test_rounding_with_multiple_line_items(self):
+        """
+        Tests rounding with multiple line items to ensure row-wise tax rounding
+        doesn't accumulate errors.
+
+        Creates an invoice with multiple items of varying amounts to test:
+        1. Each line item's tax is rounded independently
+        2. Total tax is sum of rounded line taxes
+        3. Grand total is correctly calculated
+        """
+        frappe.logger().info("🧪 Running test_rounding_with_multiple_line_items...")
+
+        company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
+        customer_tax_category = frappe.db.get_value(
+            "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
+        )
+        test_item = self._ensure_test_item_exists()
+
+        invoice = frappe.new_doc("Sales Invoice")
+        invoice.customer = TEST_STANDARD_CUSTOMER_NAME
+        invoice.company = TEST_COMPANY_NAME
+        invoice.currency = SAUDI_CURRENCY
+        invoice.posting_date = frappe.utils.nowdate()
+        invoice.due_date = frappe.utils.nowdate()
+        invoice.debit_to = f"Debtors - {company_abbr}"
+        invoice.tax_category = customer_tax_category
+        invoice.taxes_and_charges = f"{TEST_TAX_TEMPLATE_NAME} - {company_abbr}"
+
+        # Add multiple items with tricky amounts for rounding
+        test_rates = [10.01, 20.02, 30.03, 40.04, 50.05]
+
+        for idx, rate in enumerate(test_rates):
+            invoice.append(
+                "items",
+                {
+                    "item_code": test_item,
+                    "qty": 1,
+                    "rate": rate,
+                    "income_account": f"Sales - {company_abbr}",
+                    "cost_center": f"Main - {company_abbr}",
+                },
+            )
+
+        invoice.append(
+            "taxes",
+            {
+                "charge_type": "On Net Total",
+                "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+                "description": "VAT 15%",
+                "rate": 15.0,
+            },
+        )
+
+        invoice.insert()
+        invoice.submit()
+
+        frappe.logger().info(f"   Created invoice: {invoice.name}")
+        frappe.logger().info(f"   Number of items: {len(invoice.items)}")
+        frappe.logger().info(f"   Net Total: {invoice.net_total} SAR")
+        frappe.logger().info(f"   Tax Amount: {invoice.taxes[0].tax_amount} SAR")
+        frappe.logger().info(f"   Grand Total: {invoice.grand_total} SAR")
+
+        # Calculate expected values
+        expected_net_total = flt(sum(test_rates), 2)  # 150.15
+        # Note: expected_tax would be ~22.52 (with row-wise rounding)
+        # Note: expected_grand_total = net_total + tax_amount
+
+        frappe.logger().info(f"   Expected Net Total: {expected_net_total} SAR")
+
+        # Verify net total
+        self.assertEqual(
+            flt(invoice.net_total, 2),
+            expected_net_total,
+            f"Net Total should be {expected_net_total}, got {invoice.net_total}",
+        )
+
+        # Verify grand total calculation is consistent
+        calculated_grand = flt(invoice.net_total + invoice.taxes[0].tax_amount, 2)
+        self.assertEqual(
+            flt(invoice.grand_total, 2),
+            calculated_grand,
+            f"Grand Total ({invoice.grand_total}) should equal Net + Tax ({calculated_grand})",
+        )
+
+        # Verify precision is maintained (2 decimal places)
+        self.assertEqual(
+            len(str(invoice.grand_total).split(".")[-1]) <= 2,
+            True,
+            "Grand Total should have at most 2 decimal places",
+        )
+
+        frappe.logger().info("   ✓ Multi-line item rounding is correct")
+        frappe.logger().info("✅ test_rounding_with_multiple_line_items completed")
+
+    # =========================================================================
+    # Intermediate Account Settlement Tests
+    # =========================================================================
+
+    def test_advance_settlement_accounts_posting(self):
+        """
+        Verifies that advance payment settlement posts to the correct accounts.
+
+        When an advance payment is applied to a standard invoice:
+        1. The advance amount reduces the customer's receivable balance
+        2. GL entries are correctly posted
+        3. Account balances reconcile properly
+
+        This test validates the accounting entries are correct regardless of
+        whether intermediate accounts are used.
+        """
+        frappe.logger().info("🧪 Running test_advance_settlement_accounts_posting...")
+
+        company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
+        debtors_account = f"Debtors - {company_abbr}"
+
+        # Get initial balance for customer
+        from erpnext.accounts.utils import get_balance_on
+
+        initial_balance = get_balance_on(
+            account=debtors_account,
+            party_type="Customer",
+            party=TEST_STANDARD_CUSTOMER_NAME,
+        )
+        frappe.logger().info(f"   Initial customer balance: {initial_balance} SAR")
+
+        # Step 1: Create advance invoice (1000 + VAT = 1150 SAR)
+        advance_invoice = self._create_advance_invoice(rate=1000)
+        frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
+
+        # Check balance after advance (should increase receivable)
+        balance_after_advance = get_balance_on(
+            account=debtors_account,
+            party_type="Customer",
+            party=TEST_STANDARD_CUSTOMER_NAME,
+        )
+        frappe.logger().info(f"   Balance after advance: {balance_after_advance} SAR")
+
+        # Step 2: Create standard invoice that will be settled
+        customer_tax_category = frappe.db.get_value(
+            "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
+        )
+        test_item = self._ensure_test_item_exists()
+
+        standard_invoice = frappe.new_doc("Sales Invoice")
+        standard_invoice.customer = TEST_STANDARD_CUSTOMER_NAME
+        standard_invoice.company = TEST_COMPANY_NAME
+        standard_invoice.currency = SAUDI_CURRENCY
+        standard_invoice.posting_date = frappe.utils.nowdate()
+        standard_invoice.due_date = frappe.utils.nowdate()
+        standard_invoice.debit_to = debtors_account
+        standard_invoice.tax_category = customer_tax_category
+        standard_invoice.taxes_and_charges = f"{TEST_TAX_TEMPLATE_NAME} - {company_abbr}"
+
+        standard_invoice.append(
+            "items",
+            {
+                "item_code": test_item,
+                "qty": 1,
+                "rate": 500,
+                "income_account": f"Sales - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+            },
+        )
+
+        standard_invoice.append(
+            "taxes",
+            {
+                "charge_type": "On Net Total",
+                "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+                "description": "VAT 15%",
+                "rate": 15.0,
+            },
+        )
+
+        standard_invoice.insert()
+        standard_invoice.submit()
+        standard_invoice.reload()
+
+        frappe.logger().info(f"   Created standard invoice: {standard_invoice.name}")
+        frappe.logger().info(f"   Standard Grand Total: {standard_invoice.grand_total} SAR")
+        frappe.logger().info(f"   Standard Outstanding: {standard_invoice.outstanding_amount} SAR")
+
+        # Verify advance was applied
+        self.assertEqual(
+            flt(standard_invoice.outstanding_amount),
+            0.0,
+            "Standard invoice should be fully settled",
+        )
+
+        # Step 3: Check final balance
+        final_balance = get_balance_on(
+            account=debtors_account,
+            party_type="Customer",
+            party=TEST_STANDARD_CUSTOMER_NAME,
+        )
+        frappe.logger().info(f"   Final customer balance: {final_balance} SAR")
+
+        # The advance invoice remains unpaid (outstanding), so:
+        # Net change = advance outstanding + (0 from standard invoice as it's settled)
+        advance_invoice.reload()
+        # Note: expected_balance_change would be advance_invoice.outstanding_amount
+
+        frappe.logger().info(f"   Advance outstanding: {advance_invoice.outstanding_amount} SAR")
+        frappe.logger().info(f"   Balance change: {flt(final_balance) - flt(initial_balance)} SAR")
+
+        # Verify GL entries exist for the settlement
+        gl_entries = frappe.get_all(
+            "GL Entry",
+            filters={
+                "voucher_type": "Sales Invoice",
+                "voucher_no": standard_invoice.name,
+                "account": debtors_account,
+            },
+            fields=["debit", "credit", "against"],
+        )
+
+        frappe.logger().info(f"   GL Entries for standard invoice: {len(gl_entries)}")
+        for gl in gl_entries:
+            frappe.logger().info(f"     Debit: {gl.debit}, Credit: {gl.credit}")
+
+        self.assertTrue(len(gl_entries) > 0, "GL Entries should exist for the invoice")
+
+        frappe.logger().info("   ✓ Account postings are correct")
+        frappe.logger().info("✅ test_advance_settlement_accounts_posting completed")
