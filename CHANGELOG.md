@@ -12,6 +12,30 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.66.9
+* Add Comprehensive ZATCA State 3 Integration Test Suite
+  * Add Test For ZATCA Sync Mode Is Set To Live
+  * Add Test To Validate Required System Settings Are Enabled
+  * Add Test For Advance Invoice Creates Payment Entry Automatically
+  * Add Test For Advance Invoice Remains Unpaid After Payment Entry Creation
+  * Add Test To Settle Advance Payment With Auto Apply Mechanism
+  * Add Test To Settle Advance Payment With Discount Applied
+  * Add Test That Cancelling Submitted Advance Invoice Is Blocked
+  * Add Test That Cancelling Auto-Created Payment Entry Is Blocked
+  * Add Test That Payment Reconciliation Tool Excludes Advance Invoices
+  * Add Test That Unreconciling Settled Advance Payment Is Blocked
+  * Add Test That Settling Mismatched Tax Categories Is Prevented
+  * Add Test For Creating Sales Return Against Advance Invoice
+  * Add Test That Standard Invoice Status Becomes Accepted After Batch Sync
+  * Add Test That Accounts Settings Enables Round Tax Amount Row-wise
+  * Add Test That Company Country Is Set To Saudi Arabia
+  * Add Test That Check Validate Generated XML Is Enabled in Business Settings
+  * Add Test To Settle One Advance Against Multiple Standard Invoices
+  * Add Test To Prevent Double Payment On Advance Invoice
+  * Add Test For Banker's Rounding Calculations On Single Invoice
+  * Add Test For Rounding With Multiple Line Items (row-wise tax rounding)
+  * Add Test For Intermediate Account Settlement Posting (advance and tax)
+
 ## 0.66.8
 * FIX show Advance Payment Section on Sales invoice
 
