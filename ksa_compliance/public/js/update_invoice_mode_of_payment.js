@@ -4,6 +4,10 @@ function is_advance_invoice(frm) {
         args: { company: frm.doc.company },
     }).then(response => {
         const advance_item = response.message;
+
+        if (!advance_item){
+            return false
+        }
         return (frm.doc.items || []).some(row => row.item_code === advance_item);
     });
 }
