@@ -1297,7 +1297,7 @@ class AdvancePaymentEntry(Einvoice):
         item_lines = append_tax_details_into_item_lines(
             item_lines=item_lines, is_tax_included=is_tax_included
         )
-        unique_tax_categories = append_tax_categories_to_item(item_lines, taxes_and_charges)
+        unique_tax_categories = append_tax_categories_to_item(item_lines, taxes_and_charges.name)
         # Append unique Tax categories to invoice
         self.result["invoice"]["tax_categories"] = unique_tax_categories
 
