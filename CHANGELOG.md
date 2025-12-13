@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.66.8
+* FIX show Advance Payment Section on Sales invoice
+
 ## 0.66.7
 * Fix Advance Payment Greater than Grand Total
 
