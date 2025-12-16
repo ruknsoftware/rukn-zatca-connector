@@ -35,7 +35,14 @@ class TestZATCAState3Integration(FrappeTestCase):
         settings = frappe.get_doc("ZATCA Business Settings", settings_name)
         if not settings.auto_apply_advance_payments:
             settings.auto_apply_advance_payments = 1
-            settings.save()
+            settings.save(ignore_permissions=True)
+            frappe.db.commit()
+
+        # Ensure round_row_wise_tax is enabled in Accounts Settings
+        accounts_settings = frappe.get_doc("Accounts Settings")
+        if not accounts_settings.round_row_wise_tax:
+            accounts_settings.round_row_wise_tax = 1
+            accounts_settings.save(ignore_permissions=True)
             frappe.db.commit()
 
     def _ensure_test_item_exists(self):
@@ -957,19 +964,12 @@ class TestZATCAState3Integration(FrappeTestCase):
         """
         frappe.logger().info("🧪 Running test_accounts_settings_round_tax_row_wise...")
 
-        # Get Accounts Settings
+        # Get Accounts Settings - should already be enabled by setUp()
         accounts_settings = frappe.get_doc("Accounts Settings")
 
-        # Check if round_row_wise is enabled
-        frappe.logger().info(f"   round_row_wise: {accounts_settings.round_row_wise_tax}")
+        frappe.logger().info(f"   round_row_wise_tax: {accounts_settings.round_row_wise_tax}")
 
-        # If not enabled, enable it
-        if not accounts_settings.round_row_wise_tax:
-            frappe.logger().info("   Enabling round_row_wise_tax...")
-            accounts_settings.round_row_wise_tax = 1
-            accounts_settings.save()
-            frappe.db.commit()
-
+        # Verify it's enabled (setUp() should have already enabled it)
         self.assertEqual(
             accounts_settings.round_row_wise_tax,
             1,
