@@ -26,6 +26,18 @@ from ksa_compliance.test.test_constants import (
 class TestZATCAState3Integration(FrappeTestCase):
     """State 3 Integration Tests: ZATCA Configured and Enabled"""
 
+    def setUp(self):
+        """Setup method that runs before each test to ensure required settings are enabled."""
+        super().setUp()
+
+        # Ensure auto_apply_advance_payments is enabled for all tests
+        settings_name = f"{TEST_COMPANY_NAME}-{SAUDI_COUNTRY}-{SAUDI_CURRENCY}"
+        settings = frappe.get_doc("ZATCA Business Settings", settings_name)
+        if not settings.auto_apply_advance_payments:
+            settings.auto_apply_advance_payments = 1
+            settings.save()
+            frappe.db.commit()
+
     def _ensure_test_item_exists(self):
         """Helper method to ensure Test Item exists."""
         test_item = "Test Item"
@@ -237,28 +249,8 @@ class TestZATCAState3Integration(FrappeTestCase):
         """
         frappe.logger().info("🧪 Running test_settle_advance_with_auto_apply...")
 
-        # Step 1: Verify auto-apply advances is enabled in Business Settings
-        settings_name = f"{TEST_COMPANY_NAME}-{SAUDI_COUNTRY}-{SAUDI_CURRENCY}"
-        settings = frappe.get_doc("ZATCA Business Settings", settings_name)
-
-        frappe.logger().info(
-            f"   Checking auto_apply_advance_payments: {settings.auto_apply_advance_payments}"
-        )
-
-        # If not enabled, enable it
-        if not settings.auto_apply_advance_payments:
-            frappe.logger().info("   Enabling auto_apply_advance_payments...")
-            settings.auto_apply_advance_payments = 1
-            settings.save()
-            frappe.db.commit()
-
-        self.assertEqual(
-            settings.auto_apply_advance_payments,
-            1,
-            "auto_apply_advance_payments should be enabled in ZATCA Business Settings",
-        )
-
-        # Step 2: Create advance payment invoice (1000 SAR + 15% VAT = 1150 SAR available balance)
+        # Step 1: Create advance payment invoice (1000 SAR + 15% VAT = 1150 SAR available balance)
+        # Note: auto_apply_advance_payments is guaranteed to be enabled by setUp() method
         advance_invoice = self._create_advance_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
         frappe.logger().info(f"   Advance Grand Total: {advance_invoice.grand_total} SAR")
@@ -621,6 +613,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_cannot_unreconcile_settled_advance_payment...")
 
         # Step 1: Create advance payment invoice
+        # Note: auto_apply_advance_payments is guaranteed to be enabled by setUp() method
         advance_invoice = self._create_advance_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
         frappe.logger().info(f"   Advance Grand Total: {advance_invoice.grand_total} SAR")
@@ -969,6 +962,13 @@ class TestZATCAState3Integration(FrappeTestCase):
 
         # Check if round_row_wise is enabled
         frappe.logger().info(f"   round_row_wise: {accounts_settings.round_row_wise_tax}")
+
+        # If not enabled, enable it
+        if not accounts_settings.round_row_wise_tax:
+            frappe.logger().info("   Enabling round_row_wise_tax...")
+            accounts_settings.round_row_wise_tax = 1
+            accounts_settings.save()
+            frappe.db.commit()
 
         self.assertEqual(
             accounts_settings.round_row_wise_tax,
@@ -1620,6 +1620,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         """
         frappe.logger().info("🧪 Running test_advance_settlement_accounts_posting...")
 
+        # Note: auto_apply_advance_payments is guaranteed to be enabled by setUp() method
         company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
         debtors_account = f"Debtors - {company_abbr}"
 
