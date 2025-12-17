@@ -756,20 +756,23 @@ class TestZATCAState3Integration(FrappeTestCase):
         # Step 2: Create a zero-rated invoice (0% VAT) - different tax category
         company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
 
-        # Create zero-rated tax category
+        # Create zero-rated tax category with proper ZATCA fields
         zero_rated_tax_category = "ZATCA Test Tax Category Zero"
         if not frappe.db.exists("Tax Category", zero_rated_tax_category):
             tax_cat = frappe.new_doc("Tax Category")
             tax_cat.title = zero_rated_tax_category
-            tax_cat.zatca_tax_category = "Standard rate"
+            tax_cat.disabled = 0
+            tax_cat.zatca_tax_category = "Zero rated goods || Export of goods"
             tax_cat.insert(ignore_permissions=True)
+            frappe.logger().info(f"   Created zero-rated tax category: {zero_rated_tax_category}")
 
-        # Create VAT Zero Sales Taxes and Charges Template
-        zero_tax_template = f"VAT Zero - {company_abbr}"
-        if not frappe.db.exists("Sales Taxes and Charges Template", zero_tax_template):
+        # Create VAT Zero Sales Taxes and Charges Template (check to avoid duplicate)
+        zero_tax_template_name = f"VAT Zero - {company_abbr}"
+        if not frappe.db.exists("Sales Taxes and Charges Template", zero_tax_template_name):
             template = frappe.new_doc("Sales Taxes and Charges Template")
-            template.title = zero_tax_template
+            template.title = f"VAT Zero - {company_abbr}"
             template.company = TEST_COMPANY_NAME
+            template.tax_category = zero_rated_tax_category
             template.is_default = 0
             template.append(
                 "taxes",
@@ -782,6 +785,7 @@ class TestZATCAState3Integration(FrappeTestCase):
                 },
             )
             template.insert(ignore_permissions=True)
+            frappe.logger().info(f"   Created zero-rated tax template: {zero_tax_template_name}")
 
         test_item = self._ensure_test_item_exists()
 
@@ -793,7 +797,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         zero_rated_invoice.due_date = frappe.utils.nowdate()
         zero_rated_invoice.debit_to = f"Debtors - {company_abbr}"
         zero_rated_invoice.tax_category = zero_rated_tax_category  # Different tax category
-        zero_rated_invoice.taxes_and_charges = zero_tax_template
+        zero_rated_invoice.taxes_and_charges = zero_tax_template_name
 
         zero_rated_invoice.append(
             "items",
