@@ -770,7 +770,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         zero_tax_template_name = f"VAT Zero - {company_abbr}"
         if not frappe.db.exists("Sales Taxes and Charges Template", zero_tax_template_name):
             template = frappe.new_doc("Sales Taxes and Charges Template")
-            template.title = f"VAT Zero - {company_abbr}"
+            template.title = "VAT Zero"
             template.company = TEST_COMPANY_NAME
             template.tax_category = zero_rated_tax_category
             template.is_default = 0
