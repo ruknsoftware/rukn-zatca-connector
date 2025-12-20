@@ -27,7 +27,6 @@
     </div>
     <hr>
 
-    <!-- Seller Info -->
     <table class="table table-bordered" dir="{{ dir }}">
         <tr>
             <th>{{ _("Seller Name") }}</th>
@@ -48,7 +47,6 @@
         </tr>
     </table>
 
-    <!-- Buyer Info -->
     <table class="table table-bordered" dir="{{ dir }}">
         <tr>
             <th>{{ _("Buyer Name") }}</th>
@@ -85,7 +83,6 @@
         </tr>
     </table>
 
-    <!-- Advance Payment Item Table -->
     <table class="table table-bordered" dir="{{ dir }}">
         <thead>
             <tr>
@@ -126,7 +123,6 @@
         </tbody>
     </table>
 
-    <!-- Totals -->
     <table class="table table-bordered" dir="{{ dir }}">
         <tr>
             <td>{{ _("Taxable Amount") }}</td>
@@ -142,7 +138,6 @@
         </tr>
     </table>
 
-    <!-- QR Code -->
     <div class="text-center">
         {% if details.siaf and details.siaf.qr_image_src %}
             <img src="{{ details.siaf.qr_image_src }}" width="200" height="200">
