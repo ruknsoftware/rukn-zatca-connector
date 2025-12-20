@@ -9,6 +9,7 @@ import pyqrcode
 from erpnext.accounts.doctype.payment_entry.payment_entry import PaymentEntry
 from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+from erpnext.accounts.doctype.journal_entry.journal_entry import JournalEntry
 from erpnext.setup.doctype.branch.branch import Branch
 from frappe.utils import flt
 from frappe.utils.data import get_time, getdate
@@ -127,7 +128,7 @@ def get_advance_payment_entry_info(payment_entry, settings):
 
 
 def get_phase_2_print_format_details(
-    sales_invoice: SalesInvoice | POSInvoice | PaymentEntry,
+    sales_invoice: SalesInvoice | POSInvoice | PaymentEntry | JournalEntry,
 ) -> dict | None:
     settings_id = frappe.db.exists(
         "ZATCA Business Settings",
@@ -139,14 +140,24 @@ def get_phase_2_print_format_details(
     branch_doc = None
     has_branch_address = False
     settings = cast(ZATCABusinessSettings, frappe.get_doc("ZATCA Business Settings", settings_id))
-    if settings.enable_branch_configuration:
-        if sales_invoice.branch:
-            branch_doc = cast(Branch, frappe.get_doc("Branch", sales_invoice.branch))
-            if branch_doc.custom_company_address:
-                has_branch_address = True
+    if settings.enable_branch_configuration and sales_invoice.branch:
+        branch_doc = cast(Branch, frappe.get_doc("Branch", sales_invoice.branch))
+        has_branch_address = bool(branch_doc.custom_company_address)
+
     seller_other_id, seller_other_id_name = get_seller_other_id(sales_invoice, settings)
     if sales_invoice.doctype == "Payment Entry":
         customer = sales_invoice.party
+    elif sales_invoice.doctype == "Journal Entry":
+        advance_payment_name = frappe.db.get_value(
+            "Journal Entry", sales_invoice.name, "advance_payment_entry"
+        )
+        if advance_payment_name:
+            payment_entry = frappe.get_doc("Payment Entry", advance_payment_name)
+            customer = payment_entry.party
+        else:
+            payment_entry = None
+            customer = None
+            print("[DEBUG] No advance payment linked to this Journal Entry")
     else:
         customer = sales_invoice.customer
     buyer_other_id, buyer_other_id_name = get_buyer_other_id(customer)
@@ -154,11 +165,31 @@ def get_phase_2_print_format_details(
         "Sales Invoice Additional Fields", {"sales_invoice": sales_invoice.name}
     )
     prepayment_info = get_prepayment_info(sales_invoice)
-    advance_payment_entry = (
-        get_advance_payment_entry_info(sales_invoice, settings)
-        if sales_invoice.doctype == "Payment Entry"
-        else None
-    )
+
+    #advance_payment_entry and buyer_address must be handled differently for Payment Entry and Journal Entry ya abu mohamed
+    advance_payment_entry = None
+    if sales_invoice.doctype == "Payment Entry":
+        advance_payment_entry = get_advance_payment_entry_info(sales_invoice, settings)
+        advance_payment_entry.party = sales_invoice.party
+    elif sales_invoice.doctype == "Journal Entry" and advance_payment_name:
+        payment_entry = frappe.get_doc("Payment Entry", advance_payment_name)
+        advance_payment_entry = get_advance_payment_entry_info(payment_entry, settings)
+        advance_payment_entry.party = payment_entry.party
+    buyer_address = None
+    if customer:
+        customer_doc = frappe.get_doc("Customer", customer)
+        if customer_doc.customer_primary_address:
+            address_doc = frappe.get_doc("Address", customer_doc.customer_primary_address)
+            buyer_address = {
+                "street": getattr(address_doc, "address_line1", ""),
+                "district": getattr(address_doc, "district", ""),
+                "city": getattr(address_doc, "city", ""),
+                "postal_code": getattr(address_doc, "pincode", ""),
+            }
+        else:
+            buyer_address = {"street": "", "district": "", "city": "", "postal_code": ""}
+    else:
+        buyer_address = {"street": "", "district": "", "city": "", "postal_code": ""}
     return {
         "settings": settings,
         "address": {
@@ -169,6 +200,7 @@ def get_phase_2_print_format_details(
                 branch_doc.custom_postal_code if has_branch_address else settings.postal_code
             ),
         },
+        "buyer_address": buyer_address,
         "seller_other_id": seller_other_id,
         "seller_other_id_name": seller_other_id_name,
         "buyer_other_id": buyer_other_id,

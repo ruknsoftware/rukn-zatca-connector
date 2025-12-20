@@ -1,0 +1,160 @@
+{% set details = get_phase_2_print_format_details(doc) %}
+{% set pe = details.advance_payment_entry if details else None %}
+{% set invoice_type = "Advance Payment Return" %}
+
+{% if letter_head %}
+<div class="letter-head">
+    {{ letter_head }}
+</div>
+{% endif %}
+
+{% set lang = frappe.form_dict._lang | default("en") %}
+{% set dir = "rtl" if lang in ["العربية", "اردو", "پارسی"] else "ltr" %}
+
+{% if details and pe %}
+<div class="text-center">
+    <h2>{{ _("Returned {0}").format(invoice_type) }}</h2>
+
+    <div class="row">
+        <div class="col-md-6">
+            <b>{{ _("Journal Entry") }}</b>
+            <p>{{ doc.name }}</p>
+        </div>
+        <div class="col-md-6">
+            <b>{{ _("Posting Date") }}</b>
+            <p>{{ doc.get_formatted("posting_date") }}</p>
+        </div>
+    </div>
+    <hr>
+
+    <!-- Seller Info -->
+    <table class="table table-bordered" dir="{{ dir }}">
+        <tr>
+            <th>{{ _("Seller Name") }}</th>
+            <th>{{ _("Address") }}</th>
+            <th>{{ _("VAT Registration Number") }}</th>
+            <th>{{ _(details.seller_other_id_name) }}</th>
+        </tr>
+        <tr>
+            <td>{{ details.settings.company }}</td>
+            <td>
+                {{ details.address.street }},
+                {{ details.address.district }},
+                {{ details.address.city }},
+                {{ details.address.postal_code }}
+            </td>
+            <td>{{ details.settings.vat_registration_number }}</td>
+            <td>{{ details.seller_other_id or "" }}</td>
+        </tr>
+    </table>
+
+    <!-- Buyer Info -->
+    <table class="table table-bordered" dir="{{ dir }}">
+        <tr>
+            <th>{{ _("Buyer Name") }}</th>
+            <th>{{ _("Address") }}</th>
+            <th>{{ _("VAT Registration Number") }}</th>
+            <th>{{ _(details.buyer_other_id_name) }}</th>
+        </tr>
+        <tr>
+            <td>{{ pe.party or "" }}</td>
+            <td>
+                {% if details.buyer_address %}
+                    {{ details.buyer_address.street }},
+                    {{ details.buyer_address.district }},
+                    {{ details.buyer_address.city }},
+                    {{ details.buyer_address.postal_code }}
+                {% elif details.siaf %}
+                    {{ details.siaf.buyer_street_name }},
+                    {{ details.siaf.buyer_district }},
+                    {{ details.siaf.buyer_city }},
+                    {{ details.siaf.buyer_postal_code }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+
+            <td>
+                {% if details.siaf %}
+                    {{ details.siaf.buyer_vat_registration_number }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>{{ details.buyer_other_id or "" }}</td>
+        </tr>
+    </table>
+
+    <!-- Advance Payment Item Table -->
+    <table class="table table-bordered" dir="{{ dir }}">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>{{ _("Item") }}</th>
+                <th>{{ _("Qty") }}</th>
+                <th>{{ _("Unit Price") }}</th>
+                <th>{{ _("Net Amount") }}</th>
+                <th>{{ _("VAT %") }}</th>
+                <th>{{ _("VAT Amount") }}</th>
+                <th>{{ _("Total") }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
+                <td>
+                    {{ pe.item_name }}
+                    {% if pe.item_code != pe.item_name %}
+                        <br><small>{{ pe.item_code }}</small>
+                    {% endif %}
+                </td>
+                <td>1</td>
+                <td>
+                    {{ frappe.utils.fmt_money(pe.net_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
+                </td>
+                <td>
+                    {{ frappe.utils.fmt_money(pe.net_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
+                </td>
+                <td>{{ pe.tax_rate }}%</td>
+                <td>
+                    {{ frappe.utils.fmt_money(pe.tax_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
+                </td>
+                <td>
+                    {{ frappe.utils.fmt_money(doc.paid_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- Totals -->
+    <table class="table table-bordered" dir="{{ dir }}">
+        <tr>
+            <td>{{ _("Taxable Amount") }}</td>
+            <td>{{ frappe.utils.fmt_money(pe.net_amount | default(0) | abs, None, doc.paid_from_account_currency) }}</td>
+        </tr>
+        <tr>
+            <td>{{ _("VAT Amount") }}</td>
+            <td>{{ frappe.utils.fmt_money(pe.tax_amount | default(0) | abs, None, doc.paid_from_account_currency) }}</td>
+        </tr>
+        <tr>
+            <td><b>{{ _("Total With VAT") }}</b></td>
+            <td><b>{{ frappe.utils.fmt_money(doc.paid_amount | default(0) | abs, None, doc.paid_from_account_currency) }}</b></td>
+        </tr>
+    </table>
+
+    <!-- QR Code -->
+    <div class="text-center">
+        {% if details.siaf and details.siaf.qr_image_src %}
+            <img src="{{ details.siaf.qr_image_src }}" width="200" height="200">
+        {% else %}
+            <p class="text-danger">{{ _("QR Code not available") }}</p>
+        {% endif %}
+    </div>
+
+</div>
+
+{% else %}
+<div class="text-center text-danger">
+    {{ _("No linked Advance Payment Entry found for this Journal Entry") }}
+</div>
+{% endif %}
