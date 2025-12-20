@@ -970,7 +970,9 @@ class TestZATCAState3Integration(FrappeTestCase):
 
         # Check if round_tax_amount_row_wise is enabled this field is available in v15+
         try:
-            round_row_wise_tax = frappe.db.get_single_value("Accounts Settings", "round_tax_amount_row_wise")
+            round_row_wise_tax = frappe.db.get_single_value(
+                "Accounts Settings", "round_tax_amount_row_wise"
+            )
         except frappe.database.database.Database.InvalidColumnName:
             self.skipTest("round_tax_amount_row_wise field not found in Accounts Settings")
             return
