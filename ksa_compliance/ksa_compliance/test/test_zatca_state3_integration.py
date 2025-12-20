@@ -979,8 +979,8 @@ class TestZATCAState3Integration(FrappeTestCase):
 
         # If not enabled, enable it
         if not round_row_wise_tax:
-            frappe.logger().info("   Enabling round_row_wise_tax...")
-            frappe.db.set_single_value("Accounts Settings", "round_row_wise_tax", 1)
+            frappe.logger().info("   Enabling round_tax_amount_row_wise...")
+            frappe.db.set_single_value("Accounts Settings", "round_tax_amount_row_wise", 1)
             frappe.db.commit()
             round_row_wise_tax = 1
 
