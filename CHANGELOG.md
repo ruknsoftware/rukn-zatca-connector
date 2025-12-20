@@ -12,6 +12,22 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.67.0
+* Add Comprehensive ZATCA State 3 Integration Test Suite
+  * Add Test For ZATCA Sync Mode Is Set To Live
+  * Add Test To Validate Required System Settings Are Enabled
+  * Add Test For Advance Invoice Creates Payment Entry Automatically
+  * Add Test For Advance Invoice Remains Unpaid After Payment Entry Creation
+  * Add Test To Settle Advance Payment With Auto Apply Mechanism
+  * Add Test To Settle Advance Payment With Discount Applied
+  * Add Test That Cancelling Submitted Advance Invoice Is Blocked
+  * Add Test That Cancelling Auto-Created Payment Entry Is Blocked
+  * Add Test That Payment Reconciliation Tool Excludes Advance Invoices
+  * Add Test That Unreconciling Settled Advance Payment Is Blocked
+  * Add Test That Settling Mismatched Tax Categories Is Prevented
+  * Add Test For Creating Sales Return Against Advance Invoice
+  * Add Test That Standard Invoice Status Becomes Accepted After Batch Sync
+
 ## 0.66.9
 * Fix fetch Tax Category-id on Advance Payment Entry
 

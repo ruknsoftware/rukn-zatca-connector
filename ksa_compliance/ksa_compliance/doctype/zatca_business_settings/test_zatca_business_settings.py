@@ -333,6 +333,8 @@ def setup_zatca_business_settings(company_name, country, currency, full_onboardi
                 "sync_with_zatca": "Live",
                 "type_of_business_transactions": "Let the system decide (both)",
                 "advance_payment_item": item_code,
+                "auto_apply_advance_payments": 1,
+                "advance_payment_depends_on": "Sales Invoice",
                 "cli_setup": "Automatic",
                 "validate_generated_xml": 1,
                 "block_invoice_on_invalid_xml": 1,

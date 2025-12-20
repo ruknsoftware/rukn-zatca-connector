@@ -95,7 +95,9 @@ def _create_tax_category():
     if not frappe.db.exists("Tax Category", TEST_TAX_CATEGORY_NAME):
         frappe.get_doc({
             "doctype": "Tax Category",
-            "title": TEST_TAX_CATEGORY_NAME
+            "title": TEST_TAX_CATEGORY_NAME,
+            "disabled": 0,
+            "zatca_tax_category": "Standard rate"
         }).insert(ignore_permissions=True)
 
     return TEST_TAX_CATEGORY_NAME
