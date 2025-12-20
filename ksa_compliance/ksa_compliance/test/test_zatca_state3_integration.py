@@ -974,7 +974,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         except frappe.database.database.Database.InvalidColumnName:
             self.skipTest("round_tax_amount_row_wise field not found in Accounts Settings")
             return
-        
+
         frappe.logger().info(f"   round_tax_amount_row_wise: {round_row_wise_tax}")
 
         # If not enabled, enable it
