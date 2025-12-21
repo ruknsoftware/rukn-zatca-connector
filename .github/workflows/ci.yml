@@ -406,9 +406,9 @@ jobs:
             bench get-app ksa_compliance $REPO_URL --branch $BRANCH_NAME
           fi
           cd apps/ksa_compliance
-          git fetch origin $BRANCH_NAME
+          git fetch upstream $BRANCH_NAME
           git checkout $BRANCH_NAME
-          git pull origin $BRANCH_NAME || true
+          git pull upstream $BRANCH_NAME || true
           cd ../..
 
       - name: Download Test Environment Artifacts
