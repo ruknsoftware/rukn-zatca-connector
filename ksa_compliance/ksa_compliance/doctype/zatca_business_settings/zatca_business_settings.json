@@ -559,15 +559,15 @@
  "states": [
   {
    "color": "green",
-   "title": "Provisioned"
+   "title": "Active"
   },
   {
-   "color": "Blue",
-   "title": "Pending Provisioning"
+   "color": "Yellow",
+   "title": "Pending Activation"
   },
   {
    "color": "Red",
-   "title": "Deprovisioned"
+   "title": "Withdrawn"
   }
  ],
  "title_field": "company",

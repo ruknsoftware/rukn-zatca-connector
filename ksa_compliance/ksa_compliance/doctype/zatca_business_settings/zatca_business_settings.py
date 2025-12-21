@@ -485,6 +485,32 @@ def duplicate_configuration(source_name: str, target_doc=None):
 
     doctype_name = "ZATCA Business Settings"
 
+    # Get company from source document
+    source_doc = frappe.get_doc(doctype_name, source_name)
+    company = source_doc.company
+
+    # Check if company already has Active or Pending Activation settings
+    existing_settings = frappe.db.get_value(
+        doctype_name,
+        {
+            "company": company,
+            "status": ["in", ["Active", "Pending Activation"]],
+            "name": ["!=", source_name],
+        },
+        ["name", "status"],
+        as_dict=True,
+    )
+
+    if existing_settings:
+        settings_link = get_link_to_form(doctype_name, existing_settings.name)
+        fthrow(
+            _(
+                "Cannot duplicate configuration: Company {0} already has {1} settings: {2}. "
+                "Please withdraw or complete the existing configuration first."
+            ).format(company, existing_settings.status, settings_link),
+            title=_("Duplicate Configuration Not Allowed"),
+        )
+
     # Credential fields to exclude from duplication
     excluded_credential_fields = [
         "csr",
