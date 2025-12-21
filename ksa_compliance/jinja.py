@@ -148,16 +148,12 @@ def get_phase_2_print_format_details(
     if sales_invoice.doctype == "Payment Entry":
         customer = sales_invoice.party
     elif sales_invoice.doctype == "Journal Entry":
-        advance_payment_name = frappe.db.get_value(
-            "Journal Entry", sales_invoice.name, "advance_payment_entry"
-        )
+        advance_payment_name = sales_invoice.advance_payment_entry
         if advance_payment_name:
             payment_entry = frappe.get_doc("Payment Entry", advance_payment_name)
             customer = payment_entry.party
         else:
-            payment_entry = None
             customer = None
-            print("[DEBUG] No advance payment linked to this Journal Entry")
     else:
         customer = sales_invoice.customer
     buyer_other_id, buyer_other_id_name = get_buyer_other_id(customer)
