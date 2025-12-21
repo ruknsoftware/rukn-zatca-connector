@@ -1,12 +1,7 @@
 {% set details = get_phase_2_print_format_details(doc) %}
+{% set pe = details.advance_payment_entry if details else None %}
+{% set invoice_type = "Advance Payment Return" %}
 
-{% if details %}
-
-{% if (details.siaf.invoice_type_transaction)[:2] == '01' %}
-    {% set invoice_type = "Standard" %}
-{% elif (details.siaf.invoice_type_transaction)[:2] == '02' %}
-    {% set invoice_type = "Simplified" %}
-{% endif %}
 
 {% if letter_head %}
     <div class="letter-head">
