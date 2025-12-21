@@ -138,6 +138,15 @@ jobs:
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
 
+      - name: Remove Cached ksa_compliance (Ensure Fresh Code)
+        working-directory: /home/runner/frappe-bench
+        run: |
+          # Always remove ksa_compliance from cache to ensure we get the latest commit
+          if [ -d "apps/ksa_compliance" ]; then
+            echo "🗑️ Removing cached ksa_compliance to ensure fresh code..."
+            rm -rf apps/ksa_compliance
+          fi
+
       - name: Install Apps
         working-directory: /home/runner/frappe-bench
         run: |
@@ -366,6 +375,41 @@ jobs:
           fi
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL character_set_server = 'utf8mb4'"
           mariadb --host 127.0.0.1 --port 3306 -u root -proot -e "SET GLOBAL collation_server = 'utf8mb4_unicode_ci'"
+
+      - name: Remove Cached ksa_compliance (Ensure Fresh Code)
+        working-directory: /home/runner/frappe-bench
+        run: |
+          # Always remove ksa_compliance from cache to ensure we get the latest commit
+          if [ -d "apps/ksa_compliance" ]; then
+            echo "🗑️ Removing cached ksa_compliance to ensure fresh code..."
+            rm -rf apps/ksa_compliance
+          fi
+
+      - name: Update ksa_compliance to Latest Commit
+        working-directory: /home/runner/frappe-bench
+        run: |
+          # Determine branch and commit
+          if [ "${{ github.event_name }}" = "pull_request" ] || [ "${{ github.event_name }}" = "pull_request_review" ]; then
+            BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+            if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+              REPO_URL="https://github.com/${{ github.event.pull_request.head.repo.full_name }}.git"
+            else
+              REPO_URL="https://github.com/ruknsoftware/rukn-zatca-connector.git"
+            fi
+          else
+            BRANCH_NAME="develop"
+            REPO_URL="https://github.com/ruknsoftware/rukn-zatca-connector.git"
+          fi
+          
+          echo "📦 Updating ksa_compliance to branch: $BRANCH_NAME"
+          if [ ! -d "apps/ksa_compliance" ]; then
+            bench get-app ksa_compliance $REPO_URL --branch $BRANCH_NAME
+          fi
+          cd apps/ksa_compliance
+          git fetch origin $BRANCH_NAME
+          git checkout $BRANCH_NAME
+          git pull origin $BRANCH_NAME || true
+          cd ../..
 
       - name: Download Test Environment Artifacts
         uses: actions/download-artifact@v4
