@@ -974,7 +974,7 @@ class TestZATCAState3Integration(FrappeTestCase):
                 "Accounts Settings", "round_row_wise_tax"
             )
         except frappe.database.database.Database.InvalidColumnName:
-            self.skipTest("round_tax_amount_row_wise field not found in Accounts Settings")
+            self.skipTest("round_row_wise_tax field not found in Accounts Settings")
             return
 
         frappe.logger().info(f"   round_tax_amount_row_wise: {round_row_wise_tax}")
@@ -984,7 +984,9 @@ class TestZATCAState3Integration(FrappeTestCase):
             frappe.logger().info("   Enabling round_row_wise_tax...")
             frappe.db.set_single_value("Accounts Settings", "round_row_wise_tax", 1)
             frappe.db.commit()
-            round_row_wise_tax = 1
+            round_row_wise_tax = round_row_wise_tax = frappe.db.get_single_value(
+                "Accounts Settings", "round_row_wise_tax"
+            )
 
         self.assertEqual(
             round_row_wise_tax,
