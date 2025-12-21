@@ -162,18 +162,21 @@ def get_phase_2_print_format_details(
     )
     prepayment_info = get_prepayment_info(sales_invoice)
 
-    #advance_payment_entry and buyer_address must be handled differently for Payment Entry and Journal Entry ya abu mohamed
     advance_payment_entry = None
     if sales_invoice.doctype == "Payment Entry":
         advance_payment_entry = get_advance_payment_entry_info(sales_invoice, settings)
-        advance_payment_entry.party = sales_invoice.party
-    elif sales_invoice.doctype == "Journal Entry" and advance_payment_name:
-        payment_entry = frappe.get_doc("Payment Entry", advance_payment_name)
+        customer_id = sales_invoice.party
+    elif sales_invoice.doctype == "Journal Entry" and sales_invoice.advance_payment_entry:
+        payment_entry = frappe.get_doc("Payment Entry", sales_invoice.advance_payment_entry)
         advance_payment_entry = get_advance_payment_entry_info(payment_entry, settings)
-        advance_payment_entry.party = payment_entry.party
-    buyer_address = None
-    if customer:
-        customer_doc = frappe.get_doc("Customer", customer)
+        customer_id = payment_entry.party
+    else:
+        customer_id = getattr(sales_invoice, "customer", None)
+    if advance_payment_entry:
+        advance_payment_entry.party = customer_id
+    buyer_address = {"street": "", "district": "", "city": "", "postal_code": ""}
+    if customer_id:
+        customer_doc = frappe.get_doc("Customer", customer_id)
         if customer_doc.customer_primary_address:
             address_doc = frappe.get_doc("Address", customer_doc.customer_primary_address)
             buyer_address = {
@@ -182,10 +185,6 @@ def get_phase_2_print_format_details(
                 "city": getattr(address_doc, "city", ""),
                 "postal_code": getattr(address_doc, "pincode", ""),
             }
-        else:
-            buyer_address = {"street": "", "district": "", "city": "", "postal_code": ""}
-    else:
-        buyer_address = {"street": "", "district": "", "city": "", "postal_code": ""}
     return {
         "settings": settings,
         "address": {
