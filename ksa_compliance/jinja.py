@@ -174,17 +174,6 @@ def get_phase_2_print_format_details(
         customer_id = getattr(sales_invoice, "customer", None)
     if advance_payment_entry:
         advance_payment_entry.party = customer_id
-    buyer_address = {"street": "", "district": "", "city": "", "postal_code": ""}
-    if customer_id:
-        customer_doc = frappe.get_doc("Customer", customer_id)
-        if customer_doc.customer_primary_address:
-            address_doc = frappe.get_doc("Address", customer_doc.customer_primary_address)
-            buyer_address = {
-                "street": getattr(address_doc, "address_line1", ""),
-                "district": getattr(address_doc, "district", ""),
-                "city": getattr(address_doc, "city", ""),
-                "postal_code": getattr(address_doc, "pincode", ""),
-            }
     return {
         "settings": settings,
         "address": {
@@ -195,7 +184,6 @@ def get_phase_2_print_format_details(
                 branch_doc.custom_postal_code if has_branch_address else settings.postal_code
             ),
         },
-        "buyer_address": buyer_address,
         "seller_other_id": seller_other_id,
         "seller_other_id_name": seller_other_id_name,
         "buyer_other_id": buyer_other_id,
