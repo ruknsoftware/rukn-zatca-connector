@@ -76,12 +76,7 @@
         <tr>
             <td>{{ pe.party or "" }}</td>
             <td>
-                {% if details.buyer_address %}
-                    {{ details.buyer_address.street }},
-                    {{ details.buyer_address.district }},
-                    {{ details.buyer_address.city }},
-                    {{ details.buyer_address.postal_code }}
-                {% elif details.siaf %}
+                {% if details.siaf %}
                     {{ details.siaf.buyer_street_name }},
                     {{ details.siaf.buyer_district }},
                     {{ details.siaf.buyer_city }},
