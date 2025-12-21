@@ -20,32 +20,9 @@
 
     <div class="row">
         <div class="col-md-6">
-        <span>
-            <b>{{ _("Invoice ID") }}</b>
+            <b>{{ _("Journal Entry") }}</b>
             <p>{{ doc.name }}</p>
-        </span>
         </div>
-        {% if doc.is_return or doc.is_debit_note %}
-            {% set additional_references = doc.custom_return_against_additional_references | default([]) %}
-            {% set references = (additional_references | map(attribute="sales_invoice") | list) + [doc.return_against] %}
-            {% set references = references | select("string") | unique | sort %}
-
-            {% if references | length == 1 %}
-                <div class="col-md-6">
-            <span>
-                <b>{{ _("Return Against") }}</b>
-                <p>{{ references[0] or "N/A" }}</p>
-            </span>
-                </div>
-            {% elif references | length > 1 %}
-                <div class="col-md-6">
-            <span>
-                <b>{{ _("Return Against") }}</b>
-                <p>{{ _("{0} to {1}").format(references[0], references[-1]) }}</p>
-            </span>
-                </div>
-            {% endif %}
-        {% endif %}
         <div class="col-md-6">
         <span>
             <b>{{ _("Posting Date") }}</b>
@@ -56,181 +33,140 @@
     <hr>
     <table class="table table-bordered" dir={{ dir }}>
         <tr>
-            <td>
-                <b>
+            <th>
                     {{ _("Seller Name") }}
-                </b>
-            </td>
-            <td>
-                <b>
+            </th>
+            <th>
                     {{ _("Address") }}
-                </b>
-            </td>
-            <td>
+            </th>
+            <th>
                 <b>{{ _("Vat Registration Number") }}</b>
-            </td>
-            <td>
+            </th>
+            <th>
                 <b>{{ _(details.seller_other_id_name) }}</b>
-            </td>
+            </th>
         </tr>
         <tr>
+            <td>{{ details.settings.company }}</td>
             <td>
-                <p>{{ details.settings.seller_name }}</p>
+                {{ details.address.street }},
+                {{ details.address.district }},
+                {{ details.address.city }},
+                {{ details.address.postal_code }}
             </td>
-            <td>
-                {{ details.address.street }}, {{ details.address.district }}, {{ details.address.city }}
-                | {{ details.address.postal_code }}
-            </td>
-            <td>
-                <p>{{ details.settings.vat_registration_number }}</p>
-            </td>
-            <td>
-                {% if  details.seller_other_id %}
-                    <p>{{ details.seller_other_id }}</p>
-                {% endif %}
-            </td>
+            <td>{{ details.settings.vat_registration_number }}</td>
+            <td>{{ details.seller_other_id or "" }}</td>
         </tr>
     </table>
-    {% if invoice_type == "Standard" %}
-        <table class="table table-bordered" dir={{ dir }}>
-            <tr>
-                <td>
-                    <b>{{ _("Buyer Name") }}</b>
-                </td>
-                <td>
-                    <b>{{ _("Address") }}</b>
-                </td>
-                <td>
-                    <b>{{ _("Vat Registration Number") }}</b>
-                </td>
-                <td>
-                    <b>{{ _(details.buyer_other_id_name) }}</b>
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    {{ doc.party }}
-                </td>
-                <td>
-                    {{ details.siaf.buyer_street_name }}, {{ details.siaf.buyer_district }}, {{ details.siaf.buyer_city }}, {{ details.siaf.buyer_postal_code }}
-                </td>
-                <td>
+
+    <table class="table table-bordered" dir="{{ dir }}">
+        <tr>
+            <th>
+                {{ _("Buyer Name") }}
+            </th>
+            <th>
+                    {{ _("Address") }}
+            </th>
+            <th>
+                {{ _("Vat Registration Number") }}
+            </th>
+            <th>
+                {{ _(details.buyer_other_id_name) }}</th>
+        </tr>
+        <tr>
+            <td>{{ pe.party or "" }}</td>
+            <td>
+                {% if details.buyer_address %}
+                    {{ details.buyer_address.street }},
+                    {{ details.buyer_address.district }},
+                    {{ details.buyer_address.city }},
+                    {{ details.buyer_address.postal_code }}
+                {% elif details.siaf %}
+                    {{ details.siaf.buyer_street_name }},
+                    {{ details.siaf.buyer_district }},
+                    {{ details.siaf.buyer_city }},
+                    {{ details.siaf.buyer_postal_code }}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>
+                {% if details.siaf %}
                     {{ details.siaf.buyer_vat_registration_number }}
-                </td>
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            <td>{{ details.buyer_other_id or "" }}</td>
+        </tr>
+    </table>
+        <table class="table table-bordered" dir={{ dir }}>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>{{ _("Item") }}</th>
+                <th>{{ _("Qty") }}</th>
+                <th>{{ _("Unit Price") }}</th>
+                <th>{{ _("Net Amount") }}</th>
+                <th>{{ _("VAT %") }}</th>
+                <th>{{ _("VAT Amount") }}</th>
+                <th>{{ _("Total") }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>1</td>
                 <td>
-                    {% if details.buyer_other_id %}
-                        {{ details.buyer_other_id }}
+                    {{ pe.item_name }}
+                    {% if pe.item_code != pe.item_name %}
+                        <br><small>{{ pe.item_code }}</small>
                     {% endif %}
                 </td>
-            </tr>
-        </table>
-    {% endif %}
-
-    {% if doc.po_no %}
-        <table class="table table-bordered" dir={{ dir }}>
-            <tr>
+                <td>1</td>
                 <td>
-                    <b>{{ _("Customer's Purchase Order") }}</b>
+                    {{ frappe.utils.fmt_money(pe.net_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
                 </td>
                 <td>
-                    <b>{{ _("Customer's Purchase Order Date") }}</b>
+                    {{ frappe.utils.fmt_money(pe.net_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
                 </td>
-            </tr>
-            <tr>
+                <td>{{ pe.tax_rate }}%</td>
                 <td>
-                    {{ doc.po_no }}
+                    {{ frappe.utils.fmt_money(pe.tax_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
                 </td>
                 <td>
-                    {{ doc.po_date }}
+                    {{ frappe.utils.fmt_money(doc.paid_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
                 </td>
 
             </tr>
-        </table>
-    {% endif %}
-
-    <div class='row'>
-        <div class='col-md-3 text-right'>
-
-        </div>
-        <div class='col-md-8 text-right'>
-
-        </div>
-    </div>
-
-    <table class="table table-bordered" dir={{ dir }}>
-        <tbody>
-        <tr>
-            <th></th>
-            <th>{{ _("Products") }}</th>
-            <th class="text-center">{{ _("Quantity") }}</th>
-            <th>{{ _("Unit Price") }}</th>
-            <th>{{ _("Subtotal Before Tax") }}</th>
-            <th class="text-center">{{ _("VAT %") }}</th>
-            <th class="text-center">{{ _("VAT Amount") }}</th>
-            <th class="text-center">{{ _("Total With VAT") }}</th>
-        </tr>
-        <tr>
-            <td style="width: 3%;">{{ 1 }}</td>
-            <td style="width: 20%;">
-                {{ details.advance_payment_entry.item_name }}
-                {% if details.advance_payment_entry.item_code != details.advance_payment_entry.item_name -%}
-                    <br>Item Code: {{ details.advance_payment_entry.item_code }}
-                {%- endif %}
-            </td>
-
-            <td style="width: 10%; text-align: right;">1</td>
-            <td style="width: 15%; text-align: right;">{{ frappe.utils.fmt_money(details.advance_payment_entry.net_amount | abs, None, doc.paid_from_account_currency) }}</td>
-            <td style="width: 15%; text-align: right;">{{ frappe.utils.fmt_money(details.advance_payment_entry.net_amount | abs, None, doc.paid_from_account_currency) }}</td>
-            <td style="width: 10%; text-align: right;">{{ details.advance_payment_entry.tax_rate }} %</td>
-            <td style="width: 15%; text-align: right;">{{ frappe.utils.fmt_money(details.advance_payment_entry.tax_amount | abs, None, doc.paid_from_account_currency) }}</td>
-            <td style="width: 15%; text-align: right;">{{ frappe.utils.fmt_money(doc.paid_amount | abs, None, doc.paid_from_account_currency) }}</td>
-        </tr>
         </tbody>
-        <div class="">
-            <table class="table table-bordered" dir={{ dir }}>
-                <tr>
-                    <td>
-                        <p>{{ _("Total Taxable Amount") }}</p>
-                    </td>
-                    <td>
-                        <p>{{ frappe.utils.fmt_money(details.advance_payment_entry.net_amount | abs, None, doc.paid_from_account_currency) }}</p>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <p>{{ _("VAT Amount") }}</p>
-                    </td>
-                    <td>
-                        <p>{{ frappe.utils.fmt_money(details.advance_payment_entry.tax_amount | abs, None, doc.paid_from_account_currency) }}</p>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <p>{{ _("Total With VAT") }}</p>
-                    </td>
-                    <td>
-                        <p>{{ frappe.utils.fmt_money(doc.paid_amount | abs, None, doc.paid_from_account_currency) }}</p>
-                    </td>
+        </table>
+    <table class="table table-bordered" dir={{ dir }}>
+        <tr>
+            <td>{{ _("Taxable Amount") }}</td>
+            <td>{{ frappe.utils.fmt_money(pe.net_amount | default(0) | abs, None, doc.paid_from_account_currency) }}</td>
+        </tr>
+        <tr>
+            <td>{{ _("VAT Amount") }}</td>
+            <td>{{ frappe.utils.fmt_money(pe.tax_amount | default(0) | abs, None, doc.paid_from_account_currency) }}</td>
+        </tr>
+        <tr>
+            <td><b>{{ _("Total With VAT") }}</b></td>
+            <td><b>{{ frappe.utils.fmt_money(doc.paid_amount | default(0) | abs, None, doc.paid_from_account_currency) }}</b></td>
                 </tr>
             </table>
-        </div>
 
-        <div>
             <div class="text-center">
                 {% if details.siaf.qr_image_src %}
                     <img src="{{ details.siaf.qr_image_src }}" width=200 height=200>
                 {% else %}
-                    <div class="text-center w-100">
-                        <p class="h2 text-danger">{{ _("Error : No Qr code") }}</p>
-                    </div>
+                    <p class="text-danger">{{ _("QR Code not available") }}</p>
                 {% endif %}
+    </div>
 
             </div>
 
-            {% else %}
-            <div style="display: none;">{{ frappe.msgprint( title='Error', msg=_("Does not have active ZATCA Phase 2 Business Settings"), indicator="red" ) }}</div>
-            <div class="text-center w-100">
-                <p class="h2 text-danger">{{ doc.company }}
-                    : {{ _("Does not have active ZATCA Phase 2 Business Settings") }}</p>
-            </div>
-            {% endif %}
+{% else %}
+<div class="text-center text-danger">
+    {{ _("No linked Advance Payment Entry found for this Journal Entry") }}
+</div>
+{% endif %}
