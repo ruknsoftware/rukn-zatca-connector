@@ -1,6 +1,5 @@
 {% set details = get_phase_2_print_format_details(doc) %}
 {% set pe = details.advance_payment_entry if details else None %}
-{% set invoice_type = "Advance Payment Return" %}
 
 
 {% if letter_head %}
@@ -16,7 +15,7 @@
 {% endif %}
 {% if details and pe %}
 <div class="text-center">
-    <h2>{{ _("Returned {0}").format(invoice_type) }}</h2>
+    <h2>{{ _("Advance Payment Return") }}</h2>
 
     <div class="row">
         <div class="col-md-6">
