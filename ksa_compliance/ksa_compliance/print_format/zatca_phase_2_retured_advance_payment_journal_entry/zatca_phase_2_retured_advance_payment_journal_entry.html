@@ -1,5 +1,4 @@
 {% set details = get_phase_2_print_format_details(doc) %}
-{% set pe = details.advance_payment_entry if details else None %}
 {% if (details.siaf.invoice_type_transaction)[:2] == '01' %}
     {% set invoice_type = "Standard" %}
 {% elif (details.siaf.invoice_type_transaction)[:2] == '02' %}
@@ -17,7 +16,7 @@
 {% else %}
     {% set dir = "ltr" %}
 {% endif %}
-{% if details and pe %}
+{% if details and details.advance_payment_entry %}
 <div class="text-center">
     {% if invoice_type == "Standard" %}
 
@@ -84,7 +83,7 @@
                 {{ _(details.buyer_other_id_name) }}</th>
         </tr>
         <tr>
-            <td>{{ pe.party or "" }}</td>
+            <td>{{ details.advance_payment_entry.party or "" }}</td>
             <td>
                 {% if details.siaf %}
                     {{ details.siaf.buyer_street_name }},
@@ -109,23 +108,23 @@
         <thead>
             <tr>
                 <th>#</th>
-                <th>{{ _("Item") }}</th>
-                <th>{{ _("Qty") }}</th>
+                <th>{{ _("Products") }}</th>
+                <th>{{ _("Quantity") }}</th>
                 <th>{{ _("Unit Price") }}</th>
                 <th>{{ _("Net Amount") }}</th>
                 <th>{{ _("VAT %") }}</th>
                 <th>{{ _("VAT Amount") }}</th>
-                <th>{{ _("Total") }}</th>
+                <th>{{ _("Total With VAT") }}</th>
             </tr>
         </thead>
         <tbody>
             <tr>
                 <td>1</td>
                 <td>
-                    {{ pe.item_name }}
-                    {% if pe.item_code != pe.item_name %}
-                        <br><small>{{ pe.item_code }}</small>
-                    {% endif %}
+                    {{ details.advance_payment_entry.item_name }}
+                    {% if details.advance_payment_entry.item_code != details.advance_payment_entry.item_name -%}
+                    Item Code: {{ details.advance_payment_entry.item_code }}
+                    {%- endif %}
                 </td>
                 <td>1</td>
                 <td>
@@ -134,7 +133,7 @@
                 <td>
                     {{ frappe.utils.fmt_money(details.net_amount | default(0) | abs, None, doc.total_amount_currency) }}
                 </td>
-                <td>{{ pe.tax_rate }}%</td>
+                <td>{{ details.advance_payment_entry.tax_rate }}%</td>
                 <td>
                     {{ frappe.utils.fmt_money(details.tax_amount | default(0) | abs, None, doc.total_amount_currency) }}
                 </td>
