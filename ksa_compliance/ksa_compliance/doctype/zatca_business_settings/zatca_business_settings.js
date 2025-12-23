@@ -262,7 +262,7 @@ function add_reinitiate_button(frm) {
     frm.add_custom_button(__("Initiate New ZATCA Settings"), () => {
         frappe.model.open_mapped_doc({
             method: "ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings.duplicate_configuration",
-            frm: cur_frm,
+            frm: frm,
         });
     }).addClass("btn-primary");
 }
