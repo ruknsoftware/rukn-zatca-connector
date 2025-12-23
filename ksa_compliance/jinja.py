@@ -13,6 +13,10 @@ from erpnext.accounts.doctype.journal_entry.journal_entry import JournalEntry
 from erpnext.setup.doctype.branch.branch import Branch
 from frappe.utils import flt
 from frappe.utils.data import get_time, getdate
+from ksa_compliance.utils.update_itemised_tax_data import (
+    calculate_net_from_gross_included_in_print_rate,
+    calculate_tax_amount_included_in_print_rate,
+)
 
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     ZATCABusinessSettings,
@@ -170,6 +174,14 @@ def get_phase_2_print_format_details(
         payment_entry = frappe.get_doc("Payment Entry", sales_invoice.advance_payment_entry)
         advance_payment_entry = get_advance_payment_entry_info(payment_entry, settings)
         customer_id = payment_entry.party
+        net_amount =calculate_net_from_gross_included_in_print_rate(
+            sales_invoice.accounts[0].debit_in_account_currency,
+            advance_payment_entry.tax_rate,
+        )
+        tax_amount = calculate_tax_amount_included_in_print_rate(
+            sales_invoice.accounts[0].debit_in_account_currency,
+            net_amount,
+        )    
     else:
         customer_id = getattr(sales_invoice, "customer", None)
     if advance_payment_entry:
@@ -191,6 +203,8 @@ def get_phase_2_print_format_details(
         "siaf": siaf,
         "prepayment_info": prepayment_info,
         "advance_payment_entry": advance_payment_entry,
+        "net_amount": net_amount,
+        "tax_amount": tax_amount,
     }
 
 

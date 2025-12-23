@@ -129,17 +129,17 @@
                 </td>
                 <td>1</td>
                 <td>
-                    {{ frappe.utils.fmt_money(pe.net_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
+                    {{ frappe.utils.fmt_money(details.net_amount | default(0) | abs, None, doc.total_amount_currency) }}
                 </td>
                 <td>
-                    {{ frappe.utils.fmt_money(pe.net_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
+                    {{ frappe.utils.fmt_money(details.net_amount | default(0) | abs, None, doc.total_amount_currency) }}
                 </td>
                 <td>{{ pe.tax_rate }}%</td>
                 <td>
-                    {{ frappe.utils.fmt_money(pe.tax_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
+                    {{ frappe.utils.fmt_money(details.tax_amount | default(0) | abs, None, doc.total_amount_currency) }}
                 </td>
                 <td>
-                    {{ frappe.utils.fmt_money(doc.paid_amount | default(0) | abs, None, doc.paid_from_account_currency) }}
+                    {{ frappe.utils.fmt_money(doc.accounts[0].debit_in_account_currency | default(0) | abs, None, doc.total_amount_currency) }}
                 </td>
 
             </tr>
@@ -148,15 +148,15 @@
     <table class="table table-bordered" dir={{ dir }}>
         <tr>
             <td>{{ _("Taxable Amount") }}</td>
-            <td>{{ frappe.utils.fmt_money(pe.net_amount | default(0) | abs, None, doc.paid_from_account_currency) }}</td>
+            <td>{{ frappe.utils.fmt_money(details.net_amount | default(0) | abs, None, doc.total_amount_currency) }}</td>
         </tr>
         <tr>
             <td>{{ _("VAT Amount") }}</td>
-            <td>{{ frappe.utils.fmt_money(pe.tax_amount | default(0) | abs, None, doc.paid_from_account_currency) }}</td>
+            <td>{{ frappe.utils.fmt_money(details.tax_amount | default(0) | abs, None, doc.total_amount_currency) }}</td>
         </tr>
         <tr>
             <td><b>{{ _("Total With VAT") }}</b></td>
-            <td><b>{{ frappe.utils.fmt_money(doc.paid_amount | default(0) | abs, None, doc.paid_from_account_currency) }}</b></td>
+            <td><b>{{ frappe.utils.fmt_money(doc.accounts[0].debit_in_account_currency | default(0) | abs, None, doc.total_amount_currency) }}</b></td>
                 </tr>
             </table>
 
