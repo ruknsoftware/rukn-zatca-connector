@@ -1101,21 +1101,18 @@ class SalesEinvoice(Einvoice):
                         else None
                     )
                 else:
-                    tax_category = None
-
-                if tax_category:
-                    prepayment_invoice["tax_category_code"] = tax_category.tax_category_code
-                    if tax_category.reason_code:
-                        prepayment_invoice["tax_exemption_reason_code"] = tax_category.reason_code
-                    if tax_category.arabic_reason:
-                        prepayment_invoice["tax_exemption_reason"] = tax_category.arabic_reason
-                else:
                     fthrow(
                         ft(
                             "Tax category not found for advance payment invoice $invoice_name. Please set tax category in the item tax template or sales taxes and charges template.",
                             invoice_name=advance_payment_invoice.name,
                         )
                     )
+
+                prepayment_invoice["tax_category_code"] = tax_category.tax_category_code
+                if tax_category.reason_code:
+                    prepayment_invoice["tax_exemption_reason_code"] = tax_category.reason_code
+                if tax_category.arabic_reason:
+                    prepayment_invoice["tax_exemption_reason"] = tax_category.arabic_reason
             else:
                 advance_payment_invoice = frappe.get_doc(
                     "Payment Entry", advance_payment.reference_name
