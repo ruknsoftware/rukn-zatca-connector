@@ -151,14 +151,9 @@ def get_phase_2_print_format_details(
         customer = sales_invoice.party
         advance_payment_entry = get_advance_payment_entry_info(sales_invoice, settings)
         customer_id = sales_invoice.party
-    elif sales_invoice.doctype == "Journal Entry":
-        advance_payment_name = sales_invoice.advance_payment_entry
-        if advance_payment_name:
-            payment_entry = frappe.get_doc("Payment Entry", advance_payment_name)
-            customer = payment_entry.party
-        else:
-            customer = None
+    elif sales_invoice.doctype == "Journal Entry" and sales_invoice.advance_payment_entry:
         payment_entry = frappe.get_doc("Payment Entry", sales_invoice.advance_payment_entry)
+        customer = payment_entry.party
         advance_payment_entry = get_advance_payment_entry_info(payment_entry, settings)
         customer_id = payment_entry.party
         net_amount =calculate_net_from_gross_included_in_print_rate(
