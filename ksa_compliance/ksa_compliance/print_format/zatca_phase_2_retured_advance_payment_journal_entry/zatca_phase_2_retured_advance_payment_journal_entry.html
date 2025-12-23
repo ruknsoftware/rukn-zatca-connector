@@ -1,6 +1,10 @@
 {% set details = get_phase_2_print_format_details(doc) %}
 {% set pe = details.advance_payment_entry if details else None %}
-
+{% if (details.siaf.invoice_type_transaction)[:2] == '01' %}
+    {% set invoice_type = "Standard" %}
+{% elif (details.siaf.invoice_type_transaction)[:2] == '02' %}
+    {% set invoice_type = "Simplified" %}
+{% endif %}
 
 {% if letter_head %}
     <div class="letter-head">
@@ -15,11 +19,18 @@
 {% endif %}
 {% if details and pe %}
 <div class="text-center">
-    <h2>{{ _("Advance Payment Return") }}</h2>
+    {% if invoice_type == "Standard" %}
+
+            <h2>{{ _("Standard Tax Invoice Credit Note") }}</h2>
+        
+    {% elif invoice_type == "Simplified" %}
+        
+            <h2>{{ _("Simplified Tax Invoice Credit Note") }}</h2>
+    {% endif %}
 
     <div class="row">
         <div class="col-md-6">
-            <b>{{ _("Journal Entry") }}</b>
+            <b>{{ _("Invoice ID") }}</b>
             <p>{{ doc.name }}</p>
         </div>
         <div class="col-md-6">
