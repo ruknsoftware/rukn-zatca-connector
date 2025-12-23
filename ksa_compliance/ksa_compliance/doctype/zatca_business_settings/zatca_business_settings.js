@@ -21,9 +21,6 @@ frappe.ui.form.on("ZATCA Business Settings", {
         if (!frm.is_new() && frm.doc.status === "Withdrawn") {
             add_reinitiate_button(frm)
         }
-        if (!frm.is_new() && frm.doc.status === "Pending Activation") {
-            // Settings configured, pending activation
-        }
     },
     company: function (frm) {
         filter_company_address(frm);
