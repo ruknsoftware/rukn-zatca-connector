@@ -17,6 +17,7 @@ from erpnext.accounts.doctype.tax_category.tax_category import TaxCategory
 # noinspection PyProtectedMember
 from frappe import _
 from frappe.model.document import Document
+from frappe.model.mapper import get_mapped_doc
 from frappe.utils.data import get_link_to_form
 from pathvalidate import sanitize_filename
 from result import is_err
@@ -481,7 +482,6 @@ def get_production_csid(business_settings_id: str, otp: str) -> NoReturn:
 @frappe.whitelist()
 def duplicate_configuration(source_name: str, target_doc=None):
     """Creates a new configuration from a withdrawn settings document, excluding credentials"""
-    from frappe.model.mapper import get_mapped_doc
 
     doctype_name = "ZATCA Business Settings"
 
@@ -535,13 +535,6 @@ def duplicate_configuration(source_name: str, target_doc=None):
 
     new_doc = get_mapped_doc(doctype_name, source_name, mapping_config, target_doc)
     return new_doc
-
-
-# Deprecated: Maintained for backward compatibility
-@frappe.whitelist()
-def create_business_settings(source_name: str, target_doc=None):
-    """Deprecated: Use duplicate_configuration instead"""
-    return duplicate_configuration(source_name, target_doc)
 
 
 @frappe.whitelist()
@@ -600,8 +593,9 @@ def withdraw_settings(settings_id: str, company: str):
         )
 
     # Update status to Withdrawn
-    frappe.db.set_value("ZATCA Business Settings", settings_id, "status", "Withdrawn")
-    frappe.db.commit()
+    settings_doc = frappe.get_doc("ZATCA Business Settings", settings_id)
+    settings_doc.status = "Withdrawn"
+    settings_doc.save()
 
     frappe.msgprint(
         ft("ZATCA integration has been successfully withdrawn."),
