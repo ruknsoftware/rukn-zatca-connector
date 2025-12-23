@@ -147,6 +147,8 @@ def get_phase_2_print_format_details(
                 has_branch_address = True
     seller_other_id, seller_other_id_name = get_seller_other_id(sales_invoice, settings)
     advance_payment_entry = None
+    net_amount = 0.0
+    tax_amount = 0.0
     if sales_invoice.doctype == "Payment Entry":
         customer = sales_invoice.party
         advance_payment_entry = get_advance_payment_entry_info(sales_invoice, settings)
