@@ -12,6 +12,8 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.67.2
+* Add Print Format For Journal Entry Generated From Returned Advance Payment Entry
 ## 0.67.1
 * Fix ZATCA Test for v14
 ## 0.67.0
