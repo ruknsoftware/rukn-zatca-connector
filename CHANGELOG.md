@@ -12,6 +12,11 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.67.6
+* Fix: Support zero-rated and exempt tax categories in advance payment invoices
+  * Add dynamic tax category code handling for prepayment items in ZATCA XML
+  * Added tests to verify the Tax Category implementation
+
 ## 0.67.5
 * Prevent Duplicate ZATCA Business Settings For The Same Company
 
