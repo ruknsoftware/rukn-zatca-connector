@@ -18,6 +18,8 @@ from erpnext.accounts.doctype.tax_category.tax_category import TaxCategory
 from frappe import _
 from frappe.model.document import Document
 from frappe.model.mapper import get_mapped_doc
+from frappe.query_builder.functions import Count
+from frappe.utils import get_url, get_url_to_list
 from frappe.utils.data import get_link_to_form
 from pathvalidate import sanitize_filename
 from result import is_err
@@ -28,6 +30,7 @@ import ksa_compliance.zatca_files
 from ksa_compliance import logger
 from ksa_compliance.invoice import InvoiceMode
 from ksa_compliance.throw import fthrow
+from ksa_compliance.translation import ft
 
 
 class ZATCABusinessSettings(Document):
@@ -540,10 +543,6 @@ def duplicate_configuration(source_name: str, target_doc=None):
 @frappe.whitelist()
 def withdraw_settings(settings_id: str, company: str):
     """Withdraws ZATCA integration for a business settings configuration"""
-    from frappe.query_builder.functions import Count
-    from frappe.utils import get_url, get_url_to_list
-
-    from ksa_compliance.translation import ft
 
     # Validate no pending invoices before withdrawal
     SalesInvoice = frappe.qb.DocType("Sales Invoice")
