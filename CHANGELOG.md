@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.67.2
+* Add Withdraw And Reinitiate Actions To ZATCA Business Settings
+  * Adding test Case to the activation lifecycle
 ## 0.67.1
 * Fix ZATCA Test for v14
 ## 0.67.0

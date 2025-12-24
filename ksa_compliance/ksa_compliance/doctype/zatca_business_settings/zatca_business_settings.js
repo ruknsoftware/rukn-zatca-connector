@@ -11,9 +11,16 @@ frappe.ui.form.on("ZATCA Business Settings", {
 			};
 		});
     },
-    refresh: function (frm) {
+    refresh: async function (frm) {
         add_other_ids_if_new(frm);
         filter_company_address(frm);
+        // Handle activation lifecycle states
+        if (!frm.is_new() && frm.doc.status === "Active") {
+            await add_withdraw_button(frm)
+        }
+        if (!frm.is_new() && frm.doc.status === "Withdrawn") {
+            add_reinitiate_button(frm)
+        }
     },
     company: function (frm) {
         filter_company_address(frm);
@@ -227,4 +234,35 @@ function add_other_ids_if_new(frm) {
         );
         frm.set_value("other_ids", seller_id_list);
     }
+}
+
+function add_withdraw_button(frm) {
+    frm.add_custom_button(__("Withdraw"), async () => {
+        frappe.confirm(
+            __("Are you sure you want to withdraw the ZATCA integration? This action is permanent and will require reactivation."),
+            () => {
+                frappe.call({
+                    method: "ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings.withdraw_settings",
+                    args: {
+                        settings_id: frm.doc.name,
+                        company: frm.doc.company
+                    },
+                    freeze: true,
+                    freeze_message: __("Withdrawing..."),
+                    callback(response) {
+                        frm.reload_doc()
+                    }
+                })
+            }
+        )
+    }).addClass("btn-danger")
+}
+
+function add_reinitiate_button(frm) {
+    frm.add_custom_button(__("Initiate New ZATCA Settings"), () => {
+        frappe.model.open_mapped_doc({
+            method: "ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings.duplicate_configuration",
+            frm: frm,
+        });
+    }).addClass("btn-primary");
 }
