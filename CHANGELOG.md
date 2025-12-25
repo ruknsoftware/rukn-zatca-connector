@@ -12,6 +12,10 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.67.3
+* Fix: Support zero-rated and exempt tax categories in advance payment invoices
+  * Add dynamic tax category code handling for prepayment items in ZATCA XML
+  * Added tests to verify the Tax Category implementation 
 ## 0.67.2
 * Add Print Format For Journal Entry Generated From Returned Advance Payment Entry
 ## 0.67.1

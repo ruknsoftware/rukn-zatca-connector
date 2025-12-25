@@ -1085,6 +1085,34 @@ class SalesEinvoice(Einvoice):
                 item = advance_payment_invoice.items[0]
                 prepayment_invoice["item_name"] = item.item_name
                 prepayment_invoice["tax_percent"] = abs(item.tax_rate or 0.0)
+
+                # Get tax category code from the advance payment invoice
+                if item.item_tax_template:
+                    tax_category = map_tax_category(item_tax_template_id=item.item_tax_template)
+                elif advance_payment_invoice.taxes_and_charges:
+                    tax_category_id = frappe.get_value(
+                        "Sales Taxes and Charges Template",
+                        advance_payment_invoice.taxes_and_charges,
+                        "tax_category",
+                    )
+                    tax_category = (
+                        map_tax_category(tax_category_id=tax_category_id)
+                        if tax_category_id
+                        else None
+                    )
+                else:
+                    fthrow(
+                        ft(
+                            "Tax category not found for advance payment invoice $invoice_name. Please set tax category in the item tax template or sales taxes and charges template.",
+                            invoice_name=advance_payment_invoice.name,
+                        )
+                    )
+
+                prepayment_invoice["tax_category_code"] = tax_category.tax_category_code
+                if tax_category.reason_code:
+                    prepayment_invoice["tax_exemption_reason_code"] = tax_category.reason_code
+                if tax_category.arabic_reason:
+                    prepayment_invoice["tax_exemption_reason"] = tax_category.arabic_reason
             else:
                 advance_payment_invoice = frappe.get_doc(
                     "Payment Entry", advance_payment.reference_name
@@ -1104,6 +1132,22 @@ class SalesEinvoice(Einvoice):
                 )
                 prepayment_invoice["item_name"] = advance_payment_item.item_name
                 prepayment_invoice["tax_percent"] = abs(tax_rate or 0.0)
+
+                # Get tax category code from the payment entry's tax category
+                if taxes_and_charges.tax_category:
+                    tax_category = map_tax_category(tax_category_id=taxes_and_charges.tax_category)
+                    prepayment_invoice["tax_category_code"] = tax_category.tax_category_code
+                    if tax_category.reason_code:
+                        prepayment_invoice["tax_exemption_reason_code"] = tax_category.reason_code
+                    if tax_category.arabic_reason:
+                        prepayment_invoice["tax_exemption_reason"] = tax_category.arabic_reason
+                else:
+                    fthrow(
+                        ft(
+                            "Tax category not found for payment entry $payment_name. Please set tax category in the sales taxes and charges template.",
+                            payment_name=advance_payment_invoice.name,
+                        )
+                    )
 
             siaf = frappe.get_last_doc(
                 "Sales Invoice Additional Fields", {"sales_invoice": advance_payment_invoice.name}
