@@ -8,7 +8,19 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import flt
 
-from ksa_compliance.test.test_setup import _create_customer_address
+from ksa_compliance.test.test_constants import (
+    SAUDI_CURRENCY,
+    TEST_COMPANY_NAME,
+    TEST_TAX_ACCOUNT_NAME,
+    TEST_TAX_TEMPLATE_NAME,
+)
+
+# Import reusable methods and constants
+from ksa_compliance.test.test_setup import _create_customer_address as create_customer_address
+from ksa_compliance.test.test_setup import _create_standard_customer as create_standard_customer
+from ksa_compliance.test.test_setup import _create_tax_category as create_tax_category
+from ksa_compliance.test.test_setup import _create_tax_template as create_tax_template
+from ksa_compliance.test.test_setup import _create_test_item as create_test_item
 
 CUSTOMERS = [
     {"name": "C1", "vat": "311633596400003"},
@@ -31,124 +43,33 @@ TAX_TEMPLATES = [
     {"name": "VAT-E", "rate": 0, "category": "CAT-E"},
 ]
 
-ADDRESS_TEMPLATE = {
-    "address_title": "standard ZATCA CustomerAddress-Billing-Billing",
-    "address_type": "Billing",
-    "address_line1": "Test Address Line 1",
-    "city": "Riyadh",
-    "country": "Saudi Arabia",
-}
-
 
 class TestZATCATaxCategoryIntegration(FrappeTestCase):
     def setUp(self):
-        self.company = "RUKN"
-        self.currency = "SAR"
-        self.account_head = f"Miscellaneous Expenses - {self.company}"
+        self.company = TEST_COMPANY_NAME
+        self.currency = SAUDI_CURRENCY
+        self.account_head = f"{TEST_TAX_ACCOUNT_NAME} - {self.company}"
         self.cost_center = f"Main - {self.company}"
         self.debit_to = f"Debtors - {self.company}"
-        self.test_item = self._ensure_test_item_exists()
-        self._create_tax_categories()
+        self.test_item = create_test_item()
+        create_tax_category()
         self._create_tax_templates()
         self._create_customers_with_address()
 
-    def _ensure_test_item_exists(self):
-        test_item = "Test Item"
-        if not frappe.db.exists("Item", test_item):
-            item_doc = frappe.new_doc("Item")
-            item_doc.item_code = test_item
-            item_doc.item_name = test_item
-            item_doc.item_group = "All Item Groups"
-            item_doc.is_stock_item = 0
-            item_doc.insert(ignore_permissions=True)
-        return test_item
-
-    def _create_tax_categories(self):
-        for cat in TAX_CATEGORIES:
-            if not frappe.db.exists("Tax Category", cat["name"]):
-                doc = frappe.new_doc("Tax Category")
-                doc.title = cat["name"]
-                doc.tax_category_name = cat["name"]
-                doc.custom_zatca_category = cat["custom_zatca_category"]
-                doc.insert(ignore_permissions=True)
-
     def _create_tax_templates(self):
-        company_abbr = frappe.get_cached_value("Company", self.company, "abbr")
         for temp in TAX_TEMPLATES:
-            full_template_name = f"{temp['name']} - {company_abbr}"
-            if not frappe.db.exists("Sales Taxes and Charges Template", full_template_name):
-                doc = frappe.get_doc(
-                    {
-                        "doctype": "Sales Taxes and Charges Template",
-                        "title": temp["name"],
-                        "company": self.company,
-                        "tax_category": temp["category"],
-                        "taxes": [
-                            {
-                                "charge_type": "On Net Total",
-                                "account_head": self.account_head,
-                                "cost_center": self.cost_center,
-                                "rate": temp["rate"],
-                                "description": f"VAT {temp['rate']}%",
-                            }
-                        ],
-                    }
-                )
-                doc.insert(ignore_permissions=True)
+            create_tax_template(self.company, temp["category"])
 
     def _create_customers_with_address(self):
         for cust in CUSTOMERS:
-            if not frappe.db.exists("Customer", cust["name"]):
-                doc = frappe.new_doc("Customer")
-                doc.customer_name = cust["name"]
-                doc.customer_type = "Company"
-                doc.tax_id = cust["vat"]
-                doc.custom_vat_registration_number = cust["vat"]
-                doc.vat_registration_number = cust["vat"]
-                doc.insert(ignore_permissions=True)
-                # Create a new address for this customer using the tested utility
-                _create_customer_address(cust["name"], doc.name)
+            create_standard_customer(
+                cust["name"],
+                tax_category_name=None,  # No specific tax category for these customers
+                with_address=True,
+            )
 
-    def _create_advance_invoice(self, customer, tax_template):
-        company_abbr = frappe.get_cached_value("Company", self.company, "abbr")
-        full_template_name = f"{tax_template} - {company_abbr}"
-        advance_invoice = frappe.new_doc("Sales Invoice")
-        advance_invoice.customer = customer
-        advance_invoice.company = self.company
-        advance_invoice.currency = self.currency
-        advance_invoice.posting_date = frappe.utils.nowdate()
-        advance_invoice.due_date = frappe.utils.nowdate()
-        advance_invoice.debit_to = self.debit_to
-        advance_invoice.mode_of_payment = "Cash"
-        advance_invoice.taxes_and_charges = full_template_name
-        advance_invoice.append(
-            "items",
-            {
-                "item_code": self.test_item,
-                "qty": 1,
-                "rate": 1000,
-                "income_account": f"Sales - {self.company}",
-                "cost_center": self.cost_center,
-            },
-        )
-        # Explicitly append taxes row as in state3 integration test
-        template_doc = frappe.get_doc("Sales Taxes and Charges Template", full_template_name)
-        tax_row = template_doc.taxes[0]
-        advance_invoice.append(
-            "taxes",
-            {
-                "charge_type": tax_row.charge_type,
-                "account_head": tax_row.account_head,
-                "cost_center": tax_row.cost_center,
-                "rate": tax_row.rate,
-                "description": tax_row.description,
-            },
-        )
-        advance_invoice.insert()
-        advance_invoice.submit()
-        return advance_invoice
-
-    def _create_normal_invoice(self, customer, tax_template):
+    def _create_invoice(self, customer, tax_template, item_rate, mode_of_payment):
+        """Generic method to create an invoice with configurable item rate and payment mode."""
         company_abbr = frappe.get_cached_value("Company", self.company, "abbr")
         full_template_name = f"{tax_template} - {company_abbr}"
         invoice = frappe.new_doc("Sales Invoice")
@@ -159,12 +80,13 @@ class TestZATCATaxCategoryIntegration(FrappeTestCase):
         invoice.due_date = frappe.utils.nowdate()
         invoice.debit_to = self.debit_to
         invoice.taxes_and_charges = full_template_name
+        invoice.mode_of_payment = mode_of_payment
         invoice.append(
             "items",
             {
                 "item_code": self.test_item,
                 "qty": 1,
-                "rate": 500,
+                "rate": item_rate,
                 "income_account": f"Sales - {self.company}",
                 "cost_center": self.cost_center,
             },
@@ -185,6 +107,12 @@ class TestZATCATaxCategoryIntegration(FrappeTestCase):
         invoice.insert()
         invoice.submit()
         return invoice
+
+    def _create_advance_invoice(self, customer, tax_template):
+        return self._create_invoice(customer, tax_template, item_rate=1000, mode_of_payment="Cash")
+
+    def _create_normal_invoice(self, customer, tax_template):
+        return self._create_invoice(customer, tax_template, item_rate=500, mode_of_payment=None)
 
     def test_tax_category_and_invoice_flow(self):
         """
