@@ -494,7 +494,7 @@ def duplicate_configuration(source_name: str, target_doc=None):
         doctype_name,
         {
             "company": company,
-            "status": ["in", ["Active", "Pending Activation"]],
+            "status": ["in", ["Active"]],
             "name": ["!=", source_name],
         },
         ["name", "status"],

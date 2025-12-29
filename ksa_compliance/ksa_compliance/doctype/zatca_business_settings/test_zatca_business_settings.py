@@ -246,8 +246,6 @@ class TestZATCABusinessSettings(FrappeTestCase):
         new_doc = duplicate_configuration(withdrawn_doc.name)
         self.assertEqual(new_doc.status, "Pending Activation")
         new_name = new_doc.name
-        with self.assertRaises(frappe.ValidationError):
-            duplicate_configuration(withdrawn_doc.name)
         activated_doc = activate_settings(new_name)
         self.assertEqual(activated_doc.status, "Active")
         with self.assertRaises(frappe.ValidationError):
@@ -477,7 +475,14 @@ def setup_zatca_business_settings(company_name, country, currency, full_onboardi
         )
         settings.insert(ignore_permissions=True)
 
-    b_settings = frappe.get_doc("ZATCA Business Settings", doc_name)
+    pending_exists = frappe.get_all(
+        "ZATCA Business Settings",
+        filters={"company": company_name, "status": "Pending Activation"},
+        fields=["name"],
+        limit=1,
+    )
+    if pending_exists:
+        b_settings = frappe.get_doc("ZATCA Business Settings", pending_exists[0]["name"])
 
     if full_onboarding:
         frappe.logger().info(
