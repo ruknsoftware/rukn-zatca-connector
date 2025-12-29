@@ -608,6 +608,6 @@ def withdraw_settings(settings_id: str, company: str):
     settings_doc.save()
 
     frappe.msgprint(
-        ft("ZATCA integration has been successfully withdrawn."),
-        title=ft("Withdrawn Successfully"),
+        _("ZATCA integration has been successfully withdrawn."),
+        title=_("Withdrawn Successfully"),
     )
