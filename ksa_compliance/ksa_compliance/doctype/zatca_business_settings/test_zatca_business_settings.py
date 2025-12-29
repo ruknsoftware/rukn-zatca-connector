@@ -474,15 +474,9 @@ def setup_zatca_business_settings(company_name, country, currency, full_onboardi
             }
         )
         settings.insert(ignore_permissions=True)
+        settings_name = settings.name
 
-    pending_exists = frappe.get_all(
-        "ZATCA Business Settings",
-        filters={"company": company_name, "status": "Pending Activation"},
-        fields=["name"],
-        limit=1,
-    )
-    if pending_exists:
-        b_settings = frappe.get_doc("ZATCA Business Settings", pending_exists[0]["name"])
+    b_settings = frappe.get_doc("ZATCA Business Settings", settings_name)
 
     if full_onboarding:
         frappe.logger().info(
