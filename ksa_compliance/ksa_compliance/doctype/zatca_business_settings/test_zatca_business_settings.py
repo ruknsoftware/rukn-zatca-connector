@@ -6,6 +6,12 @@ from frappe import _
 from frappe.tests.utils import FrappeTestCase
 
 from ksa_compliance.compliance_checks import _perform_compliance_checks
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
+    duplicate_configuration as _dup,
+)
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
+    withdraw_settings as _withdraw,
+)
 from ksa_compliance.test.test_constants import (
     SAUDI_COUNTRY,
     SAUDI_CURRENCY,
@@ -13,6 +19,38 @@ from ksa_compliance.test.test_constants import (
     TEST_COMPANY_NAME,
 )
 from ksa_compliance.zatca_cli import setup as zatca_cli_setup
+
+ZATCA_DOCTYPE = "ZATCA Business Settings"
+
+
+def withdraw_settings(settings_id, company):
+    _withdraw(settings_id, company)
+
+
+def duplicate_configuration(source_name):
+    new_doc = _dup(source_name)
+    if isinstance(new_doc, dict):
+        name = new_doc.get("name")
+        if name:
+            return frappe.get_doc("ZATCA Business Settings", name)
+        doc = frappe.get_doc(new_doc)
+        doc.insert(ignore_permissions=True)
+        return doc
+    if hasattr(new_doc, "insert") and not getattr(new_doc, "name", None):
+        new_doc.insert(ignore_permissions=True)
+    return new_doc
+
+
+def activate_settings(settings_id):
+    doc = frappe.get_doc(ZATCA_DOCTYPE, settings_id)
+    otp = "123456"
+    if not doc.compliance_request_id:
+        doc.onboard(otp=otp)
+        doc.reload()
+    if doc.compliance_request_id and not doc.production_request_id:
+        doc.get_production_csid(otp=otp)
+        doc.reload()
+    return doc
 
 
 class TestZATCABusinessSettings(FrappeTestCase):
@@ -269,6 +307,29 @@ class TestZATCABusinessSettings(FrappeTestCase):
         )
 
 
+class TestZATCABusinessSettingsLifecycle(FrappeTestCase):
+    def test_zatca_settings_lifecycle(self):
+        active = frappe.get_all(
+            ZATCA_DOCTYPE, filters={"status": "Active"}, fields=["name", "company"], limit=1
+        )
+        self.assertTrue(active, "No active ZATCA Business Settings found for test.")
+        active_doc = frappe.get_doc(ZATCA_DOCTYPE, active[0]["name"])
+        company = active_doc.company
+        withdraw_settings(active_doc.name, company)
+        withdrawn_doc = frappe.get_doc(ZATCA_DOCTYPE, active_doc.name)
+        self.assertEqual(withdrawn_doc.status, "Withdrawn")
+        withdrawn_name = withdrawn_doc.name
+        new_doc = duplicate_configuration(withdrawn_doc.name)
+        self.assertEqual(new_doc.status, "Pending Activation")
+        new_name = new_doc.name
+        with self.assertRaises(Exception):
+            duplicate_configuration(withdrawn_doc.name)
+        activated_doc = activate_settings(new_name)
+        self.assertEqual(activated_doc.status, "Active")
+        with self.assertRaises(Exception):
+            duplicate_configuration(withdrawn_name)
+
+
 def setup_zatca_business_settings(company_name, country, currency, full_onboarding):
     """Setup ZATCA Business Settings with full onboarding process"""
     doc_name = f"{company_name}-{country}-{currency}"
@@ -278,6 +339,16 @@ def setup_zatca_business_settings(company_name, country, currency, full_onboardi
         frappe.throw(
             f"Company {company_name} does not exist. Please run custom_erpnext_setup() first."
         )
+
+    # Safeguard: Prevent creating new settings if an active one exists for this company
+    active_exists = frappe.get_all(
+        "ZATCA Business Settings",
+        filters={"company": company_name, "status": "Active"},
+        fields=["name"],
+        limit=1,
+    )
+    if active_exists:
+        return active_exists[0]["name"]
 
     if not frappe.db.exists("ZATCA Business Settings", doc_name):
         address_title = "السلمانية الأمير عبد العزيز بن مساعد بن جلوي"

@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "format:{company}-{country}-{currency}",
+ "autoname": "format:{company}-{country}-{currency}-{##}",
  "creation": "2024-01-11 15:31:56.241248",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -29,6 +29,8 @@
   "advance_payment_item",
   "auto_apply_advance_payments",
   "advance_payment_tax_account",
+  "status",
+  "column_break_izkt",
   "seller_id_tab",
   "seller_id_section",
   "seller_name",
@@ -514,6 +516,20 @@
    "fieldtype": "Link",
    "label": "Advance Payment Tax Account",
    "options": "Account"
+  },
+  {
+   "default": "Pending Activation",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Status",
+   "no_copy": 1,
+   "options": "Pending Activation\nActive\nWithdrawn"
+  },
+  {
+   "fieldname": "column_break_izkt",
+   "fieldtype": "Column Break",
+   "no_copy": 1
   }
  ],
  "index_web_pages_for_search": 1,
@@ -540,7 +556,20 @@
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": [],
+ "states": [
+  {
+   "color": "green",
+   "title": "Active"
+  },
+  {
+   "color": "Yellow",
+   "title": "Pending Activation"
+  },
+  {
+   "color": "Red",
+   "title": "Withdrawn"
+  }
+ ],
  "title_field": "company",
  "track_changes": 1
 }

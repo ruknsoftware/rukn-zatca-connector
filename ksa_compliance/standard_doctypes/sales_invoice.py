@@ -46,6 +46,7 @@ from ksa_compliance.standard_doctypes.sales_invoice_advance import (
     is_advance_payment_condition,
     set_advance_payment_invoice_settling_gl_entries,
 )
+from ksa_compliance.throw import fthrow
 from ksa_compliance.translation import ft
 from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
@@ -70,16 +71,18 @@ def create_sales_invoice_additional_fields_doctype(
     self: SalesInvoice | POSInvoice | PaymentEntry | JournalEntry, method
 ):
     settings = ZATCABusinessSettings.for_invoice(self.name, self.doctype)
+    if not settings:
+        if ZATCABusinessSettings.is_withdrawn_for_company(self.company):
+            fthrow(msg=ft("Cannot submit sales invoice to ZATCA"), title=ft("CSID Is Withdrawn"))
+        logger.info(
+            f"Skipping additional fields for {self.name} because of missing ZATCA settings"
+        )
+        return
+
     if not getattr(settings, "enable_zatca_integration", False):
         return
     if self.doctype == "Sales Invoice" and not _should_enable_zatca_for_invoice(self.name):
         logger.info(f"Skipping additional fields for {self.name} because it's before start date")
-        return
-
-    if not settings:
-        logger.info(
-            f"Skipping additional fields for {self.name} because of missing ZATCA settings"
-        )
         return
 
     if not getattr(settings, "enable_zatca_integration", False):

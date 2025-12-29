@@ -17,6 +17,9 @@ from erpnext.accounts.doctype.tax_category.tax_category import TaxCategory
 # noinspection PyProtectedMember
 from frappe import _
 from frappe.model.document import Document
+from frappe.model.mapper import get_mapped_doc
+from frappe.query_builder.functions import Count
+from frappe.utils import get_url, get_url_to_list
 from frappe.utils.data import get_link_to_form
 from pathvalidate import sanitize_filename
 from result import is_err
@@ -27,6 +30,7 @@ import ksa_compliance.zatca_files
 from ksa_compliance import logger
 from ksa_compliance.invoice import InvoiceMode
 from ksa_compliance.throw import fthrow
+from ksa_compliance.translation import ft
 
 
 class ZATCABusinessSettings(Document):
@@ -109,6 +113,7 @@ class ZATCABusinessSettings(Document):
     # end: auto-generated types
 
     def validate(self):
+        """Validates business settings and prevents conflicts"""
         if self.enable_zatca_integration:
             phase_1_settings = frappe.get_value(
                 "ZATCA Phase 1 Business Settings",
@@ -277,6 +282,7 @@ class ZATCABusinessSettings(Document):
         self.production_request_id = csid_result.ok_value.request_id
         self.production_security_token = csid_result.ok_value.security_token
         self.production_secret = csid_result.ok_value.secret
+        self.status = "Active"
         self.save()
 
         with open(self.cert_path, "wb+") as cert:
@@ -319,9 +325,10 @@ class ZATCABusinessSettings(Document):
 
     @staticmethod
     def for_company(company_id: str) -> Optional["ZATCABusinessSettings"]:
-        business_settings_id = frappe.db.get_value(
-            "ZATCA Business Settings", filters={"company": company_id}
-        )
+        """Retrieves active business settings for a company"""
+        filters = {"company": company_id, "status": "Active"}
+        business_settings_id = frappe.db.get_value("ZATCA Business Settings", filters=filters)
+
         if not business_settings_id:
             return None
 
@@ -330,22 +337,23 @@ class ZATCABusinessSettings(Document):
         )
 
     @staticmethod
+    def is_withdrawn_for_company(company_id: str) -> bool:
+        """Checks if business settings have been withdrawn for a company"""
+        filters = {"company": company_id, "status": "Withdrawn"}
+        business_settings_id = frappe.db.get_value("ZATCA Business Settings", filters=filters)
+        return bool(business_settings_id)
+
+    @staticmethod
     def is_enabled_for_company(company_id: str) -> bool:
-        return bool(
-            frappe.db.get_value(
-                "ZATCA Business Settings",
-                filters={"company": company_id, "enable_zatca_integration": True},
-            )
-        )
+        """Checks if ZATCA integration is enabled and active for a company"""
+        filters = {"company": company_id, "status": "Active", "enable_zatca_integration": True}
+        return bool(frappe.db.get_value("ZATCA Business Settings", filters=filters))
 
     @staticmethod
     def is_branch_config_enabled(company_id: str) -> bool:
-        return bool(
-            frappe.db.get_value(
-                "ZATCA Business Settings",
-                filters={"company": company_id, "enable_branch_configuration": True},
-            )
-        )
+        """Checks if branch configuration is enabled for an active company"""
+        filters = {"company": company_id, "status": "Active", "enable_branch_configuration": True}
+        return bool(frappe.db.get_value("ZATCA Business Settings", filters=filters))
 
     def _generate_csr(self) -> cli.CsrResult:
         config = frappe.render_template(
@@ -469,3 +477,137 @@ def get_production_csid(business_settings_id: str, otp: str) -> NoReturn:
         ZATCABusinessSettings, frappe.get_doc("ZATCA Business Settings", business_settings_id)
     )
     settings.get_production_csid(otp)
+
+
+@frappe.whitelist()
+def duplicate_configuration(source_name: str, target_doc=None):
+    """Creates a new configuration from a withdrawn settings document, excluding credentials"""
+
+    doctype_name = "ZATCA Business Settings"
+
+    # Get company from source document
+    source_doc = frappe.get_doc(doctype_name, source_name)
+    company = source_doc.company
+
+    # Check if company already has Active or Pending Activation settings
+    existing_settings = frappe.db.get_value(
+        doctype_name,
+        {
+            "company": company,
+            "status": ["in", ["Active", "Pending Activation"]],
+            "name": ["!=", source_name],
+        },
+        ["name", "status"],
+        as_dict=True,
+    )
+
+    if existing_settings:
+        settings_link = get_link_to_form(doctype_name, existing_settings.name)
+        fthrow(
+            _(
+                "Cannot duplicate configuration: Company {0} already has {1} settings: {2}. "
+                "Please withdraw or complete the existing configuration first."
+            ).format(company, existing_settings.status, settings_link),
+            title=_("Duplicate Configuration Not Allowed"),
+        )
+
+    # Credential fields to exclude from duplication
+    excluded_credential_fields = [
+        "csr",
+        "security_token",
+        "secret",
+        "compliance_request_id",
+        "production_security_token",
+        "production_secret",
+        "production_request_id",
+    ]
+
+    mapping_config = {
+        doctype_name: {
+            "doctype": doctype_name,
+            "field_no_map": excluded_credential_fields,
+        },
+        "Additional Seller IDs": {
+            "doctype": "Additional Seller IDs",
+            "field_map": {"type_name": "type_name", "type_code": "type_code", "value": "value"},
+        },
+    }
+
+    new_doc = get_mapped_doc(doctype_name, source_name, mapping_config, target_doc)
+    return new_doc
+
+
+@frappe.whitelist()
+def withdraw_settings(settings_id: str, company: str):
+    """Withdraws ZATCA integration for a business settings configuration"""
+
+    # Validate no pending invoices before withdrawal
+    SalesInvoice = frappe.qb.DocType("Sales Invoice")
+    POSInvoice = frappe.qb.DocType("POS Invoice")
+    JournalEntry = frappe.qb.DocType("Journal Entry")
+    PaymentEntry = frappe.qb.DocType("Payment Entry")
+    AdditionalFields = frappe.qb.DocType("Sales Invoice Additional Fields")
+
+    query = (
+        frappe.qb.from_(AdditionalFields)
+        .select(Count(AdditionalFields.name).as_("pending_count"))
+        .left_join(SalesInvoice)
+        .on(SalesInvoice.name == AdditionalFields.sales_invoice)
+        .left_join(POSInvoice)
+        .on(POSInvoice.name == AdditionalFields.sales_invoice)
+        .left_join(JournalEntry)
+        .on(JournalEntry.name == AdditionalFields.sales_invoice)
+        .left_join(PaymentEntry)
+        .on(PaymentEntry.name == AdditionalFields.sales_invoice)
+        .where(
+            (
+                (AdditionalFields.invoice_doctype == "Sales Invoice")
+                & (SalesInvoice.company == company)
+            )
+            | (
+                (AdditionalFields.invoice_doctype == "POS Invoice")
+                & (POSInvoice.company == company)
+            )
+            | (
+                (AdditionalFields.invoice_doctype == "Journal Entry")
+                & (JournalEntry.company == company)
+            )
+            | (
+                (AdditionalFields.invoice_doctype == "Payment Entry")
+                & (PaymentEntry.company == company)
+            )
+        )
+        .where(AdditionalFields.docstatus == 0)
+    )
+
+    result = query.run(as_dict=True)
+    pending_invoice_count = result[0]["pending_count"] if result else 0
+
+    if pending_invoice_count > 0:
+        # Build error message with helpful links
+        sync_url = get_url(uri="/app/e-invoicing-sync")
+        sync_link = f'<a href="{sync_url}">{ft("Sync Invoices Page")}</a>'
+
+        list_url = get_url_to_list("Sales Invoice Additional Fields")
+        pending_link = f'<a href="{list_url}?docstatus=0">{ft("pending invoice(s)")}</a>'
+
+        fthrow(
+            msg=ft(
+                "Cannot withdraw: $num $pending_link require synchronization. "
+                "Please sync all pending invoices using the $sync_link before withdrawing.",
+                num=pending_invoice_count,
+                pending_link=pending_link,
+                sync_link=sync_link,
+            ),
+            title=ft("Pending Invoices Found"),
+        )
+
+    # Update status to Withdrawn
+    settings_doc = frappe.get_doc("ZATCA Business Settings", settings_id)
+    settings_doc.status = "Withdrawn"
+    settings_doc.save()
+
+    frappe.msgprint(
+        ft("ZATCA integration has been successfully withdrawn."),
+        title=ft("Withdrawn Successfully"),
+    )
