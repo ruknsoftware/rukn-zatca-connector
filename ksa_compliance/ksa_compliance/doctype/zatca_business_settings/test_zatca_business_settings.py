@@ -179,6 +179,27 @@ class TestZATCABusinessSettings(FrappeTestCase):
 
         frappe.logger().info("✅ test_compliance_with_addresses completed successfully")
 
+    def test_zatca_settings_lifecycle(self):
+        active = frappe.get_all(
+            ZATCA_DOCTYPE, filters={"status": "Active"}, fields=["name", "company"], limit=1
+        )
+        self.assertTrue(active, "No active ZATCA Business Settings found for test.")
+        active_doc = frappe.get_doc(ZATCA_DOCTYPE, active[0]["name"])
+        company = active_doc.company
+        withdraw_settings(active_doc.name, company)
+        withdrawn_doc = frappe.get_doc(ZATCA_DOCTYPE, active_doc.name)
+        self.assertEqual(withdrawn_doc.status, "Withdrawn")
+        withdrawn_name = withdrawn_doc.name
+        new_doc = duplicate_configuration(withdrawn_doc.name)
+        self.assertEqual(new_doc.status, "Pending Activation")
+        new_name = new_doc.name
+        with self.assertRaises(frappe.ValidationError):
+            duplicate_configuration(withdrawn_doc.name)
+        activated_doc = activate_settings(new_name)
+        self.assertEqual(activated_doc.status, "Active")
+        with self.assertRaises(frappe.ValidationError):
+            duplicate_configuration(withdrawn_name)
+
     def _run_test_case_without_addresses(
         self,
         business_settings_id,
@@ -305,29 +326,6 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info(
             "\n✅✅✅ Test Case 2 completed: All validations passed with addresses ✅✅✅"
         )
-
-
-class TestZATCABusinessSettingsLifecycle(FrappeTestCase):
-    def test_zatca_settings_lifecycle(self):
-        active = frappe.get_all(
-            ZATCA_DOCTYPE, filters={"status": "Active"}, fields=["name", "company"], limit=1
-        )
-        self.assertTrue(active, "No active ZATCA Business Settings found for test.")
-        active_doc = frappe.get_doc(ZATCA_DOCTYPE, active[0]["name"])
-        company = active_doc.company
-        withdraw_settings(active_doc.name, company)
-        withdrawn_doc = frappe.get_doc(ZATCA_DOCTYPE, active_doc.name)
-        self.assertEqual(withdrawn_doc.status, "Withdrawn")
-        withdrawn_name = withdrawn_doc.name
-        new_doc = duplicate_configuration(withdrawn_doc.name)
-        self.assertEqual(new_doc.status, "Pending Activation")
-        new_name = new_doc.name
-        with self.assertRaises(Exception):
-            duplicate_configuration(withdrawn_doc.name)
-        activated_doc = activate_settings(new_name)
-        self.assertEqual(activated_doc.status, "Active")
-        with self.assertRaises(Exception):
-            duplicate_configuration(withdrawn_name)
 
 
 def setup_zatca_business_settings(company_name, country, currency, full_onboarding):
