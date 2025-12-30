@@ -129,6 +129,36 @@ class ZATCABusinessSettings(Document):
                     ).format(self.company, link),
                     title=_("Another Setting Already Enabled"),
                 )
+        self.throw_if_duplicate_active_or_pending_settings()
+
+    def throw_if_duplicate_active_or_pending_settings(self):
+        """
+        Throws an error if there is already an Active or Pending Activation ZATCA Business Settings for the same company (excluding self).
+        """
+        doctype_name = "ZATCA Business Settings"
+        company = getattr(self, "company", None)
+        source_name = getattr(self, "name", None)
+        if not company:
+            return
+        existing_settings = frappe.db.get_value(
+            doctype_name,
+            {
+                "company": company,
+                "status": ["in", ["Active", "Pending Activation"]],
+                "name": ["!=", source_name],
+            },
+            ["name", "status"],
+            as_dict=True,
+        )
+        if existing_settings:
+            settings_link = get_link_to_form(doctype_name, existing_settings.name)
+            fthrow(
+                _(
+                    "Cannot duplicate configuration: Company {0} already has {1} settings: {2}. "
+                    "Please withdraw or complete the existing configuration first."
+                ).format(company, existing_settings.status, settings_link),
+                title=_("Duplicate Configuration Not Allowed"),
+            )
 
     def after_insert(self):
         invoice_counting_doc = frappe.new_doc("ZATCA Invoice Counting Settings")
@@ -494,26 +524,11 @@ def duplicate_configuration(source_name: str, target_doc=None):
     company = source_doc.company
 
     # Check if company already has Active or Pending Activation settings
-    existing_settings = frappe.db.get_value(
-        doctype_name,
-        {
-            "company": company,
-            "status": ["in", ["Active", "Pending Activation"]],
-            "name": ["!=", source_name],
-        },
-        ["name", "status"],
-        as_dict=True,
-    )
-
-    if existing_settings:
-        settings_link = get_link_to_form(doctype_name, existing_settings.name)
-        fthrow(
-            _(
-                "Cannot duplicate configuration: Company {0} already has {1} settings: {2}. "
-                "Please withdraw or complete the existing configuration first."
-            ).format(company, existing_settings.status, settings_link),
-            title=_("Duplicate Configuration Not Allowed"),
-        )
+    # Use the new method for duplicate check
+    temp_doc = frappe.new_doc(doctype_name)
+    temp_doc.company = company
+    temp_doc.name = source_name
+    temp_doc.throw_if_duplicate_active_or_pending_settings()
 
     # Credential fields to exclude from duplication
     excluded_credential_fields = [
