@@ -69,7 +69,7 @@ def submit_all_drafts_in_sales_invoice_additional_fields():
             frappe.logger().info(f"✅ Submitted: {draft['name']}")
         except Exception as e:
             frappe.logger().info(f"❌ Could not submit {draft['name']}: {e}")
-    frappe.db.commit()
+    frappe.db.commit()  # nosemgrep - Required to persist test data for compliance checks
 
 
 class TestZATCABusinessSettings(FrappeTestCase):
