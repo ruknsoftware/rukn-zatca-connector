@@ -26,6 +26,20 @@ from ksa_compliance.test.test_constants import (
 class TestZATCAState3Integration(FrappeTestCase):
     """State 3 Integration Tests: ZATCA Configured and Enabled"""
 
+    def _get_active_zatca_settings(self):
+        """Helper to fetch the active ZATCA Business Settings for the test company."""
+        active_settings = frappe.get_all(
+            "ZATCA Business Settings",
+            filters={"company": TEST_COMPANY_NAME, "status": "Active"},
+            fields=["name"],
+            limit=1,
+        )
+        self.assertTrue(
+            active_settings,
+            f"No active ZATCA Business Settings found for company {TEST_COMPANY_NAME}",
+        )
+        return frappe.get_doc("ZATCA Business Settings", active_settings[0]["name"])
+
     def _ensure_test_item_exists(self):
         """Helper method to ensure Test Item exists."""
         test_item = "Test Item"
@@ -40,8 +54,7 @@ class TestZATCAState3Integration(FrappeTestCase):
 
     def _create_advance_invoice(self, rate=1000):
         """Helper method to create and submit an advance payment invoice."""
-        settings_name = f"{TEST_COMPANY_NAME}-{SAUDI_COUNTRY}-{SAUDI_CURRENCY}"
-        settings = frappe.get_doc("ZATCA Business Settings", settings_name)
+        settings = self._get_active_zatca_settings()
         advance_item = settings.advance_payment_item
         company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
         customer_tax_category = frappe.db.get_value(
@@ -93,9 +106,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         """
         frappe.logger().info("🧪 Running test_zatca_sync_is_live...")
 
-        # Get ZATCA Business Settings for the company
-        settings_name = f"{TEST_COMPANY_NAME}-{SAUDI_COUNTRY}-{SAUDI_CURRENCY}"
-        settings = frappe.get_doc("ZATCA Business Settings", settings_name)
+        settings = self._get_active_zatca_settings()
 
         # If not Live, change it to Live
         if settings.sync_with_zatca != "Live":
@@ -147,8 +158,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         )
 
         # 4. Check ZATCA Business Settings
-        settings_name = f"{TEST_COMPANY_NAME}-{SAUDI_COUNTRY}-{SAUDI_CURRENCY}"
-        settings = frappe.get_doc("ZATCA Business Settings", settings_name)
+        settings = self._get_active_zatca_settings()
 
         # Auto Apply Advance Payments should be enabled
         if not settings.auto_apply_advance_payments:
@@ -238,8 +248,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_settle_advance_with_auto_apply...")
 
         # Step 1: Verify auto-apply advances is enabled in Business Settings
-        settings_name = f"{TEST_COMPANY_NAME}-{SAUDI_COUNTRY}-{SAUDI_CURRENCY}"
-        settings = frappe.get_doc("ZATCA Business Settings", settings_name)
+        settings = self._get_active_zatca_settings()
 
         frappe.logger().info(
             f"   Checking auto_apply_advance_payments: {settings.auto_apply_advance_payments}"
@@ -1026,8 +1035,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_zatca_validate_xml_setting...")
 
         # Get ZATCA Business Settings
-        settings_name = f"{TEST_COMPANY_NAME}-{SAUDI_COUNTRY}-{SAUDI_CURRENCY}"
-        settings = frappe.get_doc("ZATCA Business Settings", settings_name)
+        settings = self._get_active_zatca_settings()
 
         frappe.logger().info(f"   validate_generated_xml: {settings.validate_generated_xml}")
 

@@ -86,15 +86,20 @@ class TestZATCABusinessSettings(FrappeTestCase):
         )
 
     def test_zatca_business_settings_exists(self):
-        """Test that ZATCA Business Settings exists"""
-        frappe.logger().info("🧪 Running test_zatca_business_settings_exists...")
-        settings_name = f"{TEST_COMPANY_NAME}-{SAUDI_COUNTRY}-{SAUDI_CURRENCY}"
+        """Test that an active ZATCA Business Settings exists for the test company (no creation/activation)"""
+        frappe.logger().info("🧪 Running test_zatca_business_settings_exists (check only)...")
+        active = frappe.get_all(
+            ZATCA_DOCTYPE,
+            filters={"company": TEST_COMPANY_NAME, "status": "Active"},
+            fields=["name"],
+            limit=1,
+        )
         self.assertTrue(
-            frappe.db.exists("ZATCA Business Settings", settings_name),
-            f"ZATCA Business Settings {settings_name} should exist",
+            active and frappe.db.exists(ZATCA_DOCTYPE, active[0]["name"]),
+            f"Active ZATCA Business Settings for {TEST_COMPANY_NAME} should exist",
         )
         frappe.logger().info(
-            f"✅ test_zatca_business_settings_exists completed - Settings {settings_name} exists"
+            f"✅ test_zatca_business_settings_exists completed - Active Settings {active[0]['name']} exists"
         )
 
     def test_zatca_business_settings_creation(self):
