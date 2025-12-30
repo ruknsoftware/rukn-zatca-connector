@@ -12,10 +12,20 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.67.3
+* Add ZATCA Business Settings Lifecycle: Withdraw, Initiate, And Activate
+  * Add Status Field With States (Pending Activation, Active, Withdrawn) To ZATCA Business Settings
+  * Prevent Duplicate Active Or Pending ZATCA Settings Per Company
+  * Add Withdraw And Reinitiate Buttons To ZATCA Business Settings Form
+  * Update Tests For ZATCA Settings Lifecycle
+  * Update Autoname Format For ZATCA Business Settings
+
 ## 0.67.2
 * Add Print Format For Journal Entry Generated From Returned Advance Payment Entry
+
 ## 0.67.1
 * Fix ZATCA Test for v14
+
 ## 0.67.0
 * Add Comprehensive ZATCA State 3 Integration Test Suite
   * Add Test For ZATCA Sync Mode Is Set To Live
