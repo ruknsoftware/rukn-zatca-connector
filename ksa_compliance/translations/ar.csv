@@ -1,3 +1,9 @@
+Pending Activation,قيد التفعيل
+ZATCA integration has been successfully withdrawn.,تم سحب تكامل هيئة الزكاة والضريبة والجمارك بنجاح
+Withdrawn Successfully,تم السحب بنجاح
+Are you sure you want to withdraw the ZATCA integration? This action is permanent and will require reactivation.,هل أنت متأكد أنك تريد سحب تكامل هيئة الزكاة والضريبة والجمارك؟ هذا الإجراء دائم وسيتطلب إعادة التفعيل.
+Withdraw,سحب
+Initiate New ZATCA Settings,بدء إعدادات هيئة الزكاة والضريبة والجمارك الجديدة
 <p>This will create a new Sales Invoice Additional Fields document for the invoice '{0}' and submit it to ZATCA. <strong>Make sure you have updated any bad configuration that lead to the initial rejection</strong>.</p><p>Do you want to proceed?</p>,<p>سيقوم هذا بإنشاء مستند حقول إضافية جديد للفاتورة '{0}' وإرساله إلى هيئة الزكاة والضريبة والجمارك (ZATCA). <strong>تأكد من أنك حدّثت أي إعداد خاطئ أدى إلى الرفض الأولي</strong>.</p><p>هل تريد المتابعة؟</p>
 "<pre style=""display:inline;"">JAVA_HOME</pre> path used for running the CLI. Leave blank to use the default system Java installation","مسار <pre style=""display:inline;"">JAVA_HOME</pre> المستخدم لتشغيل CLI. اتركه فارغًا لاستخدام تثبيت Java الافتراضي في النظام"
 Accepted,مقبول

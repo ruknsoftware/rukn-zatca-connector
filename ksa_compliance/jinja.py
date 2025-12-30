@@ -6,6 +6,7 @@ from typing import Optional, cast
 
 import frappe
 import pyqrcode
+from erpnext.accounts.doctype.journal_entry.journal_entry import JournalEntry
 from erpnext.accounts.doctype.payment_entry.payment_entry import PaymentEntry
 from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
@@ -127,7 +128,7 @@ def get_advance_payment_entry_info(payment_entry, settings):
 
 
 def get_phase_2_print_format_details(
-    sales_invoice: SalesInvoice | POSInvoice | PaymentEntry,
+    sales_invoice: SalesInvoice | POSInvoice | PaymentEntry | JournalEntry,
 ) -> dict | None:
     settings_id = frappe.db.exists(
         "ZATCA Business Settings",
@@ -145,20 +146,36 @@ def get_phase_2_print_format_details(
             if branch_doc.custom_company_address:
                 has_branch_address = True
     seller_other_id, seller_other_id_name = get_seller_other_id(sales_invoice, settings)
+    advance_payment_entry = None
+    net_amount = 0.0
+    tax_amount = 0.0
     if sales_invoice.doctype == "Payment Entry":
         customer = sales_invoice.party
+        advance_payment_entry = get_advance_payment_entry_info(sales_invoice, settings)
+        customer_id = sales_invoice.party
+    elif sales_invoice.doctype == "Journal Entry" and sales_invoice.advance_payment_entry:
+        payment_entry = frappe.get_doc("Payment Entry", sales_invoice.advance_payment_entry)
+        customer = payment_entry.party
+        advance_payment_entry = get_advance_payment_entry_info(payment_entry, settings)
+        customer_id = payment_entry.party
+        net_amount = calculate_net_from_gross_included_in_print_rate(
+            sales_invoice.accounts[0].debit_in_account_currency,
+            advance_payment_entry.tax_rate,
+        )
+        tax_amount = calculate_tax_amount_included_in_print_rate(
+            sales_invoice.accounts[0].debit_in_account_currency,
+            net_amount,
+        )
     else:
         customer = sales_invoice.customer
+        customer_id = getattr(sales_invoice, "customer", None)
     buyer_other_id, buyer_other_id_name = get_buyer_other_id(customer)
     siaf = frappe.get_last_doc(
         "Sales Invoice Additional Fields", {"sales_invoice": sales_invoice.name}
     )
     prepayment_info = get_prepayment_info(sales_invoice)
-    advance_payment_entry = (
-        get_advance_payment_entry_info(sales_invoice, settings)
-        if sales_invoice.doctype == "Payment Entry"
-        else None
-    )
+    if advance_payment_entry:
+        advance_payment_entry.party = customer_id
     return {
         "settings": settings,
         "address": {
@@ -176,6 +193,8 @@ def get_phase_2_print_format_details(
         "siaf": siaf,
         "prepayment_info": prepayment_info,
         "advance_payment_entry": advance_payment_entry,
+        "net_amount": net_amount,
+        "tax_amount": tax_amount,
     }
 
 

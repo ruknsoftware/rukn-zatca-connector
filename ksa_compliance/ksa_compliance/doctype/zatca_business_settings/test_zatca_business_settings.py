@@ -6,13 +6,70 @@ from frappe import _
 from frappe.tests.utils import FrappeTestCase
 
 from ksa_compliance.compliance_checks import _perform_compliance_checks
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
+    duplicate_configuration as _dup,
+)
+from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
+    withdraw_settings as _withdraw,
+)
 from ksa_compliance.test.test_constants import (
     SAUDI_COUNTRY,
     SAUDI_CURRENCY,
     SUCCESS_STATUS,
     TEST_COMPANY_NAME,
+    TEST_STANDARD_CUSTOMER_NAME,
 )
 from ksa_compliance.zatca_cli import setup as zatca_cli_setup
+
+ZATCA_DOCTYPE = "ZATCA Business Settings"
+
+
+def withdraw_settings(settings_id, company):
+    _withdraw(settings_id, company)
+
+
+def duplicate_configuration(source_name):
+    new_doc = _dup(source_name)
+    if isinstance(new_doc, dict):
+        name = new_doc.get("name")
+        if name:
+            return frappe.get_doc("ZATCA Business Settings", name)
+        doc = frappe.get_doc(new_doc)
+        doc.insert(ignore_permissions=True)
+        return doc
+    if hasattr(new_doc, "insert") and not getattr(new_doc, "name", None):
+        new_doc.insert(ignore_permissions=True)
+    return new_doc
+
+
+def activate_settings(settings_id):
+    doc = frappe.get_doc(ZATCA_DOCTYPE, settings_id)
+    otp = "123456"
+    if not doc.compliance_request_id:
+        doc.onboard(otp=otp)
+        doc.reload()
+    if doc.compliance_request_id and not doc.production_request_id:
+        doc.get_production_csid(otp=otp)
+        doc.reload()
+    return doc
+
+
+def submit_all_drafts_in_sales_invoice_additional_fields():
+    """Helper to submit all drafts in Sales Invoice Additional Fields"""
+    frappe.logger().info("🔄 Submitting all drafts in Sales Invoice Additional Fields...")
+    drafts = frappe.get_all(
+        "Sales Invoice Additional Fields",
+        filters={"docstatus": 0},
+        fields=["name"],
+    )
+    for draft in drafts:
+        try:
+            doc = frappe.get_doc("Sales Invoice Additional Fields", draft["name"])
+            doc.submit()
+            frappe.logger().info(f"✅ Submitted: {draft['name']}")
+        except Exception as e:
+            frappe.logger().info(f"❌ Could not submit {draft['name']}: {e}")
+    frappe.db.commit()  # nosemgrep - Required to persist test data for compliance checks
 
 
 class TestZATCABusinessSettings(FrappeTestCase):
@@ -47,15 +104,20 @@ class TestZATCABusinessSettings(FrappeTestCase):
         )
 
     def test_zatca_business_settings_exists(self):
-        """Test that ZATCA Business Settings exists"""
-        frappe.logger().info("🧪 Running test_zatca_business_settings_exists...")
-        settings_name = f"{TEST_COMPANY_NAME}-{SAUDI_COUNTRY}-{SAUDI_CURRENCY}"
+        """Test that an active ZATCA Business Settings exists for the test company (no creation/activation)"""
+        frappe.logger().info("🧪 Running test_zatca_business_settings_exists (check only)...")
+        active = frappe.get_all(
+            ZATCA_DOCTYPE,
+            filters={"company": TEST_COMPANY_NAME, "status": "Active"},
+            fields=["name"],
+            limit=1,
+        )
         self.assertTrue(
-            frappe.db.exists("ZATCA Business Settings", settings_name),
-            f"ZATCA Business Settings {settings_name} should exist",
+            active and frappe.db.exists(ZATCA_DOCTYPE, active[0]["name"]),
+            f"Active ZATCA Business Settings for {TEST_COMPANY_NAME} should exist",
         )
         frappe.logger().info(
-            f"✅ test_zatca_business_settings_exists completed - Settings {settings_name} exists"
+            f"✅ test_zatca_business_settings_exists completed - Active Settings {active[0]['name']} exists"
         )
 
     def test_zatca_business_settings_creation(self):
@@ -140,6 +202,81 @@ class TestZATCABusinessSettings(FrappeTestCase):
         )
 
         frappe.logger().info("✅ test_compliance_with_addresses completed successfully")
+
+    def test_withdraw_then_block_si_pe_and_create_new_settings(self):
+        # Ensure no drafts in Sales Invoice Additional Fields before withdrawal
+        submit_all_drafts_in_sales_invoice_additional_fields()
+        """
+        Withdraw ZATCA Business Settings, assert SI and PE submission fails, then create new settings.
+        """
+        active = frappe.get_all(
+            ZATCA_DOCTYPE, filters={"status": "Active"}, fields=["name", "company"], limit=1
+        )
+        self.assertTrue(active, "No active ZATCA Business Settings found for test.")
+        active_doc = frappe.get_doc(ZATCA_DOCTYPE, active[0]["name"])
+        company = active_doc.company
+        withdraw_settings(active_doc.name, company)
+        withdrawn_doc = frappe.get_doc(ZATCA_DOCTYPE, active_doc.name)
+        self.assertEqual(withdrawn_doc.status, "Withdrawn")
+
+        test_item = "Test Item"
+
+        # Try to submit Sales Invoice (SI) using explicit field assignments and append
+        si = frappe.new_doc("Sales Invoice")
+        si.company = company
+        si.customer = TEST_STANDARD_CUSTOMER_NAME
+        si.currency = SAUDI_CURRENCY
+        si.posting_date = frappe.utils.nowdate()
+        si.due_date = frappe.utils.nowdate()
+        # Only required fields for items
+        si.append("items", {"item_code": test_item, "qty": 1, "rate": 100})
+        with self.assertRaises(Exception):
+            si.insert(ignore_permissions=True)
+            si.submit()
+
+        # Try to submit Payment Entry (PE)
+        pe = frappe.get_doc(
+            {
+                "doctype": "Payment Entry",
+                "company": company,
+                "payment_type": "Receive",
+                "party_type": "Customer",
+                "party": TEST_STANDARD_CUSTOMER_NAME,
+                "paid_amount": 100,
+                "received_amount": 100,
+            }
+        )
+        with self.assertRaises(Exception):
+            pe.insert(ignore_permissions=True)
+            pe.submit()
+
+        # Now create new settings (should be allowed)
+        new_doc = duplicate_configuration(withdrawn_doc.name)
+        self.assertEqual(new_doc.status, "Pending Activation")
+        new_name = new_doc.name
+        activated_doc = activate_settings(new_name)
+        self.assertEqual(activated_doc.status, "Active")
+
+    def test_zatca_settings_lifecycle(self):
+        # Ensure no drafts in Sales Invoice Additional Fields before withdrawal
+        submit_all_drafts_in_sales_invoice_additional_fields()
+        active = frappe.get_all(
+            ZATCA_DOCTYPE, filters={"status": "Active"}, fields=["name", "company"], limit=1
+        )
+        self.assertTrue(active, "No active ZATCA Business Settings found for test.")
+        active_doc = frappe.get_doc(ZATCA_DOCTYPE, active[0]["name"])
+        company = active_doc.company
+        withdraw_settings(active_doc.name, company)
+        withdrawn_doc = frappe.get_doc(ZATCA_DOCTYPE, active_doc.name)
+        self.assertEqual(withdrawn_doc.status, "Withdrawn")
+        withdrawn_name = withdrawn_doc.name
+        new_doc = duplicate_configuration(withdrawn_doc.name)
+        self.assertEqual(new_doc.status, "Pending Activation")
+        new_name = new_doc.name
+        activated_doc = activate_settings(new_name)
+        self.assertEqual(activated_doc.status, "Active")
+        with self.assertRaises(frappe.ValidationError):
+            duplicate_configuration(withdrawn_name)
 
     def _run_test_case_without_addresses(
         self,
@@ -279,6 +416,16 @@ def setup_zatca_business_settings(company_name, country, currency, full_onboardi
             f"Company {company_name} does not exist. Please run custom_erpnext_setup() first."
         )
 
+    # Safeguard: Prevent creating new settings if an active one exists for this company
+    active_exists = frappe.get_all(
+        "ZATCA Business Settings",
+        filters={"company": company_name, "status": "Active"},
+        fields=["name"],
+        limit=1,
+    )
+    if active_exists:
+        return active_exists[0]["name"]
+
     if not frappe.db.exists("ZATCA Business Settings", doc_name):
         address_title = "السلمانية الأمير عبد العزيز بن مساعد بن جلوي"
         address_name = f"{address_title}-Billing"
@@ -333,6 +480,8 @@ def setup_zatca_business_settings(company_name, country, currency, full_onboardi
                 "sync_with_zatca": "Live",
                 "type_of_business_transactions": "Let the system decide (both)",
                 "advance_payment_item": item_code,
+                "auto_apply_advance_payments": 1,
+                "advance_payment_depends_on": "Sales Invoice",
                 "cli_setup": "Automatic",
                 "validate_generated_xml": 1,
                 "block_invoice_on_invalid_xml": 1,
@@ -352,8 +501,9 @@ def setup_zatca_business_settings(company_name, country, currency, full_onboardi
             }
         )
         settings.insert(ignore_permissions=True)
+        settings_name = settings.name
 
-    b_settings = frappe.get_doc("ZATCA Business Settings", doc_name)
+    b_settings = frappe.get_doc("ZATCA Business Settings", settings_name)
 
     if full_onboarding:
         frappe.logger().info(
