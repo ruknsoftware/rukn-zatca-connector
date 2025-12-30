@@ -54,6 +54,24 @@ def activate_settings(settings_id):
     return doc
 
 
+def submit_all_drafts_in_sales_invoice_additional_fields():
+    """Helper to submit all drafts in Sales Invoice Additional Fields"""
+    frappe.logger().info("🔄 Submitting all drafts in Sales Invoice Additional Fields...")
+    drafts = frappe.get_all(
+        "Sales Invoice Additional Fields",
+        filters={"docstatus": 0},
+        fields=["name"],
+    )
+    for draft in drafts:
+        try:
+            doc = frappe.get_doc("Sales Invoice Additional Fields", draft["name"])
+            doc.submit()
+            frappe.logger().info(f"✅ Submitted: {draft['name']}")
+        except Exception as e:
+            frappe.logger().info(f"❌ Could not submit {draft['name']}: {e}")
+    frappe.db.commit()
+
+
 class TestZATCABusinessSettings(FrappeTestCase):
     @classmethod
     def setUpClass(cls):
@@ -186,6 +204,8 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info("✅ test_compliance_with_addresses completed successfully")
 
     def test_withdraw_then_block_si_pe_and_create_new_settings(self):
+        # Ensure no drafts in Sales Invoice Additional Fields before withdrawal
+        submit_all_drafts_in_sales_invoice_additional_fields()
         """
         Withdraw ZATCA Business Settings, assert SI and PE submission fails, then create new settings.
         """
@@ -238,6 +258,8 @@ class TestZATCABusinessSettings(FrappeTestCase):
         self.assertEqual(activated_doc.status, "Active")
 
     def test_zatca_settings_lifecycle(self):
+        # Ensure no drafts in Sales Invoice Additional Fields before withdrawal
+        submit_all_drafts_in_sales_invoice_additional_fields()
         active = frappe.get_all(
             ZATCA_DOCTYPE, filters={"status": "Active"}, fields=["name", "company"], limit=1
         )
