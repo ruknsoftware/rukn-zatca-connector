@@ -114,6 +114,12 @@ class ZATCABusinessSettings(Document):
 
     def validate(self):
         """Validates business settings and prevents conflicts"""
+        if self.is_new() and self.production_request_id:
+            fthrow(
+                msg=_("Cannot create new settings with a pre-added Production CSID."),
+                title=_("Invalid Configuration"),
+            )
+
         if self.enable_zatca_integration:
             phase_1_settings = frappe.get_value(
                 "ZATCA Phase 1 Business Settings",
