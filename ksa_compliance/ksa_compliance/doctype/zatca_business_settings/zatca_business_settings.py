@@ -329,7 +329,7 @@ class ZATCABusinessSettings(Document):
         filters = {
             "company": company_id,
         }
-        if invoice and setattr(invoice, "is_perform_compliance_checks", True):
+        if invoice and hasattr(invoice, "is_perform_compliance_checks"):
             filters["status"] = "Active"
         business_settings_id = frappe.db.get_value("ZATCA Business Settings", filters=filters)
 
