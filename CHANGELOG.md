@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.67.4
+* Fix Filter Settings Status Compliance Checks
+
 ## 0.67.3
 * Add ZATCA Business Settings Lifecycle: Withdraw, Initiate, And Activate
   * Add Status Field With States (Pending Activation, Active, Withdrawn) To ZATCA Business Settings

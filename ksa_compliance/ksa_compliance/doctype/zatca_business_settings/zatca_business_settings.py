@@ -320,13 +320,17 @@ class ZATCABusinessSettings(Document):
         company_id = frappe.db.get_value(doctype, invoice_id, ["company"])
         if not company_id:
             return None
-
-        return ZATCABusinessSettings.for_company(company_id)
+        invoice = frappe.get_doc(doctype, invoice_id)
+        return ZATCABusinessSettings.for_company(company_id, invoice)
 
     @staticmethod
-    def for_company(company_id: str) -> Optional["ZATCABusinessSettings"]:
+    def for_company(company_id: str, invoice=None) -> Optional["ZATCABusinessSettings"]:
         """Retrieves active business settings for a company"""
-        filters = {"company": company_id, "status": "Active"}
+        filters = {
+            "company": company_id,
+        }
+        if invoice and setattr(invoice, "is_perform_compliance_checks", True):
+            filters["status"] = "Active"
         business_settings_id = frappe.db.get_value("ZATCA Business Settings", filters=filters)
 
         if not business_settings_id:
