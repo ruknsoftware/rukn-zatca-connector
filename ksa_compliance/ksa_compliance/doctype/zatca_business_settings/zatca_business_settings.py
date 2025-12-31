@@ -116,7 +116,9 @@ class ZATCABusinessSettings(Document):
         """Validates business settings and prevents conflicts"""
         if self.is_new() and self.production_request_id:
             fthrow(
-                msg=_("Cannot create new settings with a pre-added Production CSID."),
+                msg=_(
+                    "You cannot create new settings while a Production CSID is already configured."
+                ),
                 title=_("Invalid Configuration"),
             )
 
