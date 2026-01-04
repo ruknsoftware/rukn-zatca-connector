@@ -12,6 +12,11 @@ from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_busines
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     withdraw_settings as _withdraw,
 )
+from ksa_compliance.ksa_compliance.test.test_invoice_helpers import (
+    create_normal_payment_entry,
+    create_normal_sales_invoice,
+    ensure_test_item_exists,
+)
 from ksa_compliance.test.test_constants import (
     SAUDI_COUNTRY,
     SAUDI_CURRENCY,
@@ -204,11 +209,12 @@ class TestZATCABusinessSettings(FrappeTestCase):
         frappe.logger().info("✅ test_compliance_with_addresses completed successfully")
 
     def test_withdraw_then_block_si_pe_and_create_new_settings(self):
-        # Ensure no drafts in Sales Invoice Additional Fields before withdrawal
-        submit_all_drafts_in_sales_invoice_additional_fields()
         """
         Withdraw ZATCA Business Settings, assert SI and PE submission fails, then create new settings.
         """
+        # Ensure no drafts in Sales Invoice Additional Fields before withdrawal
+        submit_all_drafts_in_sales_invoice_additional_fields()
+
         active = frappe.get_all(
             ZATCA_DOCTYPE, filters={"status": "Active"}, fields=["name", "company"], limit=1
         )
@@ -219,36 +225,26 @@ class TestZATCABusinessSettings(FrappeTestCase):
         withdrawn_doc = frappe.get_doc(ZATCA_DOCTYPE, active_doc.name)
         self.assertEqual(withdrawn_doc.status, "Withdrawn")
 
-        test_item = "Test Item"
+        # Ensure test item exists
+        test_item = ensure_test_item_exists()
 
-        # Try to submit Sales Invoice (SI) using explicit field assignments and append
-        si = frappe.new_doc("Sales Invoice")
-        si.company = company
-        si.customer = TEST_STANDARD_CUSTOMER_NAME
-        si.currency = SAUDI_CURRENCY
-        si.posting_date = frappe.utils.nowdate()
-        si.due_date = frappe.utils.nowdate()
-        # Only required fields for items
-        si.append("items", {"item_code": test_item, "qty": 1, "rate": 100})
+        # Try to submit Sales Invoice (SI) using helper method
+        # Should fail because ZATCA settings are withdrawn
         with self.assertRaises(Exception):
-            si.insert(ignore_permissions=True)
-            si.submit()
+            create_normal_sales_invoice(
+                customer=TEST_STANDARD_CUSTOMER_NAME,
+                company=company,
+                item_code=test_item,
+                item_rate=100,
+                submit=True,
+            )
 
-        # Try to submit Payment Entry (PE)
-        pe = frappe.get_doc(
-            {
-                "doctype": "Payment Entry",
-                "company": company,
-                "payment_type": "Receive",
-                "party_type": "Customer",
-                "party": TEST_STANDARD_CUSTOMER_NAME,
-                "paid_amount": 100,
-                "received_amount": 100,
-            }
-        )
+        # Try to submit Payment Entry (PE) using helper method
+        # Should fail because ZATCA settings are withdrawn
         with self.assertRaises(Exception):
-            pe.insert(ignore_permissions=True)
-            pe.submit()
+            create_normal_payment_entry(
+                customer=TEST_STANDARD_CUSTOMER_NAME, company=company, paid_amount=100, submit=True
+            )
 
         # Now create new settings (should be allowed)
         new_doc = duplicate_configuration(withdrawn_doc.name)
