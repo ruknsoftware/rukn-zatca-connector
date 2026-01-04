@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.67.5
+* Prevent Duplicate ZATCA Business Settings For The Same Company
+
 ## 0.67.4
 * Fix Filter Settings Status Compliance Checks
 
