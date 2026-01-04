@@ -292,6 +292,7 @@ Advance Payment Reference,الرقم المرجعي للدفعة المقدمة
 Changing this setting requires redoing the onboarding process, starting from CSR generation.,تغيير هذا الإعداد يتطلب إعادة عملية الإعداد الأولي بدءًا من إنشاء CSR.
 ZATCA Phase 2 Business Settings already enabled for company {0}: {1},تم تفعيل إعدادات الأعمال الخاصة بالمرحلة الثانية من ZATCA للشركة بالفعل {0}: {1}
 Another Setting Already Enabled,إعداد آخر تم تمكينه بالفعل
+"Cannot duplicate configuration: Company {0} already has {1} settings: {2}. Please withdraw or complete the existing configuration first.","لا يمكن تكرار الإعداد: الشركة {0} لديها بالفعل إعدادات {1}: {2}. يرجى سحب أو إكمال الإعداد الحالي أولاً."
 "To date must be after From date. error_code='InvalidDateRange', code=400","يجب أن يكون تاريخ "إلى" بعد تاريخ "من". error_code='InvalidDateRange', code=400"
 Number of records,عدد السجلات
 Zatca Integration Status,حالة تكامل زاتكا
