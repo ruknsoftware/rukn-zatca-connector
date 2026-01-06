@@ -13,6 +13,14 @@ import frappe
 from frappe.tests.utils import FrappeTestCase
 from frappe.utils import flt
 
+from ksa_compliance.ksa_compliance.test.test_invoice_helpers import (
+    create_advance_sales_invoice,
+    create_normal_sales_invoice,
+    ensure_test_item_exists,
+    get_active_zatca_settings,
+    get_total_advance_allocated,
+    log_invoice_details,
+)
 from ksa_compliance.test.test_constants import (
     SAUDI_COUNTRY,
     SAUDI_CURRENCY,
@@ -26,79 +34,6 @@ from ksa_compliance.test.test_constants import (
 class TestZATCAState3Integration(FrappeTestCase):
     """State 3 Integration Tests: ZATCA Configured and Enabled"""
 
-    def _get_active_zatca_settings(self):
-        """Helper to fetch the active ZATCA Business Settings for the test company."""
-        active_settings = frappe.get_all(
-            "ZATCA Business Settings",
-            filters={"company": TEST_COMPANY_NAME, "status": "Active"},
-            fields=["name"],
-            limit=1,
-        )
-        self.assertTrue(
-            active_settings,
-            f"No active ZATCA Business Settings found for company {TEST_COMPANY_NAME}",
-        )
-        return frappe.get_doc("ZATCA Business Settings", active_settings[0]["name"])
-
-    def _ensure_test_item_exists(self):
-        """Helper method to ensure Test Item exists."""
-        test_item = "Test Item"
-        if not frappe.db.exists("Item", test_item):
-            item_doc = frappe.new_doc("Item")
-            item_doc.item_code = test_item
-            item_doc.item_name = test_item
-            item_doc.item_group = "All Item Groups"
-            item_doc.is_stock_item = 0
-            item_doc.insert(ignore_permissions=True)
-        return test_item
-
-    def _create_advance_invoice(self, rate=1000):
-        """Helper method to create and submit an advance payment invoice."""
-        settings = self._get_active_zatca_settings()
-        advance_item = settings.advance_payment_item
-        company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
-        customer_tax_category = frappe.db.get_value(
-            "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
-        )
-
-        advance_invoice = frappe.new_doc("Sales Invoice")
-        advance_invoice.customer = TEST_STANDARD_CUSTOMER_NAME
-        advance_invoice.company = TEST_COMPANY_NAME
-        advance_invoice.currency = SAUDI_CURRENCY
-        advance_invoice.posting_date = frappe.utils.nowdate()
-        advance_invoice.due_date = frappe.utils.nowdate()
-        advance_invoice.debit_to = f"Debtors - {company_abbr}"
-        advance_invoice.mode_of_payment = "Cash"
-        advance_invoice.tax_category = customer_tax_category
-        advance_invoice.taxes_and_charges = f"{TEST_TAX_TEMPLATE_NAME} - {company_abbr}"
-
-        advance_invoice.append(
-            "items",
-            {
-                "item_code": advance_item,
-                "qty": 1,
-                "rate": rate,
-                "income_account": f"Sales - {company_abbr}",
-                "cost_center": f"Main - {company_abbr}",
-            },
-        )
-
-        advance_invoice.append(
-            "taxes",
-            {
-                "charge_type": "On Net Total",
-                "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {company_abbr}",
-                "cost_center": f"Main - {company_abbr}",
-                "description": "VAT 15%",
-                "rate": 15.0,
-            },
-        )
-
-        advance_invoice.insert()
-        advance_invoice.submit()
-
-        return advance_invoice
-
     def test_zatca_sync_is_live(self):
         """
         Ensures that Sync with ZATCA is set to Live in ZATCA Business Settings.
@@ -106,7 +41,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         """
         frappe.logger().info("🧪 Running test_zatca_sync_is_live...")
 
-        settings = self._get_active_zatca_settings()
+        settings = get_active_zatca_settings()
 
         # If not Live, change it to Live
         if settings.sync_with_zatca != "Live":
@@ -158,7 +93,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         )
 
         # 4. Check ZATCA Business Settings
-        settings = self._get_active_zatca_settings()
+        settings = get_active_zatca_settings()
 
         # Auto Apply Advance Payments should be enabled
         if not settings.auto_apply_advance_payments:
@@ -189,7 +124,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         """
         frappe.logger().info("🧪 Running test_advance_invoice_creates_payment_entry...")
 
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
 
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
 
@@ -215,7 +150,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         """
         frappe.logger().info("🧪 Running test_advance_invoice_remains_unpaid...")
 
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
 
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
         frappe.logger().info(f"   Grand Total: {advance_invoice.grand_total}")
@@ -248,7 +183,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_settle_advance_with_auto_apply...")
 
         # Step 1: Verify auto-apply advances is enabled in Business Settings
-        settings = self._get_active_zatca_settings()
+        settings = get_active_zatca_settings()
 
         frappe.logger().info(
             f"   Checking auto_apply_advance_payments: {settings.auto_apply_advance_payments}"
@@ -268,7 +203,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         )
 
         # Step 2: Create advance payment invoice (1000 SAR + 15% VAT = 1150 SAR available balance)
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
         frappe.logger().info(f"   Advance Grand Total: {advance_invoice.grand_total} SAR")
 
@@ -278,7 +213,7 @@ class TestZATCAState3Integration(FrappeTestCase):
             "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
         )
 
-        test_item = self._ensure_test_item_exists()
+        test_item = ensure_test_item_exists()
 
         standard_invoice = frappe.new_doc("Sales Invoice")
         standard_invoice.customer = TEST_STANDARD_CUSTOMER_NAME
@@ -324,9 +259,7 @@ class TestZATCAState3Integration(FrappeTestCase):
 
         # Step 4: Verify the advance payment was applied
         # Calculate total advance allocated from the advances table
-        total_advance_allocated = sum(
-            flt(adv.allocated_amount) for adv in standard_invoice.advances
-        )
+        total_advance_allocated = get_total_advance_allocated(standard_invoice)
 
         frappe.logger().info(f"   Number of advances applied: {len(standard_invoice.advances)}")
         frappe.logger().info(f"   Total Advance (SAR): {total_advance_allocated}")
@@ -366,56 +299,14 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_settle_advance_with_discount...")
 
         # Step 1: Create advance payment invoice (1000 SAR + 15% VAT = 1150 SAR)
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
         frappe.logger().info(f"   Advance Grand Total: {advance_invoice.grand_total} SAR")
 
         # Step 2: Create standard invoice WITH discount
-        company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
-        customer_tax_category = frappe.db.get_value(
-            "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
+        standard_invoice = create_normal_sales_invoice(
+            item_rate=500, additional_discount_percentage=10, apply_discount_on="Net Total"
         )
-
-        test_item = self._ensure_test_item_exists()
-
-        standard_invoice = frappe.new_doc("Sales Invoice")
-        standard_invoice.customer = TEST_STANDARD_CUSTOMER_NAME
-        standard_invoice.company = TEST_COMPANY_NAME
-        standard_invoice.currency = SAUDI_CURRENCY
-        standard_invoice.posting_date = frappe.utils.nowdate()
-        standard_invoice.due_date = frappe.utils.nowdate()
-        standard_invoice.debit_to = f"Debtors - {company_abbr}"
-        standard_invoice.tax_category = customer_tax_category
-        standard_invoice.taxes_and_charges = f"{TEST_TAX_TEMPLATE_NAME} - {company_abbr}"
-
-        # Apply 10% additional discount on Net Total
-        standard_invoice.apply_discount_on = "Net Total"
-        standard_invoice.additional_discount_percentage = 10
-
-        standard_invoice.append(
-            "items",
-            {
-                "item_code": test_item,
-                "qty": 1,
-                "rate": 500,
-                "income_account": f"Sales - {company_abbr}",
-                "cost_center": f"Main - {company_abbr}",
-            },
-        )
-
-        standard_invoice.append(
-            "taxes",
-            {
-                "charge_type": "On Net Total",
-                "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {company_abbr}",
-                "cost_center": f"Main - {company_abbr}",
-                "description": "VAT 15%",
-                "rate": 15.0,
-            },
-        )
-
-        standard_invoice.insert()
-        standard_invoice.submit()
 
         frappe.logger().info(f"   Created invoice with discount: {standard_invoice.name}")
         frappe.logger().info(f"   Net Total: {standard_invoice.net_total} SAR")
@@ -426,9 +317,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         standard_invoice.reload()
 
         # Calculate total advance allocated
-        total_advance_allocated = sum(
-            flt(adv.allocated_amount) for adv in standard_invoice.advances
-        )
+        total_advance_allocated = get_total_advance_allocated(standard_invoice)
 
         frappe.logger().info(f"   Total Advance allocated: {total_advance_allocated} SAR")
         frappe.logger().info(f"   Outstanding Amount: {standard_invoice.outstanding_amount} SAR")
@@ -473,7 +362,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_cannot_cancel_submitted_advance_invoice...")
 
         # Create and submit an advance invoice
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
         frappe.logger().info(f"   Advance invoice status: {advance_invoice.docstatus}")
 
@@ -505,7 +394,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_cannot_cancel_auto_created_payment_entry...")
 
         # Create and submit an advance invoice
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
 
         # Get the auto-created Payment Entry
@@ -555,7 +444,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_cannot_use_payment_reconciliation_for_advances...")
 
         # Step 1: Create an advance payment invoice
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
         frappe.logger().info(f"   Advance Grand Total: {advance_invoice.grand_total} SAR")
 
@@ -630,7 +519,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_cannot_unreconcile_settled_advance_payment...")
 
         # Step 1: Create advance payment invoice
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
         frappe.logger().info(f"   Advance Grand Total: {advance_invoice.grand_total} SAR")
 
@@ -639,7 +528,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         customer_tax_category = frappe.db.get_value(
             "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
         )
-        test_item = self._ensure_test_item_exists()
+        test_item = ensure_test_item_exists()
 
         standard_invoice = frappe.new_doc("Sales Invoice")
         standard_invoice.customer = TEST_STANDARD_CUSTOMER_NAME
@@ -758,7 +647,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_cannot_settle_mismatched_tax_categories...")
 
         # Step 1: Create advance invoice with 15% VAT
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice with 15% VAT: {advance_invoice.name}")
         frappe.logger().info(f"   Advance Tax Category: {advance_invoice.tax_category}")
 
@@ -796,7 +685,7 @@ class TestZATCAState3Integration(FrappeTestCase):
             template.insert(ignore_permissions=True)
             frappe.logger().info(f"   Created zero-rated tax template: {zero_tax_template_name}")
 
-        test_item = self._ensure_test_item_exists()
+        test_item = ensure_test_item_exists()
 
         zero_rated_invoice = frappe.new_doc("Sales Invoice")
         zero_rated_invoice.customer = TEST_STANDARD_CUSTOMER_NAME
@@ -846,7 +735,7 @@ class TestZATCAState3Integration(FrappeTestCase):
 
         # Step 1: Create and submit an advance invoice
         frappe.logger().info("Step 1: Creating advance invoice...")
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
 
         # Verify Payment Entry was created
         payment_entries = frappe.get_all(
@@ -1035,7 +924,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_zatca_validate_xml_setting...")
 
         # Get ZATCA Business Settings
-        settings = self._get_active_zatca_settings()
+        settings = get_active_zatca_settings()
 
         frappe.logger().info(f"   validate_generated_xml: {settings.validate_generated_xml}")
 
@@ -1074,7 +963,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_settle_one_advance_against_multiple_invoices...")
 
         # Step 1: Create advance payment (1000 + 15% VAT = 1150 SAR)
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
         frappe.logger().info(f"   Advance Grand Total: {advance_invoice.grand_total} SAR")
 
@@ -1082,7 +971,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         customer_tax_category = frappe.db.get_value(
             "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
         )
-        test_item = self._ensure_test_item_exists()
+        test_item = ensure_test_item_exists()
 
         # Step 2: Create first standard invoice (300 + 15% VAT = 345 SAR)
         frappe.logger().info("\n   Creating first standard invoice...")
@@ -1239,7 +1128,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         customer_tax_category = frappe.db.get_value(
             "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
         )
-        test_item = self._ensure_test_item_exists()
+        test_item = ensure_test_item_exists()
 
         # Step 1: Create a standard sales invoice
         frappe.logger().info("   Creating standard invoice...")
@@ -1362,7 +1251,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("🧪 Running test_cannot_pay_advance_invoice_twice...")
 
         # Step 1: Create advance invoice (auto-creates Payment Entry)
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
         frappe.logger().info(f"   Grand Total: {advance_invoice.grand_total} SAR")
 
@@ -1455,7 +1344,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         customer_tax_category = frappe.db.get_value(
             "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
         )
-        test_item = self._ensure_test_item_exists()
+        test_item = ensure_test_item_exists()
 
         # Create invoice with amounts that will test rounding
         # Rate: 33.33 SAR * 3 qty = 99.99 SAR
@@ -1549,7 +1438,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         customer_tax_category = frappe.db.get_value(
             "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
         )
-        test_item = self._ensure_test_item_exists()
+        test_item = ensure_test_item_exists()
 
         invoice = frappe.new_doc("Sales Invoice")
         invoice.customer = TEST_STANDARD_CUSTOMER_NAME
@@ -1660,7 +1549,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info(f"   Initial customer balance: {initial_balance} SAR")
 
         # Step 1: Create advance invoice (1000 + VAT = 1150 SAR)
-        advance_invoice = self._create_advance_invoice(rate=1000)
+        advance_invoice = create_advance_sales_invoice(rate=1000)
         frappe.logger().info(f"   Created advance invoice: {advance_invoice.name}")
 
         # Check balance after advance (should increase receivable)
@@ -1675,7 +1564,7 @@ class TestZATCAState3Integration(FrappeTestCase):
         customer_tax_category = frappe.db.get_value(
             "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
         )
-        test_item = self._ensure_test_item_exists()
+        test_item = ensure_test_item_exists()
 
         standard_invoice = frappe.new_doc("Sales Invoice")
         standard_invoice.customer = TEST_STANDARD_CUSTOMER_NAME
