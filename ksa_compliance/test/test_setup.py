@@ -102,7 +102,7 @@ def _create_tax_category():
 
     return TEST_TAX_CATEGORY_NAME
 
-def _create_standard_customer(customer_name, tax_category_name, with_address=False):
+def _create_standard_customer(customer_name, tax_category_name=None, with_address=False):
 
     if not frappe.db.exists("Customer", customer_name):
         customer_doc = frappe.get_doc({
