@@ -88,6 +88,133 @@ def ensure_test_item_exists(item_name="Test Item"):
 
 
 # ============================================================================
+# Tax Category & Template Helpers
+# ============================================================================
+
+
+def create_tax_category_with_zatca(name, zatca_category):
+    """
+    Create a tax category with ZATCA category mapping.
+
+    Args:
+        name (str): Tax category name
+        zatca_category (str): ZATCA tax category (e.g., "Standard rate")
+
+    Returns:
+        str: Tax category name
+    """
+    if not frappe.db.exists("Tax Category", name):
+        tax_cat = frappe.get_doc(
+            {
+                "doctype": "Tax Category",
+                "title": name,
+                "disabled": 0,
+                "custom_zatca_category": zatca_category,
+            }
+        )
+        tax_cat.insert(ignore_permissions=True)
+        frappe.db.commit()
+    return name
+
+
+def create_sales_tax_template(company, template_name, tax_rate, tax_category):
+    """
+    Create a Sales Taxes and Charges Template.
+
+    Args:
+        company (str): Company name
+        template_name (str): Template name (without company abbr)
+        tax_rate (float): Tax rate (e.g., 15 for 15%)
+        tax_category (str): Tax category name
+
+    Returns:
+        str: Full template name with company abbr
+    """
+    company_abbr = get_company_abbr(company)
+    full_template_name = f"{template_name} - {company_abbr}"
+
+    if not frappe.db.exists("Sales Taxes and Charges Template", full_template_name):
+        tax_template = frappe.get_doc(
+            {
+                "doctype": "Sales Taxes and Charges Template",
+                "title": template_name,
+                "is_default": 0,
+                "company": company,
+                "tax_category": tax_category,
+                "taxes": [
+                    {
+                        "charge_type": "On Net Total",
+                        "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {company_abbr}",
+                        "rate": tax_rate,
+                        "description": f"VAT {tax_rate}%",
+                    }
+                ],
+            }
+        )
+        tax_template.insert(ignore_permissions=True)
+        frappe.db.commit()
+
+    return full_template_name
+
+
+# ============================================================================
+# Account Helpers
+# ============================================================================
+
+
+def create_account(
+    account_name,
+    parent_account,
+    company,
+    is_group=0,
+    account_type=None,
+    account_currency=None,
+):
+    """
+    Create an account if it doesn't already exist.
+
+    Args:
+        account_name (str): Account name
+        parent_account (str): Parent account name (with company abbr)
+        company (str): Company name
+        is_group (int): Whether account is a group (0 or 1)
+        account_type (str): Account type (e.g., "Receivable", "Payable", "Expense Account")
+        account_currency (str): Account currency (e.g., "SAR", "USD")
+
+    Returns:
+        str: Full account name with company abbreviation
+    """
+    company_abbr = frappe.get_cached_value("Company", company, "abbr")
+    full_account_name = f"{account_name} - {company_abbr}"
+
+    # Check if account already exists
+    if frappe.db.exists("Account", full_account_name):
+        return full_account_name
+
+    # Create new account
+    account = frappe.get_doc(
+        {
+            "doctype": "Account",
+            "account_name": account_name,
+            "parent_account": parent_account,
+            "company": company,
+            "is_group": is_group,
+        }
+    )
+
+    if account_type:
+        account.account_type = account_type
+
+    if account_currency:
+        account.account_currency = account_currency
+
+    account.insert(ignore_permissions=True)
+    frappe.db.commit()
+
+    return full_account_name
+
+
+# ============================================================================
 # Company/Customer Helpers
 # ============================================================================
 
@@ -117,6 +244,8 @@ def create_normal_sales_invoice(
     submit=True,
     additional_discount_percentage=0,
     apply_discount_on=None,
+    tax_category=None,
+    clear_tax_category=False,
 ):
     """
     Create a normal (non-advance) Sales Invoice.
@@ -131,6 +260,8 @@ def create_normal_sales_invoice(
         submit (bool): Whether to submit the invoice
         additional_discount_percentage (float): Additional discount percentage
         apply_discount_on (str): Apply discount on ("Net Total" or "Grand Total")
+        tax_category (str): Tax category to set (if None and clear_tax_category=False, uses default)
+        clear_tax_category (bool): If True, explicitly clear tax_category to empty string
 
     Returns:
         Document: Sales Invoice document
@@ -139,7 +270,6 @@ def create_normal_sales_invoice(
         item_code = ensure_test_item_exists()
 
     company_abbr = get_company_abbr(company)
-    customer_tax_category = get_customer_tax_category(customer)
 
     if tax_template is None:
         tax_template = TEST_TAX_TEMPLATE_NAME
@@ -157,8 +287,13 @@ def create_normal_sales_invoice(
     invoice.posting_date = frappe.utils.nowdate()
     invoice.due_date = frappe.utils.nowdate()
     invoice.debit_to = f"Debtors - {company_abbr}"
-    invoice.tax_category = customer_tax_category
     invoice.taxes_and_charges = full_template_name
+
+    # Handle tax_category: clear it if requested, set it if provided
+    if clear_tax_category:
+        invoice.tax_category = ""
+    elif tax_category:
+        invoice.tax_category = tax_category
 
     # Apply discount if specified
     if additional_discount_percentage > 0:
@@ -232,7 +367,6 @@ def create_advance_sales_invoice(
     advance_item = settings.advance_payment_item
 
     company_abbr = get_company_abbr(company)
-    customer_tax_category = get_customer_tax_category(customer)
 
     if tax_template is None:
         tax_template = TEST_TAX_TEMPLATE_NAME
@@ -251,8 +385,12 @@ def create_advance_sales_invoice(
     invoice.due_date = frappe.utils.nowdate()
     invoice.debit_to = f"Debtors - {company_abbr}"
     invoice.mode_of_payment = "Cash"  # Required for advance invoice
-    invoice.tax_category = customer_tax_category
     invoice.taxes_and_charges = full_template_name
+
+    # Get tax_category from the template and set it on the invoice
+    template_doc = frappe.get_doc("Sales Taxes and Charges Template", full_template_name)
+    if template_doc.tax_category:
+        invoice.tax_category = template_doc.tax_category
 
     # Add advance payment item
     invoice.append(
@@ -267,7 +405,6 @@ def create_advance_sales_invoice(
     )
 
     # Add taxes from template
-    template_doc = frappe.get_doc("Sales Taxes and Charges Template", full_template_name)
     for tax_row in template_doc.taxes:
         invoice.append(
             "taxes",
@@ -408,37 +545,22 @@ def create_advance_payment_entry(
         payment_entry.party = customer
         payment_entry.paid_to = f"Cash - {company_abbr}"
         payment_entry.paid_from = f"Debtors - {company_abbr}"
+        payment_entry.paid_from_account_currency = "SAR"
     else:
         payment_entry.party_type = "Supplier"
         payment_entry.party = customer  # Can be supplier name
         payment_entry.paid_from = f"Cash - {company_abbr}"
         payment_entry.paid_to = f"Creditors - {company_abbr}"
+        payment_entry.paid_from_account_currency = "SAR"
 
     payment_entry.paid_amount = paid_amount
     payment_entry.received_amount = paid_amount
     payment_entry.target_exchange_rate = 1
     payment_entry.source_exchange_rate = 1
 
-    # Apply advance payment taxes if template is set
+    # Set advance payment tax template reference (don't populate taxes table to avoid ERPNext tax calculation bug)
     if advance_tax_template:
         payment_entry.advance_payment_entry_taxes_and_charges = advance_tax_template
-
-        # Add taxes from template
-        try:
-            template_doc = frappe.get_doc("Sales Taxes and Charges Template", advance_tax_template)
-            for tax_row in template_doc.taxes:
-                payment_entry.append(
-                    "taxes",
-                    {
-                        "charge_type": tax_row.charge_type,
-                        "account_head": tax_row.account_head,
-                        "cost_center": tax_row.cost_center,
-                        "description": tax_row.description,
-                        "rate": tax_row.rate,
-                    },
-                )
-        except frappe.DoesNotExistError:
-            frappe.logger().warning(f"Tax template {advance_tax_template} not found")
 
     payment_entry.insert()
 
