@@ -13,6 +13,7 @@ from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_busines
     withdraw_settings as _withdraw,
 )
 from ksa_compliance.ksa_compliance.test.test_invoice_helpers import (
+    create_account,
     create_normal_payment_entry,
     create_normal_sales_invoice,
     ensure_test_item_exists,
@@ -422,6 +423,17 @@ def setup_zatca_business_settings(company_name, country, currency, full_onboardi
     if active_exists:
         return active_exists[0]["name"]
 
+    # Get company abbreviation
+    company_abbr = frappe.get_cached_value("Company", company_name, "abbr")
+
+    # Create Advance Payment Tax Account using the helper function
+    advance_payment_tax_account = create_account(
+        account_name="Advance Payment Tax Account",
+        parent_account=f"Duties and Taxes - {company_abbr}",
+        company=company_name,
+        is_group=0,
+    )
+
     if not frappe.db.exists("ZATCA Business Settings", doc_name):
         address_title = "السلمانية الأمير عبد العزيز بن مساعد بن جلوي"
         address_name = f"{address_title}-Billing"
@@ -478,6 +490,7 @@ def setup_zatca_business_settings(company_name, country, currency, full_onboardi
                 "advance_payment_item": item_code,
                 "auto_apply_advance_payments": 1,
                 "advance_payment_depends_on": "Sales Invoice",
+                "advance_payment_tax_account": advance_payment_tax_account,
                 "cli_setup": "Automatic",
                 "validate_generated_xml": 1,
                 "block_invoice_on_invalid_xml": 1,
@@ -498,6 +511,8 @@ def setup_zatca_business_settings(company_name, country, currency, full_onboardi
         )
         settings.insert(ignore_permissions=True)
         settings_name = settings.name
+    else:
+        settings_name = doc_name
 
     b_settings = frappe.get_doc("ZATCA Business Settings", settings_name)
 
