@@ -366,9 +366,15 @@ class ZATCABusinessSettings(Document):
         """Retrieves active business settings for a company"""
         filters = {
             "company": company_id,
+            "status": "Active",  # Default: only Active for normal invoices
         }
-        if invoice and hasattr(invoice, "is_perform_compliance_checks"):
-            filters["status"] = "Active"
+        # For compliance check tests, allow both Active and Pending Activation
+        if (
+            invoice
+            and hasattr(invoice, "is_perform_compliance_checks")
+            and invoice.is_perform_compliance_checks
+        ):
+            filters["status"] = ["in", ["Active", "Pending Activation"]]
         business_settings_id = frappe.db.get_value("ZATCA Business Settings", filters=filters)
 
         if not business_settings_id:
