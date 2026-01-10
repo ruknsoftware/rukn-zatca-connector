@@ -14,7 +14,7 @@ to a section with the version name.
 ## Unreleased Changes
 ## 0.67.7
 * Refactor ZATCA Business Settings Tests With Helper Methods
-* Update Filters To Support Pending Activation Status For Compliance Checks
+* Update Filters To Allow Only Active Status For Normal Sales Invoices And Payment Entries
 
 ## 0.67.6
 * Refactor Test Code With Reusable Invoice Helper Methods
