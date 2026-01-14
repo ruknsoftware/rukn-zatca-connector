@@ -160,6 +160,8 @@ class TestZATCATaxCategoryIntegration(FrappeTestCase):
             self.assertTrue(advance_invoice.name)
             frappe.logger().info(f"   ✅ Created advance invoice: {advance_invoice.name}")
 
+            frappe.db.commit()
+
             # Verify payment entry was created for the advance
             payment_entries = frappe.get_all(
                 "Payment Entry",
@@ -194,6 +196,9 @@ class TestZATCATaxCategoryIntegration(FrappeTestCase):
                     )
                     self.assertTrue(invoice.name)
                     invoice.reload()
+
+                    # Commit to database so you can see it in the site
+                    frappe.db.commit()
 
                     # Verify tax_category is empty on the invoice
                     self.assertEqual(
@@ -295,6 +300,8 @@ class TestZATCATaxCategoryIntegration(FrappeTestCase):
             self.assertTrue(advance_pe.name)
             frappe.logger().info(f"   ✅ Created advance payment entry: {advance_pe.name}")
 
+            frappe.db.commit()
+
             # STEP 2: Create 3 normal invoices with different tax templates
             # ALL normal invoices have tax_category EMPTY (clear_tax_category=True)
 
@@ -317,6 +324,9 @@ class TestZATCATaxCategoryIntegration(FrappeTestCase):
                     )
                     self.assertTrue(invoice.name)
                     invoice.reload()
+
+                    # Commit to database so you can see it in the site
+                    frappe.db.commit()
 
                     # Verify tax_category is empty on the invoice
                     self.assertEqual(
