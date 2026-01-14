@@ -246,6 +246,8 @@ def create_normal_sales_invoice(
     apply_discount_on=None,
     tax_category=None,
     clear_tax_category=False,
+    advance_payment_entry=None,
+    advance_allocated_amount=None,
 ):
     """
     Create a normal (non-advance) Sales Invoice.
@@ -262,6 +264,8 @@ def create_normal_sales_invoice(
         apply_discount_on (str): Apply discount on ("Net Total" or "Grand Total")
         tax_category (str): Tax category to set (if None and clear_tax_category=False, uses default)
         clear_tax_category (bool): If True, explicitly clear tax_category to empty string
+        advance_payment_entry (str): Payment Entry name to manually allocate as advance
+        advance_allocated_amount (float): Amount to allocate (if None, uses grand_total)
 
     Returns:
         Document: Sales Invoice document
@@ -323,6 +327,24 @@ def create_normal_sales_invoice(
                 "cost_center": tax_row.cost_center,
                 "description": tax_row.description,
                 "rate": tax_row.rate,
+            },
+        )
+
+    # Manually allocate advance payment entry if specified (before insert)
+    if advance_payment_entry:
+        allocated_amount = (
+            advance_allocated_amount
+            if advance_allocated_amount is not None
+            else invoice.grand_total
+        )
+
+        invoice.append(
+            "advances",
+            {
+                "reference_type": "Payment Entry",
+                "reference_name": advance_payment_entry,
+                "allocated_amount": allocated_amount,
+                "remarks": "Manually allocated advance payment",
             },
         )
 
