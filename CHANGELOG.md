@@ -12,6 +12,9 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.67.9
+* Fix Perform Compliance Checks after Withdrawn ZATCA Business Settings
+
 ## 0.67.8
 * Add Tax Category Handling For All Types Of Taxes
 * Add Comprehensive Tax Category Integration Tests
