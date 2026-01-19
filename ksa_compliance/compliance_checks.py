@@ -225,7 +225,6 @@ def _perform_compliance_for_invoice_type(
     return_invoice.custom_return_reason = "Goods returned"
     return_invoice.set_taxes()
     return_invoice.set_missing_values()
-    print("return_invoice")
     update_perform_compliance_checks(settings.company, True)
     return_invoice.save()
     progress += progress_per_step
@@ -246,7 +245,6 @@ def _perform_compliance_for_invoice_type(
     debit_invoice.is_debit_note = True
     debit_invoice.set_taxes()
     debit_invoice.set_missing_values()
-    print("debit_invoice")
     update_perform_compliance_checks(settings.company, True)
     debit_invoice.save()
     progress += progress_per_step
@@ -294,7 +292,6 @@ def _make_invoice(company: str, customer: str, item: str, tax_category_id: str) 
     invoice.set_taxes()
     invoice.append("items", {"item_code": item, "qty": 1.0})
     invoice.set_missing_values()
-    print("normal invoice")
     update_perform_compliance_checks(company, True)
     invoice.save()
     return invoice
