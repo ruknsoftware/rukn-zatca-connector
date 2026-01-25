@@ -114,6 +114,14 @@ class ZATCABusinessSettings(Document):
 
     def validate(self):
         """Validates business settings and prevents conflicts"""
+        if self.is_new() and self.production_request_id:
+            fthrow(
+                msg=_(
+                    "You cannot create new settings while a Production CSID is already configured."
+                ),
+                title=_("Invalid Configuration"),
+            )
+
         if self.enable_zatca_integration:
             phase_1_settings = frappe.get_value(
                 "ZATCA Phase 1 Business Settings",
@@ -129,6 +137,36 @@ class ZATCABusinessSettings(Document):
                     ).format(self.company, link),
                     title=_("Another Setting Already Enabled"),
                 )
+        self.throw_if_duplicate_active_or_pending_settings()
+
+    def throw_if_duplicate_active_or_pending_settings(self):
+        """
+        Throws an error if there is already an Active or Pending Activation ZATCA Business Settings for the same company (excluding self).
+        """
+        doctype_name = "ZATCA Business Settings"
+        company = getattr(self, "company", None)
+        source_name = getattr(self, "name", None)
+        if not company:
+            return
+        existing_settings = frappe.db.get_value(
+            doctype_name,
+            {
+                "company": company,
+                "status": ["in", ["Active", "Pending Activation"]],
+                "name": ["!=", source_name],
+            },
+            ["name", "status"],
+            as_dict=True,
+        )
+        if existing_settings:
+            settings_link = get_link_to_form(doctype_name, existing_settings.name)
+            fthrow(
+                _(
+                    "Cannot duplicate configuration: Company {0} already has {1} settings: {2}. "
+                    "Please withdraw or complete the existing configuration first."
+                ).format(company, existing_settings.status, settings_link),
+                title=_("Duplicate Configuration Not Allowed"),
+            )
 
     def after_insert(self):
         invoice_counting_doc = frappe.new_doc("ZATCA Invoice Counting Settings")
@@ -328,9 +366,12 @@ class ZATCABusinessSettings(Document):
         """Retrieves active business settings for a company"""
         filters = {
             "company": company_id,
+            "status": "Active",  # Default: only Active for normal invoices
         }
-        if invoice and hasattr(invoice, "is_perform_compliance_checks"):
-            filters["status"] = "Active"
+        # For compliance check tests, allow both Active and Pending Activation
+        company_doc = frappe.get_cached_doc("Company", company_id)
+        if company_doc.is_perform_compliance_checks:
+            filters["status"] = ["in", ["Active", "Pending Activation"]]
         business_settings_id = frappe.db.get_value("ZATCA Business Settings", filters=filters)
 
         if not business_settings_id:
@@ -494,26 +535,11 @@ def duplicate_configuration(source_name: str, target_doc=None):
     company = source_doc.company
 
     # Check if company already has Active or Pending Activation settings
-    existing_settings = frappe.db.get_value(
-        doctype_name,
-        {
-            "company": company,
-            "status": ["in", ["Active", "Pending Activation"]],
-            "name": ["!=", source_name],
-        },
-        ["name", "status"],
-        as_dict=True,
-    )
-
-    if existing_settings:
-        settings_link = get_link_to_form(doctype_name, existing_settings.name)
-        fthrow(
-            _(
-                "Cannot duplicate configuration: Company {0} already has {1} settings: {2}. "
-                "Please withdraw or complete the existing configuration first."
-            ).format(company, existing_settings.status, settings_link),
-            title=_("Duplicate Configuration Not Allowed"),
-        )
+    # Use the new method for duplicate check
+    temp_doc = frappe.new_doc(doctype_name)
+    temp_doc.company = company
+    temp_doc.name = source_name
+    temp_doc.throw_if_duplicate_active_or_pending_settings()
 
     # Credential fields to exclude from duplication
     excluded_credential_fields = [

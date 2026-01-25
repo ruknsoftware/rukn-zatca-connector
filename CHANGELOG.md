@@ -12,6 +12,23 @@ to a section with the version name.
 > Use these versions **at your own risk** on v15.
 
 ## Unreleased Changes
+## 0.67.9
+* Fix Perform Compliance Checks after Withdrawn ZATCA Business Settings
+
+## 0.67.8
+* Add Tax Category Handling For All Types Of Taxes
+* Add Comprehensive Tax Category Integration Tests
+
+## 0.67.7
+* Refactor ZATCA Business Settings Tests With Helper Methods
+* Update Filters To Allow Only Active Status
+
+## 0.67.6
+* Refactor Test Code With Reusable Invoice Helper Methods
+
+## 0.67.5
+* Prevent Duplicate ZATCA Business Settings For The Same Company
+
 ## 0.67.4
 * Fix Filter Settings Status Compliance Checks
 

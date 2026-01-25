@@ -171,6 +171,17 @@ def add_custom_fields():
                 module=ksa_compliance_module,
             )
         ],
+        "Company": [
+            dict(
+                fieldname="is_perform_compliance_checks",
+                label="IS Perform Compliance Checks",
+                fieldtype="Check",
+                insert_after="is_group",
+                read_only=True,
+                hidden=True,
+                module=ksa_compliance_module,
+            )
+        ],
     }
     create_custom_fields(custom_fields)
 
