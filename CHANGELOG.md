@@ -13,6 +13,10 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.68.1
+* Fix Branch Validate Hook Crashing When Company Is Not Set
+  * Guard Against None Company In Is Zatca Enabled To Prevent DoesNotExistError
+
 ## 0.68.0
 * Fix background_jobs.py to conditionally enable deduplicate for Frappe v15+
   * Add type hint for check_date parameter to pass semgrep validation
