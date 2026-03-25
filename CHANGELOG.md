@@ -13,6 +13,9 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.68.2
+* Fix Allow passing customer Additional IDS on Auto Invoices
+
 ## 0.68.1
 * Fix Branch Validate Hook Crashing When Company Is Not Set
   * Guard Against None Company In Is Zatca Enabled To Prevent DoesNotExistError

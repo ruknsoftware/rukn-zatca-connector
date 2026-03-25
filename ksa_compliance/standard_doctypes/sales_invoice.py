@@ -336,7 +336,7 @@ def validate_customer_vat_compliance(self, method):
         return
 
     customer = frappe.get_doc("Customer", customer_name)
-    is_customer_have_vat_number = customer.custom_vat_registration_number and not any(
+    is_customer_have_vat_number = customer.custom_vat_registration_number or any(
         [strip(x.value) for x in customer.custom_additional_ids]
     )
 
