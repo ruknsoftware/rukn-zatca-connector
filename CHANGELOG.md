@@ -13,6 +13,10 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.68.3
+* Fix function get_itemised_tax changes on v16
+* Fix none values on einvoice details
+
 ## 0.68.2
 * Fix Allow passing customer Additional IDS on Auto Invoices
 
