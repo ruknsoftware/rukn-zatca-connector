@@ -21,8 +21,10 @@ def update_itemised_tax_data(doc):
     meta = frappe.get_meta(doc.items[0].doctype)
     if not meta.has_field("tax_rate"):
         return
-
-    itemised_tax = get_itemised_tax(doc.taxes)
+    if frappe.__version__.startswith("15"):
+        itemised_tax = get_itemised_tax(doc.taxes)
+    else:
+        itemised_tax = get_itemised_tax(doc)
 
     def determine_if_export(doc):
         if doc.doctype != "Sales Invoice":
