@@ -1283,14 +1283,14 @@ class AdvancePaymentEntry(Einvoice):
             # Return invoice (XML): abs(-100.25) + 0.25 = 100.25
             # So the calculation would be wrong if we just used the value of rounding adjustment. We need to recalculate
             # it or adjust its sign to produce the right result in the return case
-            payable_before_prepay = abs(self.sales_invoice_doc.get("rounded_total"))
+            payable_before_prepay = abs(self.sales_invoice_doc.get("rounded_total") or 0)
             tax_inclusive_amount = abs(grand_total)
             prepaid_amount = self.result.get("prepaid_amount", 0.0) or 0.0
             # Apply BR-CO-16 by subtracting pre-paid amount
             self.result["invoice"]["payable_amount"] = max(
                 0.0, payable_before_prepay - prepaid_amount
             )
-            if self.sales_invoice_doc.is_return:
+            if self.sales_invoice_doc.get("is_return"):
                 self.result["invoice"]["rounding_adjustment"] = (
                     payable_before_prepay - tax_inclusive_amount
                 )
