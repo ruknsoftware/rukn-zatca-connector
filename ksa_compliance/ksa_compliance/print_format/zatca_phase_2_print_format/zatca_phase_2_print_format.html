@@ -1,11 +1,38 @@
 {% set details = get_phase_2_print_format_details(doc) %}
 
 {% if details %}
-
-{% if (details.siaf.invoice_type_transaction)[:2] == '01' %}
+{% if details.get("xml_data") %}
+    {% set xml_invoice = details.xml_data.invoice %}
+    {% set xml_seller = details.xml_data.seller_details %}
+    {% set xml_buyer = details.xml_data.buyer_details %}
+    {% set xml_biz = details.xml_data.business_settings %}
+    {% set inv_name = xml_invoice.id %}
+    {% set posting_date = xml_invoice.issue_date %}
+    {% set seller_name = xml_biz.get("registration_name", "") %}
+    {% set seller_street = xml_seller.get("street_name", "") %}
+    {% set seller_district = xml_seller.get("city_subdivision_name", "") %}
+    {% set seller_city = xml_seller.get("city_name", "") %}
+    {% set seller_postal_code = xml_seller.get("postal_zone", "") %}
+    {% set seller_vat = xml_biz.get("company_id", "") %}
+    {% set buyer_name = xml_buyer.get("registration_name", "") %}
+    {% set buyer_street = xml_buyer.get("street_name", "") %}
+    {% set buyer_district = xml_buyer.get("city_subdivision_name", "") %}
+    {% set buyer_city = xml_buyer.get("city_name", "") %}
+    {% set buyer_postal_code = xml_buyer.get("postal_zone", "") %}
+    {% set buyer_vat = xml_buyer.get("company_id", "") %}
+    {% set po_no = xml_invoice.purchase_order_reference %}
+    {% set po_date = "" %}
+    {% set doc_items = xml_invoice.item_lines %}
+    {% set net_total = xml_invoice.net_total %}
+    {% set total_taxes = xml_invoice.total_taxes_and_charges %}
+    {% set grand_total = xml_invoice.grand_total %}
+    {% set invoice_type_transaction = xml_invoice.invoice_type_transaction %}
+{% if invoice_type_transaction and invoice_type_transaction[:2] == '01' %}
     {% set invoice_type = "Standard" %}
-{% elif (details.siaf.invoice_type_transaction)[:2] == '02' %}
+{% elif invoice_type_transaction and invoice_type_transaction[:2] == '02' %}
     {% set invoice_type = "Simplified" %}
+{% else %}
+    {% set invoice_type = "Standard" if xml_invoice.invoice_type_code == '388' else "Simplified" %}
 {% endif %}
 
 {% if letter_head %}
@@ -21,17 +48,17 @@
 {% endif %}
 <div class="text-center">
     {% if invoice_type == "Standard" %}
-    {% if doc.is_return %}
+    {% if xml_invoice.invoice_type_code == '381' %}
         <h2>{{_("Standard Tax Invoice Credit Note")}}</h2>
-    {% elif doc.is_debit_note %}
+    {% elif xml_invoice.invoice_type_code == '383' %}
         <h2>{{_("Standard Tax Invoice Debit Note")}}</h2>
     {% else %}
         <h2>{{_("Standard Tax Invoice")}}</h2>
     {% endif %}
 {% elif invoice_type == "Simplified" %}
-{% if doc.is_return %}
+{% if xml_invoice.invoice_type_code == '381' %}
         <h2>{{_("Simplified Tax Invoice Credit Note")}}</h2>
-    {% elif doc.is_debit_note %}
+    {% elif xml_invoice.invoice_type_code == '383' %}
         <h2>{{_("Simplified Tax Invoice Debit Note")}}</h2>
     {% else %}
         <h2>{{_("Simplified Tax Invoice")}}</h2>
@@ -41,13 +68,11 @@
     <div class="col-md-6">
         <span>
             <b>{{_("Invoice ID")}}</b>
-            <p>{{ doc.name }}</p>
+            <p>{{ inv_name }}</p>
         </span>
     </div>
-{% if doc.is_return or doc.is_debit_note %}
-    {% set additional_references = doc.custom_return_against_additional_references | default([]) %}
-    {% set references = (additional_references | map(attribute="sales_invoice") | list) + [doc.return_against] %}
-    {% set references = references | select("string") | unique | sort %}
+{% if xml_invoice.invoice_type_code in ('381', '383') %}
+    {% set references = xml_invoice.billing_references | default([]) %}
 
     {% if references | length == 1 %}
         <div class="col-md-6">
@@ -68,7 +93,7 @@
     <div class="col-md-6">
         <span>
             <b>{{_("Posting Date")}}</b>
-            <p>{{ doc.get_formatted("posting_date") }}</p>
+            <p>{{ posting_date }}</p>
         </span>
     </div>
 </div>
@@ -89,22 +114,25 @@
                 <b>{{_("Vat Registration Number")}}</b>
             </td>
             <td>
-                <b>{{_(details.seller_other_id_name)}}</b>
+                <b>{{_("Other ID")}}</b>
             </td>
         </tr>
         <tr>
             <td>
-                <p>{{ details.settings.seller_name }}</p>
+                <p>{{ seller_name }}</p>
             </td>
             <td>
-                {{ details.address.street }}, {{ details.address.district }}, {{ details.address.city }} | {{ details.address.postal_code }}
+                {{ seller_street }}, {{ seller_district }}, {{ seller_city }} | {{ seller_postal_code }}
             </td>
             <td>
-                <p>{{ details.settings.vat_registration_number }}</p>
+                <p>{{ seller_vat }}</p>
             </td>
             <td>
-                {% if  details.seller_other_id %}
-                <p>{{ details.seller_other_id }}</p>
+                {% set seller_pids = xml_seller.get("party_identifications", {}) %}
+                {% if seller_pids %}
+                    {% for scheme, val in seller_pids.items() %}
+                        <p>{{ val }}</p>
+                    {% endfor %}
                 {% endif %}
             </td>
         </tr>
@@ -122,29 +150,33 @@
                 <b>{{_("Vat Registration Number")}}</b>
             </td>
             <td>
-                <b>{{_(details.buyer_other_id_name)}}</b>
+                <b>{{_("Other ID")}}</b>
             </td>
     </tr>
     <tr>
         <td>
-            {{ doc.customer }}
+            {{ buyer_name }}
         </td>
         <td>
-            {{ details.siaf.buyer_street_name }}, {{ details.siaf.buyer_district }},  {{details.siaf.buyer_city }}, {{ details.siaf.buyer_postal_code }}
+            {{ buyer_street }}, {{ buyer_district }},  {{ buyer_city }}, {{ buyer_postal_code }}
         </td>
         <td>
-            {{ details.siaf.buyer_vat_registration_number }}
+            {{ buyer_vat }}
         </td>
         <td>
-            {% if details.buyer_other_id %}
-                {{ details.buyer_other_id }}
+            {% set buyer_pids = xml_buyer.get("party_identifications", {}) %}
+            {% if buyer_pids %}
+                {% for scheme, val in buyer_pids.items() %}
+                    <p>{{ val }}</p>
+
+                {% endfor %}
             {% endif %}
         </td>
     </tr>
 </table>
 {% endif %}
 
-{% if doc.po_no %}
+{% if po_no %}
     <table class="table table-bordered" dir={{dir}}>
     <tr>
         <td>
@@ -156,10 +188,10 @@
     </tr>
     <tr>
         <td>
-            {{ doc.po_no }}
+            {{ po_no }}
         </td>
         <td>
-            {{ doc.po_date }}
+            {{ po_date }}
         </td>
 
     </tr>
@@ -187,30 +219,28 @@
 			<th class="text-center">{{_("VAT Amount")}}</th>
 			<th class="text-center">{{_("Total With VAT")}}</th>
 		</tr>
-		{%- for row in doc.items -%}
-		{% set item_taxes = json.loads(frappe.db.get_value("Sales Taxes and Charges", {"parent": doc.name}, "item_wise_tax_detail")) %}
-        {#
-        tax_rate and tax_amount were added to sales invoice item after 0.37.1, so invoices issued before then would have zero values for them.
-        For backward compatibilty, we fall back to item wise tax details in those cases
-        #}
-		{% set item_tax_percent = row.tax_rate or item_taxes[row.item_code][0] %}
-		{% set item_tax_total = (row.tax_amount or item_taxes[row.item_code][1]) / doc.conversion_rate %}
-		{% set item_total_after_tax = item_tax_total + row.net_amount %}
+		{%- for row in doc_items -%}
+		    {% set item_tax_percent = row.tax_percent %}
+		    {% set item_tax_total = row.tax_amount | float %}
+		    {% set item_total_after_tax = row.total_amount | float %}
+		    {% set row_rate = row.rate | float %}
+		    {% set row_amount = row.amount | float %}
+
 		<tr>
 			<td style="width: 3%;">{{ row.idx }}</td>
 			<td style="width: 20%;">
 				{{ row.item_name }}
-				{% if row.item_code != row.item_name -%}
+				{% if row.item_code and row.item_code != row.item_name -%}
 				<br>Item Code: {{ row.item_code}}
 				{%- endif %}
 			</td>
 
-			<td style="width: 10%; text-align: right;">{{ row.qty | abs }}</td>
-		    <td style="width: 15%; text-align: right;">{{ frappe.utils.fmt_money(row.rate | abs, None, doc.currency) }}</td>
-			<td style="width: 15%; text-align: right;">{{ row.get_formatted("amount", doc) }}</td>
+			<td style="width: 10%; text-align: right;">{{ row.qty | float | abs }}</td>
+		    <td style="width: 15%; text-align: right;">{{ frappe.utils.fmt_money(row_rate | float | abs, None, xml_invoice.currency_code) }}</td>
+			<td style="width: 15%; text-align: right;">{{ frappe.utils.fmt_money(row_amount | float, None, xml_invoice.currency_code) }}</td>
 			<td style="width: 10%; text-align: right;">{{ item_tax_percent }} %</td>
-			<td style="width: 15%; text-align: right;">{{ frappe.utils.fmt_money(item_tax_total | abs, None, doc.currency) }}</td>
-			<td style="width: 15%; text-align: right;">{{ frappe.utils.fmt_money(item_total_after_tax | abs, None, doc.currency)}}</td>
+			<td style="width: 15%; text-align: right;">{{ frappe.utils.fmt_money(item_tax_total | abs, None, xml_invoice.currency_code) }}</td>
+			<td style="width: 15%; text-align: right;">{{ frappe.utils.fmt_money(item_total_after_tax | abs, None, xml_invoice.currency_code)}}</td>
 		</tr>
 		{%- endfor -%}
 	</tbody>
@@ -221,7 +251,7 @@
                 <p>{{_("Total Taxable Amount")}}</p>
             </td>
             <td>
-                <p>{{ frappe.utils.fmt_money(doc.net_total | abs, None, doc.currency) }}</p>
+                <p>{{ frappe.utils.fmt_money(net_total | float | abs, None, xml_invoice.currency_code) }}</p>
             </td>
         </tr>
         <tr>
@@ -229,7 +259,7 @@
                 <p>{{_("VAT Amount")}}</p>
             </td>
             <td>
-                <p>{{ frappe.utils.fmt_money(doc.total_taxes_and_charges | abs, None, doc.currency) }}</p>
+                <p>{{ frappe.utils.fmt_money(total_taxes | float | abs, None, xml_invoice.currency_code) }}</p>
             </td>
         </tr>
         <tr>
@@ -237,13 +267,15 @@
                 <p>{{_("Total With VAT")}}</p>
             </td>
             <td>
-                <p>{{ frappe.utils.fmt_money(doc.grand_total | abs, None, doc.currency) }}</p>
+                <p>{{ frappe.utils.fmt_money(grand_total | float | abs, None, xml_invoice.currency_code) }}</p>
             </td>
         </tr>
     </table>
 </div>
 
-{% if details.prepayment_info %}
+{% set xml_prepayment_info = xml_invoice.get("prepayment_info") %}
+{% if xml_prepayment_info %}
+    <!-- Prepayments are derived from details but can be linked dynamically in future -->
 
 <table class="table table-bordered"  dir={{dir}}>
 	<tbody>
@@ -256,16 +288,16 @@
 			<th>{{_("Total Prepayment Amount")}}</th>
 
 		</tr>
-		{%- for row in details.prepayment_info -%}
+		{%- for row in xml_prepayment_info -%}-
 
 		<tr>
 		    <td style="width: 3%; text-align: right;">{{ row.idx }}</td>
 			<td style="width: 17%; text-align: right;">{{ row.advance_payment_invoice }}</td>
-			<td style="width: 15%; text-align: right;">{{ row.tax_percent }} %</td>
+			<td style="width: 15%; text-align: right;">{{ row.tax_percent | float }} %</td>
 
-			<td style="width: 20%; text-align: right;">{{ frappe.utils.fmt_money(row.amount | abs, None, doc.currency) }}</td>
-			<td style="width: 20%; text-align: right;">{{ frappe.utils.fmt_money(row.tax_amount | abs, None, doc.currency) }}</td>
-			<td style="width: 20%; text-align: right;">{{ frappe.utils.fmt_money(row.allocated_amount | abs, None, doc.currency)}}</td>
+			<td style="width: 20%; text-align: right;">{{ frappe.utils.fmt_money(row.amount | float | abs, None, xml_invoice.currency_code) }}</td>
+			<td style="width: 20%; text-align: right;">{{ frappe.utils.fmt_money(row.tax_amount | float | abs, None, xml_invoice.currency_code) }}</td>
+			<td style="width: 20%; text-align: right;">{{ frappe.utils.fmt_money(row.allocated_amount | float | abs, None, xml_invoice.currency_code)}}</td>
 		</tr>
 		{%- endfor -%}
 	</tbody>
@@ -274,8 +306,9 @@
 
 <div>
 <div class="text-center">
-    {% if details.siaf.qr_image_src %}
-        <img src="{{ details.siaf.qr_image_src }}" width=200 height=200>
+    {% set qr_image_src = xml_invoice.get("qr_image_src") %}
+    {% if qr_image_src %}
+        <img src="{{ qr_image_src }}" width=200 height=200>
     {% else %}
         <div class="text-center w-100">
             <p class="h2 text-danger">{{ _("Error : No Qr code") }}</p>
@@ -283,10 +316,11 @@
     {% endif %}
 
 </div>
+{% endif %}
 
 {% else %}
     <div style="display: none;">{{ frappe.msgprint( title='Error', msg=_("Does not have active ZATCA Phase 2 Business Settings"), indicator="red" ) }}</div>
     <div class="text-center w-100">
-        <p class="h2 text-danger">{{ doc.company }} : {{ _("Does not have active ZATCA Phase 2 Business Settings") }}</p>
+        <p class="h2 text-danger">{{ _("Does not have active ZATCA Phase 2 Business Settings or parsed XML") }}</p>
     </div>
 {% endif %}
