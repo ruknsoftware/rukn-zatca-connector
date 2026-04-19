@@ -114,7 +114,7 @@
                 <b>{{_("Vat Registration Number")}}</b>
             </td>
             <td>
-                <b>{{_("Other ID")}}</b>
+                <b>{{ _(xml_seller.get("other_id_name", "Other ID")) }}</b>
             </td>
         </tr>
         <tr>
@@ -128,11 +128,8 @@
                 <p>{{ seller_vat }}</p>
             </td>
             <td>
-                {% set seller_pids = xml_seller.get("party_identifications", {}) %}
-                {% if seller_pids %}
-                    {% for scheme, val in seller_pids.items() %}
-                        <p>{{ val }}</p>
-                    {% endfor %}
+                {% if xml_seller.other_id_value %}
+                    <p>{{ xml_seller.other_id_value }}</p>
                 {% endif %}
             </td>
         </tr>
@@ -150,7 +147,7 @@
                 <b>{{_("Vat Registration Number")}}</b>
             </td>
             <td>
-                <b>{{_("Other ID")}}</b>
+                <b>{{ _(xml_buyer.get("other_id_name", "Other ID")) }}</b>
             </td>
     </tr>
     <tr>
@@ -164,12 +161,8 @@
             {{ buyer_vat }}
         </td>
         <td>
-            {% set buyer_pids = xml_buyer.get("party_identifications", {}) %}
-            {% if buyer_pids %}
-                {% for scheme, val in buyer_pids.items() %}
-                    <p>{{ val }}</p>
-
-                {% endfor %}
+            {% if xml_buyer.other_id_value %}
+                <p>{{ xml_buyer.other_id_value }}</p>
             {% endif %}
         </td>
     </tr>

@@ -22,6 +22,21 @@ def parse_xml_to_dict(xml_string):
             return text
         return None
 
+    def get_scheme_name(scheme_id):
+        mapping = {
+            "CRN": "Commercial Registration Number",
+            "MOM": "Momra Identification",
+            "MLSD": "MLSD Identification",
+            "700": "700 Number",
+            "SAG": "SAGIA Identification",
+            "NAT": "National ID",
+            "GCC": "GCC ID",
+            "IQA": "Iqama Number",
+            "PAS": "Passport ID",
+            "OTH": "Other ID",
+        }
+        return mapping.get(scheme_id, scheme_id)
+
     data = {"invoice": {}, "seller_details": {}, "buyer_details": {}, "business_settings": {}}
 
     # Invoice Data
@@ -102,6 +117,8 @@ def parse_xml_to_dict(xml_string):
                 if "party_identifications" not in data["seller_details"]:
                     data["seller_details"]["party_identifications"] = {}
                 data["seller_details"]["party_identifications"][scheme] = val
+                data["seller_details"]["other_id_name"] = get_scheme_name(scheme)
+                data["seller_details"]["other_id_value"] = val
 
         data["business_settings"]["registration_name"] = get_text(
             seller, "./cac:PartyLegalEntity/cbc:RegistrationName"
@@ -141,9 +158,11 @@ def parse_xml_to_dict(xml_string):
         if pid is not None:
             pid_elem = pid.find("./cbc:ID", NAMESPACES)
             if pid_elem is not None:
-                data["buyer_details"]["party_identifications"] = {
-                    pid_elem.get("schemeID"): pid_elem.text
-                }
+                scheme = pid_elem.get("schemeID")
+                val = pid_elem.text
+                data["buyer_details"]["party_identifications"] = {scheme: val}
+                data["buyer_details"]["other_id_name"] = get_scheme_name(scheme)
+                data["buyer_details"]["other_id_value"] = val
 
         data["buyer_details"]["registration_name"] = get_text(
             buyer, "./cac:PartyLegalEntity/cbc:RegistrationName"
