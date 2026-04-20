@@ -1,7 +1,6 @@
 {% set details = get_phase_2_print_format_details(doc) %}
 
-{% if details %}
-{% if details.get("xml_data") %}
+{% if details and details.get("xml_data") %}
     {% set xml_invoice = details.xml_data.invoice %}
     {% set xml_seller = details.xml_data.seller_details %}
     {% set xml_buyer = details.xml_data.buyer_details %}
@@ -237,6 +236,7 @@
 		</tr>
 		{%- endfor -%}
 	</tbody>
+</table>
 	<div class="">
     <table class="table table-bordered" dir={{dir}}>
         <tr>
@@ -281,7 +281,7 @@
 			<th>{{_("Total Prepayment Amount")}}</th>
 
 		</tr>
-		{%- for row in xml_prepayment_info -%}-
+		{%- for row in xml_prepayment_info -%}
 
 		<tr>
 		    <td style="width: 3%; text-align: right;">{{ row.idx }}</td>
@@ -309,7 +309,7 @@
     {% endif %}
 
 </div>
-{% endif %}
+</div>
 
 {% else %}
     <div style="display: none;">{{ frappe.msgprint( title='Error', msg=_("Does not have active ZATCA Phase 2 Business Settings"), indicator="red" ) }}</div>
