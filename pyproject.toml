@@ -15,6 +15,7 @@ dependencies = [
     # frappe already requires a specific version of this, so we don't specify a version to avoid conflicts
     "semantic-version",
     "pypdf~=3.17.0",
+    "defusedxml~=0.7.1",
 ]
 
 [build-system]
