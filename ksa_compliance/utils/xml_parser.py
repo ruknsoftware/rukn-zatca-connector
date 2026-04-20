@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 import defusedxml.ElementTree as ET
 
 
@@ -212,7 +214,8 @@ def parse_xml_to_dict(xml_string):
     prepayment_info = []
     for line in root.findall("./cac:InvoiceLine", NAMESPACES):
         qty = get_text(line, "./cbc:InvoicedQuantity")
-        if qty in ["0.000000", "0.0"]:
+        qty_value = Decimal(qty or "0")
+        if qty_value == Decimal("0"):
             # Prepayment line
             doc_ref = get_text(line, "./cac:DocumentReference/cbc:ID")
             tax_subtotal = line.find("./cac:TaxTotal/cac:TaxSubtotal", NAMESPACES)
@@ -235,7 +238,7 @@ def parse_xml_to_dict(xml_string):
                 "amount": taxable_amt,
                 "tax_amount": tax_amt,
                 "tax_percent": tax_percent,
-                "allocated_amount": str(float(taxable_amt or 0) + float(tax_amt or 0)),
+                "allocated_amount": str(Decimal(taxable_amt or "0") + Decimal(tax_amt or "0")),
             }
             prepayment_info.append(prepayment_data)
             continue
