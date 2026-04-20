@@ -31,7 +31,7 @@
 {% elif invoice_type_transaction and invoice_type_transaction[:2] == '02' %}
     {% set invoice_type = "Simplified" %}
 {% else %}
-    {% set invoice_type = "Standard" if xml_invoice.invoice_type_code == '388' else "Simplified" %}
+    {% set invoice_type = "Standard" if xml_invoice.invoice_type_code in ('388', '381', '383') and xml_buyer.get("company_id") else "Simplified" %}
 {% endif %}
 
 {% if letter_head %}
