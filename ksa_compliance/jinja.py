@@ -132,24 +132,21 @@ def get_phase_2_print_format_details(
     details_dict = {"xml_data": None}
 
     # Replaced DB lookups to strictly enforce printing from XML source mapping
-    try:
-        siaf = frappe.get_last_doc(
-            "Sales Invoice Additional Fields",
-            {"sales_invoice": getattr(sales_invoice, "name", sales_invoice)},
-        )
-        if siaf:
-            xml_string = siaf.get_signed_xml()
-            if xml_string:
-                details_dict["xml_data"] = parse_xml_to_dict(xml_string)
-                qr_base64_tlv = details_dict["xml_data"]["invoice"].get("qr_code")
-                if qr_base64_tlv:
-                    qr_png = generate_qrcode(qr_base64_tlv)
-                    if qr_png:
-                        details_dict["xml_data"]["invoice"]["qr_image_src"] = (
-                            "data:image/png;base64," + qr_png
-                        )
-    except frappe.DoesNotExistError:
-        pass
+    siaf = frappe.get_last_doc(
+        "Sales Invoice Additional Fields",
+        {"sales_invoice": getattr(sales_invoice, "name", sales_invoice)},
+    )
+    if siaf:
+        xml_string = siaf.get_signed_xml()
+        if xml_string:
+            details_dict["xml_data"] = parse_xml_to_dict(xml_string)
+            qr_base64_tlv = details_dict["xml_data"]["invoice"].get("qr_code")
+            if qr_base64_tlv:
+                qr_png = generate_qrcode(qr_base64_tlv)
+                if qr_png:
+                    details_dict["xml_data"]["invoice"]["qr_image_src"] = (
+                        "data:image/png;base64," + qr_png
+                    )
     return details_dict
 
 
