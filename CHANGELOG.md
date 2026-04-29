@@ -13,7 +13,7 @@ to a section with the version name.
 
 ## Unreleased Changes
 
-## 0.68.4
+## 0.69.0
 * Immutable ZATCA Phase 2 Print Format:
     * Complete decoupling from Sales Invoice Doc to ensure consistency between printed and submitted invoices.
     * Data exclusively sourced from the signed `invoice_xml` stored in `Sales Invoice Additional Fields`.
