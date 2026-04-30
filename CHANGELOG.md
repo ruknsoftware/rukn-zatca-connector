@@ -15,7 +15,7 @@ to a section with the version name.
 
 ## 0.69.0
 * Immutable ZATCA Phase 2 Print Format:
-    * Complete decoupling from Sales Invoice Doc to ensure consistency between printed and submitted invoices.
+    * Complete decoupling from Sales Invoice, Payment Entry and Journal Entry Doc to ensure consistency between printed and submitted invoices.
     * Data exclusively sourced from the signed `invoice_xml` stored in `Sales Invoice Additional Fields`.
     * Native XML-to-JSON parsing for structural reliability across all document types (Standard & Simplified).
 
