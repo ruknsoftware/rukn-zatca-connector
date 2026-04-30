@@ -40,7 +40,7 @@ class KSAComplianceTestBase(FrappeTestCase):
             customer = frappe.new_doc("Customer")
             customer.customer_name = TEST_STANDARD_CUSTOMER_NAME
             customer.customer_type = "Individual"
-            customer.customer_group = "Individual"
+            customer.customer_group = "Company"
             customer.territory = "All Territories"
             customer.insert(ignore_permissions=True)
 
