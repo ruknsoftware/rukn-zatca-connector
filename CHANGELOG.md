@@ -14,6 +14,9 @@ to a section with the version name.
 ## Unreleased Changes
 
 ## 0.68.5
+* fix Could not find Customer Group: Company
+
+## 0.68.5
 * Fix select a non-group Customer Group on create customer
 
 ## 0.68.4

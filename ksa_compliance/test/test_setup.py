@@ -109,7 +109,7 @@ def _create_standard_customer(customer_name, tax_category_name=None, with_addres
             "doctype": "Customer",
             "customer_name": customer_name,
             "customer_type": "Company",
-            "customer_group": "Company",
+            "customer_group": "Individual",
             "territory": "All Territories",
             "tax_id": "311609596400003",
             "custom_vat_registration_number": "311609596400003",
