@@ -39,8 +39,8 @@ class KSAComplianceTestBase(FrappeTestCase):
         if not frappe.db.exists("Customer", TEST_STANDARD_CUSTOMER_NAME):
             customer = frappe.new_doc("Customer")
             customer.customer_name = TEST_STANDARD_CUSTOMER_NAME
-            customer.customer_type = "Individual"
-            customer.customer_group = "All Customer Groups"
+            customer.customer_type = "Company"
+            customer.customer_group = "Individual"
             customer.territory = "All Territories"
             customer.insert(ignore_permissions=True)
 
@@ -49,7 +49,7 @@ class KSAComplianceTestBase(FrappeTestCase):
             customer = frappe.new_doc("Customer")
             customer.customer_name = TEST_SIMPLIFIED_CUSTOMER_NAME
             customer.customer_type = "Individual"
-            customer.customer_group = "All Customer Groups"
+            customer.customer_group = "Individual"
             customer.territory = "All Territories"
             customer.insert(ignore_permissions=True)
 

@@ -19,6 +19,12 @@ to a section with the version name.
     * Data exclusively sourced from the signed `invoice_xml` stored in `Sales Invoice Additional Fields`.
     * Native XML-to-JSON parsing for structural reliability across all document types (Standard & Simplified).
 
+## 0.68.6
+* fix Could not find Customer Group: Company
+
+## 0.68.5
+* Fix select a non-group Customer Group on create customer
+
 ## 0.68.4
 * Fix default argument is evaluated once at import time
 
