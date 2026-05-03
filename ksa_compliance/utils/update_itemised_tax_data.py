@@ -62,10 +62,11 @@ def update_itemised_tax_data(doc):
                     net_from_gross = calculate_net_from_gross_included_in_print_rate(
                         amount, _tax_rate
                     )
-                    tax_amount += flt(
-                        calculate_tax_amount_included_in_print_rate(amount, net_from_gross),
-                        row.precision("tax_amount"),
-                    )
+                    # Fix: Round net_amount first, then calculate tax from rounded net_amount
+                    # This matches the calculation in taxes_and_totals.py to avoid rounding differences
+                    net_rounded = flt(net_from_gross, row.precision("net_amount"))
+                    tax_from_net = (net_rounded * _tax_rate) / 100
+                    tax_amount += flt(tax_from_net, row.precision("tax_amount"))
                 else:
                     tax_amount += flt(
                         (row.net_amount * _tax_rate) / 100, row.precision("tax_amount")
