@@ -10,19 +10,18 @@ from erpnext.accounts.doctype.journal_entry.journal_entry import JournalEntry
 from erpnext.accounts.doctype.payment_entry.payment_entry import PaymentEntry
 from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
-from erpnext.setup.doctype.branch.branch import Branch
 from frappe.utils import flt
 from frappe.utils.data import get_time, getdate
 
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     ZATCABusinessSettings,
 )
-from ksa_compliance.standard_doctypes.sales_invoice_advance import get_prepayment_info
 from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
 from ksa_compliance.utils.update_itemised_tax_data import (
     calculate_net_from_gross_included_in_print_rate,
     calculate_tax_amount_included_in_print_rate,
 )
+from ksa_compliance.utils.xml_parser import parse_xml_to_dict
 
 
 def get_zatca_phase_1_qr_for_invoice(invoice_name: str) -> str:
@@ -130,72 +129,25 @@ def get_advance_payment_entry_info(payment_entry, settings):
 def get_phase_2_print_format_details(
     sales_invoice: SalesInvoice | POSInvoice | PaymentEntry | JournalEntry,
 ) -> dict | None:
-    settings_id = frappe.db.exists(
-        "ZATCA Business Settings",
-        {"company": sales_invoice.company, "enable_zatca_integration": True},
-    )
-    if not settings_id:
-        return None
+    details_dict = {"xml_data": None}
 
-    branch_doc = None
-    has_branch_address = False
-    settings = cast(ZATCABusinessSettings, frappe.get_doc("ZATCA Business Settings", settings_id))
-    if settings.enable_branch_configuration:
-        if sales_invoice.branch:
-            branch_doc = cast(Branch, frappe.get_doc("Branch", sales_invoice.branch))
-            if branch_doc.custom_company_address:
-                has_branch_address = True
-    seller_other_id, seller_other_id_name = get_seller_other_id(sales_invoice, settings)
-    advance_payment_entry = None
-    net_amount = 0.0
-    tax_amount = 0.0
-    if sales_invoice.doctype == "Payment Entry":
-        customer = sales_invoice.party
-        advance_payment_entry = get_advance_payment_entry_info(sales_invoice, settings)
-        customer_id = sales_invoice.party
-    elif sales_invoice.doctype == "Journal Entry" and sales_invoice.advance_payment_entry:
-        payment_entry = frappe.get_doc("Payment Entry", sales_invoice.advance_payment_entry)
-        customer = payment_entry.party
-        advance_payment_entry = get_advance_payment_entry_info(payment_entry, settings)
-        customer_id = payment_entry.party
-        net_amount = calculate_net_from_gross_included_in_print_rate(
-            sales_invoice.accounts[0].debit_in_account_currency,
-            advance_payment_entry.tax_rate,
-        )
-        tax_amount = calculate_tax_amount_included_in_print_rate(
-            sales_invoice.accounts[0].debit_in_account_currency,
-            net_amount,
-        )
-    else:
-        customer = sales_invoice.customer
-        customer_id = getattr(sales_invoice, "customer", None)
-    buyer_other_id, buyer_other_id_name = get_buyer_other_id(customer)
+    # Replaced DB lookups to strictly enforce printing from XML source mapping
     siaf = frappe.get_last_doc(
-        "Sales Invoice Additional Fields", {"sales_invoice": sales_invoice.name}
+        "Sales Invoice Additional Fields",
+        {"sales_invoice": getattr(sales_invoice, "name", sales_invoice)},
     )
-    prepayment_info = get_prepayment_info(sales_invoice)
-    if advance_payment_entry:
-        advance_payment_entry.party = customer_id
-    return {
-        "settings": settings,
-        "address": {
-            "street": branch_doc.custom_street if has_branch_address else settings.street,
-            "district": branch_doc.custom_district if has_branch_address else settings.district,
-            "city": branch_doc.custom_city if has_branch_address else settings.city,
-            "postal_code": (
-                branch_doc.custom_postal_code if has_branch_address else settings.postal_code
-            ),
-        },
-        "seller_other_id": seller_other_id,
-        "seller_other_id_name": seller_other_id_name,
-        "buyer_other_id": buyer_other_id,
-        "buyer_other_id_name": buyer_other_id_name,
-        "siaf": siaf,
-        "prepayment_info": prepayment_info,
-        "advance_payment_entry": advance_payment_entry,
-        "net_amount": net_amount,
-        "tax_amount": tax_amount,
-    }
+    if siaf:
+        xml_string = siaf.get_signed_xml()
+        if xml_string:
+            details_dict["xml_data"] = parse_xml_to_dict(xml_string)
+            qr_base64_tlv = details_dict["xml_data"]["invoice"].get("qr_code")
+            if qr_base64_tlv:
+                qr_png = generate_qrcode(qr_base64_tlv)
+                if qr_png:
+                    details_dict["xml_data"]["invoice"]["qr_image_src"] = (
+                        "data:image/png;base64," + qr_png
+                    )
+    return details_dict
 
 
 def get_seller_other_id(
