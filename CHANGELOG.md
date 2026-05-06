@@ -15,6 +15,7 @@ to a section with the version name.
 
 ## 0.69.1
 * Complete decoupling from POS Invoice to ensure consistency between printed and submitted invoices.
+* Fix avoid prepayment return on POS Invoice 
 
 ## 0.69.0
 * Immutable ZATCA Phase 2 Print Format:
