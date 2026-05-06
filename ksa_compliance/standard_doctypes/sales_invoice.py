@@ -135,7 +135,7 @@ def create_sales_invoice_additional_fields_doctype(
                 set_advance_payment_invoice_settling_gl_entries(advance_payment)
                 set_advance_payment_entry_settling_references(payment_entry)
         if self.is_return:
-            if not is_advance_invoice:
+            if not is_advance_invoice and self.doctype == "Sales Invoice":
                 settle_return_invoice_paid_from_advance_payment(self, settings)
         else:
             if settings.advance_payment_depends_on == "Sales Invoice":
@@ -261,7 +261,7 @@ def validate_sales_invoice(self: SalesInvoice | POSInvoice, method) -> None:
             valid = False
 
         advance_payments = get_invoice_advance_payments(self)
-        if self.is_return:
+        if self.is_return and self.doctype == "Sales Invoice":
             return_against = frappe.get_doc(self.doctype, self.return_against)
             advance_payments = get_return_against_advance_payments(
                 return_against, abs(self.get("grand_total"))
