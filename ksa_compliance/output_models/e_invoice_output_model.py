@@ -847,7 +847,8 @@ class SalesEinvoice(Einvoice):
     ):
         super().__init__(sales_invoice_additional_fields_doc, invoice_type)
         self.compute_invoice_discount_amount()
-        self.prepayment_invoice()
+        if self.sales_invoice_doc.doctype == "Sales Invoice":
+            self.prepayment_invoice()
 
         # After prepayment invoices are collected, recompute payable amount per BR-CO-16 to avoid double subtraction
         prepaid_amount_total = float(self.result.get("prepaid_amount", 0.0) or 0.0)
