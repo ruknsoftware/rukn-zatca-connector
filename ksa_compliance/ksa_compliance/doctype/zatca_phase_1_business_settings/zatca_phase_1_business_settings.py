@@ -34,10 +34,7 @@ class ZATCAPhase1BusinessSettings(Document):
                 business_settings_doc = frappe.get_doc(
                     "ZATCA Business Settings", business_settings_id
                 )
-                if (
-                    business_settings_doc.enable_zatca_integration
-                    or business_settings_doc.has_production_csid
-                ):
+                if business_settings_doc.is_enabled_for_company(self.company):
                     link = get_link_to_form("ZATCA Business Settings", business_settings_id)
                     frappe.throw(
                         _(

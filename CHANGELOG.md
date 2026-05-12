@@ -13,6 +13,9 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.69.2
+* fix check is enabled ZATCA Business Settings for company on before Add Phase 1 Settings
+
 ## 0.69.1
 * Complete decoupling from POS Invoice to ensure consistency between printed and submitted invoices.
 * Fix avoid prepayment return on POS Invoice 
