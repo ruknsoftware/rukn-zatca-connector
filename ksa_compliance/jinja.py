@@ -19,6 +19,9 @@ from frappe.utils.data import get_time, getdate
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     ZATCABusinessSettings,
 )
+from ksa_compliance.ksa_compliance.doctype.zatca_phase_1_business_settings.zatca_phase_1_business_settings import (
+    ZATCAPhase1BusinessSettings,
+)
 from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
 from ksa_compliance.utils.update_itemised_tax_data import (
     calculate_net_from_gross_included_in_print_rate,
@@ -46,25 +49,15 @@ def _resolve_invoice_doc(
     frappe.throw(_("Expected a valid POS Invoice or Sales Invoice"))
 
 
-def _get_zatca_phase1_settings(company: str):
-    """Return enabled ZATCA Phase 1 Business Settings for a company, or None."""
-    phase_1_name = frappe.get_value("ZATCA Phase 1 Business Settings", {"company": company})
-    if not phase_1_name:
-        return None
-    phase_1_settings = frappe.get_doc("ZATCA Phase 1 Business Settings", phase_1_name)
-    if phase_1_settings.status == "Disabled":
-        return None
-    return phase_1_settings
-
-
 def get_qr_inputs(invoice_name: str) -> list | None:
     invoice_doc = _resolve_invoice_doc(invoice_name)
     if invoice_doc is None:
         return None
     seller_name = invoice_doc.company
-    phase_1_settings = _get_zatca_phase1_settings(seller_name)
+    phase_1_settings = ZATCAPhase1BusinessSettings.is_enabled_for_company(seller_name)
     if not phase_1_settings:
         return None
+    phase_1_settings = frappe.get_doc("ZATCA Phase 1 Business Settings", seller_name)
     seller_vat_reg_no = phase_1_settings.vat_registration_number
     time = invoice_doc.posting_time
     timestamp = format_date(invoice_doc.posting_date, time)
@@ -74,22 +67,22 @@ def get_qr_inputs(invoice_name: str) -> list | None:
     return [seller_name, seller_vat_reg_no, timestamp, grand_total, total_vat]
 
 
-def get_item_tax_details(invoice, item_row) -> _dict[str, float | Any] | None:
+def get_item_tax_details(invoice_name: str, item_row) -> _dict[str, float | Any] | None:
     """Return tax details for a single invoice item row.
 
     Accepts either an invoice name (str) or a doc object — resolves POS Invoice
     and Sales Invoice via _resolve_invoice_doc, then validates ZATCA Phase 1
-    Business Settings via _get_zatca_phase1_settings the same way get_qr_inputs does.
+    ZATCA Phase1 Business Settings via is_enabled_for_company the same way get_qr_inputs does.
 
     In ERPNext v16, item_wise_tax_detail was removed from Sales Taxes and Charges.
     tax_rate and tax_amount are now always stored directly on the item row.
     For older documents where those fields are zero, we fall back to item_wise_tax_detail.
     """
-    doc = _resolve_invoice_doc(invoice)
+    doc = _resolve_invoice_doc(invoice_name)
     if doc is None:
         return None
 
-    if not _get_zatca_phase1_settings(doc.company):
+    if not ZATCAPhase1BusinessSettings.is_enabled_for_company(doc.company):
         return None
     erpnext_version = erpnext.__version__
     if int(erpnext_version.split(".")[0]) < 16:
