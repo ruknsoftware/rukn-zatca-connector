@@ -3,7 +3,7 @@ import datetime
 import json
 from base64 import b64encode
 from io import BytesIO
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import erpnext
 import frappe
@@ -12,7 +12,7 @@ from erpnext.accounts.doctype.journal_entry.journal_entry import JournalEntry
 from erpnext.accounts.doctype.payment_entry.payment_entry import PaymentEntry
 from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
-from frappe import _dict
+from frappe import _, _dict
 from frappe.utils import flt
 from frappe.utils.data import get_time, getdate
 
@@ -37,15 +37,13 @@ def get_zatca_phase_1_qr_for_invoice(invoice_name: str) -> str:
 
 def _resolve_invoice_doc(
     invoice,
-) -> "Optional[SalesInvoice | POSInvoice]":
-    """Resolve an invoice name or doc object to a SalesInvoice/POSInvoice doc."""
-    if not isinstance(invoice, str):
-        return invoice
+) -> POSInvoice | SalesInvoice | None:
+    """Resolve an invoice object to a SalesInvoice/POSInvoice doc."""
     if frappe.db.exists("POS Invoice", invoice):
         return cast(POSInvoice, frappe.get_doc("POS Invoice", invoice))
     if frappe.db.exists("Sales Invoice", invoice):
         return cast(SalesInvoice, frappe.get_doc("Sales Invoice", invoice))
-    return None
+    frappe.throw(_("Expected a valid POS Invoice or Sales Invoice"))
 
 
 def _get_zatca_phase1_settings(company: str):
