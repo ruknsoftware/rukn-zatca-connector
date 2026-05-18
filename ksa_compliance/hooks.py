@@ -71,6 +71,7 @@ jinja = {
         "ksa_compliance.jinja.get_zatca_phase_1_qr_for_invoice",
         "frappe.utils.data.rounded",
         "ksa_compliance.jinja.get_phase_2_print_format_details",
+        "ksa_compliance.jinja.get_item_tax_details",
     ],
 }
 

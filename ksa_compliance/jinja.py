@@ -1,20 +1,26 @@
 import base64
 import datetime
+import json
 from base64 import b64encode
 from io import BytesIO
-from typing import Optional, cast
+from typing import Any, cast
 
+import erpnext
 import frappe
 import pyqrcode
 from erpnext.accounts.doctype.journal_entry.journal_entry import JournalEntry
 from erpnext.accounts.doctype.payment_entry.payment_entry import PaymentEntry
 from erpnext.accounts.doctype.pos_invoice.pos_invoice import POSInvoice
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice
+from frappe import _, _dict
 from frappe.utils import flt
 from frappe.utils.data import get_time, getdate
 
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
     ZATCABusinessSettings,
+)
+from ksa_compliance.ksa_compliance.doctype.zatca_phase_1_business_settings.zatca_phase_1_business_settings import (
+    ZATCAPhase1BusinessSettings,
 )
 from ksa_compliance.utils.advance_payment_entry_taxes_and_charges import get_taxes_and_charges
 from ksa_compliance.utils.update_itemised_tax_data import (
@@ -32,21 +38,26 @@ def get_zatca_phase_1_qr_for_invoice(invoice_name: str) -> str:
     return generate_qrcode(decoded_string)
 
 
-def get_qr_inputs(invoice_name: str) -> list:
-    invoice_doc: Optional[SalesInvoice] = None
+def _resolve_invoice_doc(
+    invoice_name: str,
+) -> POSInvoice | SalesInvoice:
+    """Resolve an invoice object to a SalesInvoice/POSInvoice doc."""
     if frappe.db.exists("POS Invoice", invoice_name):
-        invoice_doc = cast(POSInvoice, frappe.get_doc("POS Invoice", invoice_name))
-    elif frappe.db.exists("Sales Invoice", invoice_name):
-        invoice_doc = cast(SalesInvoice, frappe.get_doc("Sales Invoice", invoice_name))
-    else:
+        return cast(POSInvoice, frappe.get_doc("POS Invoice", invoice_name))
+    if frappe.db.exists("Sales Invoice", invoice_name):
+        return cast(SalesInvoice, frappe.get_doc("Sales Invoice", invoice_name))
+    frappe.throw(_("Expected a valid POS Invoice or Sales Invoice"))
+
+
+def get_qr_inputs(invoice_name: str) -> list | None:
+    invoice_doc = _resolve_invoice_doc(invoice_name)
+    if invoice_doc is None:
         return None
     seller_name = invoice_doc.company
-    phase_1_name = frappe.get_value("ZATCA Phase 1 Business Settings", {"company": seller_name})
-    if not phase_1_name:
+    phase_1_settings = ZATCAPhase1BusinessSettings.is_enabled_for_company(seller_name)
+    if not phase_1_settings:
         return None
-    phase_1_settings = frappe.get_doc("ZATCA Phase 1 Business Settings", phase_1_name)
-    if phase_1_settings.status == "Disabled":
-        return None
+    phase_1_settings = frappe.get_doc("ZATCA Phase 1 Business Settings", seller_name)
     seller_vat_reg_no = phase_1_settings.vat_registration_number
     time = invoice_doc.posting_time
     timestamp = format_date(invoice_doc.posting_date, time)
@@ -54,6 +65,58 @@ def get_qr_inputs(invoice_name: str) -> list:
     total_vat = invoice_doc.total_taxes_and_charges
     # returned values should be ordered based on ZATCA Qr Specifications
     return [seller_name, seller_vat_reg_no, timestamp, grand_total, total_vat]
+
+
+def get_item_tax_details(invoice_name: str, item_row) -> _dict[str, float | Any] | None:
+    """Return tax details for a single invoice item row.
+
+    Accepts either an invoice name (str) or a doc object — resolves POS Invoice
+    and Sales Invoice via _resolve_invoice_doc, then validates ZATCA Phase 1
+    ZATCA Phase1 Business Settings via is_enabled_for_company the same way get_qr_inputs does.
+
+    In ERPNext v16, item_wise_tax_detail was removed from Sales Taxes and Charges.
+    tax_rate and tax_amount are now always stored directly on the item row.
+    For older documents where those fields are zero, we fall back to item_wise_tax_detail.
+    """
+    doc = _resolve_invoice_doc(invoice_name)
+    if doc is None:
+        return None
+
+    if not ZATCAPhase1BusinessSettings.is_enabled_for_company(doc.company):
+        return None
+    erpnext_version = erpnext.__version__
+    if int(erpnext_version.split(".")[0]) < 16:
+        item_wise_tax_detail = frappe.db.get_value(
+            "Sales Taxes and Charges",
+            {"parent": doc.name},
+            "item_wise_tax_detail",
+        )
+        item_taxes = json.loads(item_wise_tax_detail or "{}")
+
+        item_tax_percent = (
+            item_row.tax_rate
+            if item_row.tax_rate is not None
+            else item_taxes.get(item_row.item_code, [0, 0])[0]
+        )
+
+        item_tax_total = (
+            item_row.tax_amount
+            if item_row.tax_amount is not None
+            else item_taxes.get(item_row.item_code, [0, 0])[1]
+        ) / doc.conversion_rate
+
+    else:
+        item_tax_percent = item_row.tax_rate
+        item_tax_total = item_row.tax_amount / doc.conversion_rate
+
+    item_total_after_tax = item_tax_total + item_row.net_amount
+    return frappe._dict(
+        {
+            "item_tax_percent": item_tax_percent,
+            "item_tax_total": item_tax_total,
+            "item_total_after_tax": item_total_after_tax,
+        }
+    )
 
 
 def generate_decoded_string(values: list) -> str:

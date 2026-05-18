@@ -13,6 +13,9 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.69.4
+* Fix item tax details in ZATCA Phase 1 print format for ERPNext v16
+
 ## 0.69.3
 * Fix create sales invoice with withdrawn phase 2 and Active phase 1
 
