@@ -93,8 +93,8 @@ def get_item_tax_details(invoice, item_row) -> _dict[str, float | Any] | None:
 
     if not _get_zatca_phase1_settings(doc.company):
         return None
-
-    if not erpnext.__version__.startswith("16"):
+    erpnext_version = erpnext.__version__
+    if int(erpnext_version.split(".")[0]) < 16:
         item_wise_tax_detail = frappe.db.get_value(
             "Sales Taxes and Charges",
             {"parent": doc.name},
