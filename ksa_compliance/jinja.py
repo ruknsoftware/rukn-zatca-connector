@@ -39,13 +39,13 @@ def get_zatca_phase_1_qr_for_invoice(invoice_name: str) -> str:
 
 
 def _resolve_invoice_doc(
-    invoice,
-) -> POSInvoice | SalesInvoice | None:
+    invoice_name: str,
+) -> POSInvoice | SalesInvoice:
     """Resolve an invoice object to a SalesInvoice/POSInvoice doc."""
-    if frappe.db.exists("POS Invoice", invoice):
-        return cast(POSInvoice, frappe.get_doc("POS Invoice", invoice))
-    if frappe.db.exists("Sales Invoice", invoice):
-        return cast(SalesInvoice, frappe.get_doc("Sales Invoice", invoice))
+    if frappe.db.exists("POS Invoice", invoice_name):
+        return cast(POSInvoice, frappe.get_doc("POS Invoice", invoice_name))
+    if frappe.db.exists("Sales Invoice", invoice_name):
+        return cast(SalesInvoice, frappe.get_doc("Sales Invoice", invoice_name))
     frappe.throw(_("Expected a valid POS Invoice or Sales Invoice"))
 
 
