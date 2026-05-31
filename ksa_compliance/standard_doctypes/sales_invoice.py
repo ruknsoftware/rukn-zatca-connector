@@ -36,6 +36,7 @@ from ksa_compliance.ksa_compliance.doctype.zatca_phase_1_business_settings.zatca
 from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_precomputed_invoice import (
     ZATCAPrecomputedInvoice,
 )
+from ksa_compliance.override.regional_overrides import calculate_taxes_and_totals_round
 from ksa_compliance.standard_doctypes.payment_entry import (
     set_advance_payment_entry_settling_references,
 )
@@ -611,6 +612,9 @@ class AdvanceSalesInvoice(SalesInvoice):
                         item=tax,
                     )
                 )
+
+    def calculate_taxes_and_totals(self):
+        calculate_taxes_and_totals_round(self)
 
 
 def update_advance_payment_entry_tax_allocation(self, method):
