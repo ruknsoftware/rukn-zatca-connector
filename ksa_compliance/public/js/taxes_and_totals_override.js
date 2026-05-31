@@ -76,7 +76,7 @@ if (erpnext.taxes_and_totals) {
 		}
 
 		let _item_wise_tax_amount = current_tax_amount * this.frm.doc.conversion_rate;
-		let item_wise_tax_amount = flt(_item_wise_tax_amount, precision("tax_amount"), tax)
+		let item_wise_tax_amount = flt(_item_wise_tax_amount, precision("tax_amount", tax))
 		if (tax_detail && tax_detail[key])
 			item_wise_tax_amount += flt(
 				tax.item_wise_tax_detail[key][1], precision("tax_amount", tax)
