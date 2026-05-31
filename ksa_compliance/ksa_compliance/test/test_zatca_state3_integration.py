@@ -1517,6 +1517,90 @@ class TestZATCAState3Integration(FrappeTestCase):
         frappe.logger().info("   ✓ Multi-line item rounding is correct")
         frappe.logger().info("✅ test_rounding_with_multiple_line_items completed")
 
+    def test_tax_calculation_row_wise_precision(self):
+        """
+        Tests row-wise tax rounding with the specific amounts that triggered the
+        advance-payment over-allocation bug (total_allocated > grand_total by 0.01).
+
+        Rates: 893.25, 28.5, 250 — VAT 15%
+        Per-item rounding:
+          893.25 × 0.15 = 133.9875 → 133.99
+           28.50 × 0.15 =   4.2750 →   4.28  (Banker's: digit before 5 is odd → round up)
+          250.00 × 0.15 =  37.5000 →  37.50
+          total tax = 175.77, grand_total = 1347.52
+        """
+        frappe.logger().info("🧪 Running test_tax_calculation_row_wise_precision...")
+
+        company_abbr = frappe.db.get_value("Company", TEST_COMPANY_NAME, "abbr")
+        customer_tax_category = frappe.db.get_value(
+            "Customer", TEST_STANDARD_CUSTOMER_NAME, "tax_category"
+        )
+        test_item = ensure_test_item_exists()
+
+        invoice = frappe.new_doc("Sales Invoice")
+        invoice.customer = TEST_STANDARD_CUSTOMER_NAME
+        invoice.company = TEST_COMPANY_NAME
+        invoice.currency = SAUDI_CURRENCY
+        invoice.posting_date = frappe.utils.nowdate()
+        invoice.due_date = frappe.utils.nowdate()
+        invoice.debit_to = f"Debtors - {company_abbr}"
+        invoice.tax_category = customer_tax_category
+        invoice.taxes_and_charges = f"{TEST_TAX_TEMPLATE_NAME} - {company_abbr}"
+
+        for rate in [893.25, 28.5, 250]:
+            invoice.append(
+                "items",
+                {
+                    "item_code": test_item,
+                    "qty": 1,
+                    "rate": rate,
+                    "income_account": f"Sales - {company_abbr}",
+                    "cost_center": f"Main - {company_abbr}",
+                },
+            )
+
+        invoice.append(
+            "taxes",
+            {
+                "charge_type": "On Net Total",
+                "account_head": f"{TEST_TAX_ACCOUNT_NAME} - {company_abbr}",
+                "cost_center": f"Main - {company_abbr}",
+                "description": "VAT 15%",
+                "rate": 15.0,
+            },
+        )
+
+        invoice.insert()
+        invoice.submit()
+
+        frappe.logger().info(f"   Created invoice: {invoice.name}")
+        frappe.logger().info(f"   Net Total: {invoice.net_total} SAR")
+        frappe.logger().info(f"   Tax Amount: {invoice.taxes[0].tax_amount} SAR")
+        frappe.logger().info(f"   Grand Total: {invoice.grand_total} SAR")
+
+        expected_net_total = flt(893.25 + 28.5 + 250, 2)  # 1171.75
+        expected_tax_amount = flt(133.99 + 4.28 + 37.50, 2)  # 175.77 (row-wise rounding)
+        expected_grand_total = flt(expected_net_total + expected_tax_amount, 2)  # 1347.52
+
+        self.assertEqual(
+            flt(invoice.net_total, 2),
+            expected_net_total,
+            f"Net Total should be {expected_net_total}, got {invoice.net_total}",
+        )
+        self.assertEqual(
+            flt(invoice.taxes[0].tax_amount, 2),
+            expected_tax_amount,
+            f"Tax Amount should be {expected_tax_amount} (row-wise rounding), got {invoice.taxes[0].tax_amount}",
+        )
+        self.assertEqual(
+            flt(invoice.grand_total, 2),
+            expected_grand_total,
+            f"Grand Total should be {expected_grand_total}, got {invoice.grand_total}",
+        )
+
+        frappe.logger().info("   ✓ Row-wise rounding calculations are correct")
+        frappe.logger().info("✅ test_tax_calculation_row_wise_precision completed")
+
     # =========================================================================
     # Intermediate Account Settlement Tests
     # =========================================================================
