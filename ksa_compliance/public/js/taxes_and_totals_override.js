@@ -67,8 +67,11 @@ if (erpnext.taxes_and_totals) {
 		let tax_detail = tax.item_wise_tax_detail;
 		let key = item.item_code || item.item_name;
 
-		if(typeof (tax_detail) == "string") {
+		if (typeof tax_detail == "string") {
 			tax.item_wise_tax_detail = JSON.parse(tax.item_wise_tax_detail);
+			tax_detail = tax.item_wise_tax_detail;
+		} else if (!tax_detail || typeof tax_detail !== "object") {
+			tax.item_wise_tax_detail = {};
 			tax_detail = tax.item_wise_tax_detail;
 		}
 
