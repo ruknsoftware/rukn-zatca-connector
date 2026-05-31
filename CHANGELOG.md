@@ -13,6 +13,15 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.69.5
+* Copy Row-Wise Tax Rounding Overrides From `round_tax_amount_row_wise` Into KSA App
+  * Copy `taxes_and_totals.py` and `regional_overrides.py` overrides into `ksa_compliance/override/`
+  * Add `taxes_and_totals_override.js` for frontend row-wise rounding
+  * Update `hooks.py` regional overrides to wire row-wise rounding
+* Override `calculate_taxes_and_totals` On `AdvanceSalesInvoice` Class To Apply Row-Wise Rounding
+* Remove Check For Installed `round_tax_amount_row_wise` App In Tests
+* Add Test `test_tax_calculation_row_wise_precision` To Verify Row-Wise Tax Rounding Produces Correct Totals
+
 ## 0.69.4
 * Fix item tax details in ZATCA Phase 1 print format for ERPNext v16
 
