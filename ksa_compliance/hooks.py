@@ -11,7 +11,10 @@ app_license = "Copyright (c) 2023 LavaLoon"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/ksa_compliance/css/ksa_compliance.css"
-app_include_js = "/assets/ksa_compliance/js/accounts.js"
+app_include_js = [
+    "/assets/ksa_compliance/js/accounts.js",
+    "/assets/ksa_compliance/js/taxes_and_totals_override.js",
+]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/ksa_compliance/css/ksa_compliance.css"
@@ -292,6 +295,6 @@ export_python_type_annotations = True
 
 regional_overrides = {
     "Saudi Arabia": {
-        "erpnext.controllers.taxes_and_totals.update_itemised_tax_data": "ksa_compliance.utils.update_itemised_tax_data.update_itemised_tax_data"
+        "erpnext.controllers.accounts_controller.validate_regional": "ksa_compliance.override.regional_overrides.calculate_taxes_and_totals_round",
     }
 }
