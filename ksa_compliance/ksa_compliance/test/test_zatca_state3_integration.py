@@ -1524,9 +1524,9 @@ class TestZATCAState3Integration(FrappeTestCase):
 
         Rates: 893.25, 28.5, 250 — VAT 15%
         Per-item rounding:
-          893.25 × 0.15 = 133.9875 → 133.99
-           28.50 × 0.15 =   4.2750 →   4.28  (Banker's: digit before 5 is odd → round up)
-          250.00 × 0.15 =  37.5000 →  37.50
+          893.25 * 0.15 = 133.9875 → 133.99
+           28.50 * 0.15 =   4.2750 →   4.28  (Banker's: digit before 5 is odd → round up)
+          250.00 * 0.15 =  37.5000 →  37.50
           total tax = 175.77, grand_total = 1347.52
         """
         frappe.logger().info("🧪 Running test_tax_calculation_row_wise_precision...")
