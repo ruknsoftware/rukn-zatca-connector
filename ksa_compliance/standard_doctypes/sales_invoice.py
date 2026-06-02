@@ -1,5 +1,6 @@
 from datetime import date
 
+import erpnext
 import frappe
 import frappe.utils.background_jobs
 from erpnext.accounts.doctype.account.account import get_account_currency
@@ -615,7 +616,12 @@ class AdvanceSalesInvoice(SalesInvoice):
 
     def calculate_taxes_and_totals(self):
         settings = ZATCABusinessSettings.for_company(self.company)
-        if settings and getattr(settings, "enable_zatca_integration", False):
+        erpnext_version = erpnext.__version__
+        if (
+            settings
+            and getattr(settings, "enable_zatca_integration", False)
+            and int(erpnext_version.split(".")[0]) < 16
+        ):
             calculate_taxes_and_totals_round(self)
         else:
             super().calculate_taxes_and_totals()
