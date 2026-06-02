@@ -1,7 +1,7 @@
 frappe.provide("erpnext.taxes_and_totals");
 
-if (erpnext.taxes_and_totals) {
-
+const erpnext_major = parseInt((frappe.boot.versions.erpnext).split(".")[0]);
+if (erpnext.taxes_and_totals && erpnext_major < 16) {
     erpnext.taxes_and_totals.prototype.get_current_tax_amount = function (item, tax, item_tax_map) {
 		var tax_rate = this._get_tax_rate(tax, item_tax_map);
 		var current_tax_amount = 0.0;
