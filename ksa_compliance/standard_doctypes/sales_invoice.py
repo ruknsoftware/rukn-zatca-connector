@@ -615,11 +615,9 @@ class AdvanceSalesInvoice(SalesInvoice):
                 )
 
     def calculate_taxes_and_totals(self):
-        settings = ZATCABusinessSettings.for_company(self.company)
         erpnext_version = erpnext.__version__
         if (
-            settings
-            and getattr(settings, "enable_zatca_integration", False)
+            ZATCABusinessSettings.is_enabled_for_company(self.company)
             and int(erpnext_version.split(".")[0]) < 16
         ):
             calculate_taxes_and_totals_round(self)
