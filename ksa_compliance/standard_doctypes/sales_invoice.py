@@ -614,7 +614,11 @@ class AdvanceSalesInvoice(SalesInvoice):
                 )
 
     def calculate_taxes_and_totals(self):
-        calculate_taxes_and_totals_round(self)
+        settings = ZATCABusinessSettings.for_company(self.company)
+        if settings and getattr(settings, "enable_zatca_integration", False):
+            calculate_taxes_and_totals_round(self)
+        else:
+            super().calculate_taxes_and_totals()
 
 
 def update_advance_payment_entry_tax_allocation(self, method):
