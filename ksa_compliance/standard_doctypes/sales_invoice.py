@@ -1,5 +1,6 @@
 from datetime import date
 
+import erpnext
 import frappe
 import frappe.utils.background_jobs
 from erpnext.accounts.doctype.account.account import get_account_currency
@@ -36,6 +37,7 @@ from ksa_compliance.ksa_compliance.doctype.zatca_phase_1_business_settings.zatca
 from ksa_compliance.ksa_compliance.doctype.zatca_precomputed_invoice.zatca_precomputed_invoice import (
     ZATCAPrecomputedInvoice,
 )
+from ksa_compliance.override.regional_overrides import calculate_taxes_and_totals_round
 from ksa_compliance.standard_doctypes.payment_entry import (
     set_advance_payment_entry_settling_references,
 )
@@ -611,6 +613,16 @@ class AdvanceSalesInvoice(SalesInvoice):
                         item=tax,
                     )
                 )
+
+    def calculate_taxes_and_totals(self):
+        erpnext_version = erpnext.__version__
+        if (
+            ZATCABusinessSettings.is_enabled_for_company(self.company)
+            and int(erpnext_version.split(".")[0]) < 16
+        ):
+            calculate_taxes_and_totals_round(self)
+        else:
+            super().calculate_taxes_and_totals()
 
 
 def update_advance_payment_entry_tax_allocation(self, method):

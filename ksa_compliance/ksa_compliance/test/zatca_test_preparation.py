@@ -143,25 +143,6 @@ def verify_round_tax_row_wise():
         if major_version >= 15:
             # In v15+, this is a built-in feature in Account Settings
             activate_round_tax_row_wise_v15()
-        else:
-            # In v14, check if round_tax_amount_row_wise app is installed
-            installed_apps = frappe.get_installed_apps()
-            if "round_tax_amount_row_wise" in installed_apps:
-                logging.info("✅ Round tax amount row-wise app is installed")
-
-                # Check if the app is enabled
-                app_info = frappe.get_doc(
-                    "Installed Application", {"app_name": "round_tax_amount_row_wise"}
-                )
-                if app_info:
-                    logging.info("✅ Round tax amount row-wise app is enabled")
-                else:
-                    logging.warning(
-                        "⚠️  Round tax amount row-wise app is installed but may not be enabled"
-                    )
-            else:
-                logging.warning("⚠️  Round tax amount row-wise app is not installed")
-                logging.warning("   This feature requires the app in Frappe v14")
     except Exception as e:
         logging.error(f"❌ Error verifying round tax row-wise: {str(e)}")
 

@@ -38,6 +38,3 @@ class TestZATCATestSetup(FrappeTestCase):
                     account_settings = frappe.get_doc("Account Settings", "Account Settings")
                     if hasattr(account_settings, 'round_tax_amount_row_wise'):
                         self.assertEqual(account_settings.round_tax_amount_row_wise, 1, "Round tax amount row-wise should be enabled in v15+")
-        # Check app installation in v14
-        installed_apps = frappe.get_installed_apps()
-        self.assertIn("round_tax_amount_row_wise", installed_apps, "Round tax amount row-wise app should be installed in v14")
