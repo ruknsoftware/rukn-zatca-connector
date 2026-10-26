@@ -142,7 +142,8 @@ _doctype_classes = {
 if int(frappe.__version__.split(".")[0]) >= 16:
     extend_doctype_class = _doctype_classes
 else:
-    override_doctype_class = _doctype_classes
+    # Frappe v15 and older do not implement extend_doctype_class.
+    override_doctype_class = _doctype_classes  # nosemgrep
 
 # Document Events
 # ---------------
