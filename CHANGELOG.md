@@ -13,6 +13,10 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.69.6
+* Use `extend_doctype_class` On Frappe v16+ And `override_doctype_class` On Older Versions
+  * Allow other apps to extend `Sales Invoice`, `Payment Reconciliation` and `Unreconcile Payment` on v16+
+
 ## 0.69.5
 * Copy Row-Wise Tax Rounding Overrides From `round_tax_amount_row_wise` Into KSA App
   * Copy `taxes_and_totals.py` and `regional_overrides.py` overrides into `ksa_compliance/override/`
