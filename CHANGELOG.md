@@ -13,6 +13,17 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.69.7
+* Hide Advance Payment Entries In Payment Reconciliation On Frappe v16+
+* Make ZATCA Tests Run On Frappe v15 And v16
+  * Add `test/compat.py` To Use `IntegrationTestCase` On v16 And `FrappeTestCase` On v15
+  * Skip ERPNext Test Records In Business Settings Tests To Avoid `Standard Buying` Conflict On v16
+  * Set POS Settings `invoice_type` To `POS Invoice` On v16
+  * Set Default Language In Test Setup To Avoid Locale Error On v16
+  * Set `posting_time` On Advance Payment Entries
+  * Delete Old EGS With The Same Device Name Before Creating Test EGS
+  * Set `round_row_wise_tax` Directly In Accounts Settings
+
 ## 0.69.5
 * Copy Row-Wise Tax Rounding Overrides From `round_tax_amount_row_wise` Into KSA App
   * Copy `taxes_and_totals.py` and `regional_overrides.py` overrides into `ksa_compliance/override/`
