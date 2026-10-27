@@ -2,10 +2,10 @@
 # See license.txt
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
+from ksa_compliance.test.compat import IntegrationTestCase
 
 
-class TestZATCATestSetup(FrappeTestCase):
+class TestZATCATestSetup(IntegrationTestCase):
     """Test class for ZATCA test setup functionality"""
 
     def test_required_settings_are_configured(self):

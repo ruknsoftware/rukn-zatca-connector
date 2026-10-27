@@ -2,8 +2,8 @@
 # See license.txt
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
 
+from ksa_compliance.test.compat import IntegrationTestCase
 from ksa_compliance.test.test_constants import (
     SAUDI_CURRENCY,
     TEST_COMPANY_NAME,
@@ -17,7 +17,7 @@ from ksa_compliance.test.test_constants import (
 )
 
 
-class KSAComplianceTestBase(FrappeTestCase):
+class KSAComplianceTestBase(IntegrationTestCase):
     """Base test class for KSA Compliance tests - provides shared test infrastructure"""
 
     item_name = "Test Item"

@@ -2,8 +2,8 @@
 # See license.txt
 
 # import frappe
-from frappe.tests.utils import FrappeTestCase
+from ksa_compliance.test.compat import IntegrationTestCase
 
 
-class TestRegistrationType(FrappeTestCase):
+class TestRegistrationType(IntegrationTestCase):
     pass
