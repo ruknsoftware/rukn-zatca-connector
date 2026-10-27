@@ -20,6 +20,8 @@ from ksa_compliance.test.test_constants import (
 
 
 def custom_erpnext_setup():
+    # Frappe v16 locale helpers fail when no language is set (e.g. when run from `bench console`)
+    frappe.local.lang = frappe.local.lang or "en"
     frappe.clear_cache()
     from erpnext.setup.setup_wizard.setup_wizard import setup_complete as setup_complete_erpnext
     from frappe.desk.page.setup_wizard.setup_wizard import setup_complete as setup_complete_frappe
