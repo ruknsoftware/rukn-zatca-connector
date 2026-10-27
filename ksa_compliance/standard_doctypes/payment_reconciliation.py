@@ -25,8 +25,8 @@ class CustomPaymentReconciliation(PaymentReconciliation):
         """
         if not is_zatca_enabled(self.company):
             return super().get_payment_entries()
-        frappe_version = frappe.__version__
-        if self.party_type == "Customer" and frappe_version.startswith("15"):
+        frappe_major_version = int(frappe.__version__.split(".")[0])
+        if self.party_type == "Customer" and frappe_major_version >= 15:
             return self.get_non_advance_payment_entries()
         return super().get_payment_entries()
 
