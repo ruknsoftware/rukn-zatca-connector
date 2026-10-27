@@ -10,7 +10,6 @@ import json
 from unittest.mock import MagicMock, patch
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
 from frappe.utils import flt
 
 from ksa_compliance.ksa_compliance.test.test_invoice_helpers import (
@@ -21,6 +20,7 @@ from ksa_compliance.ksa_compliance.test.test_invoice_helpers import (
     get_total_advance_allocated,
     log_invoice_details,
 )
+from ksa_compliance.test.compat import IntegrationTestCase
 from ksa_compliance.test.test_constants import (
     SAUDI_COUNTRY,
     SAUDI_CURRENCY,
@@ -31,7 +31,7 @@ from ksa_compliance.test.test_constants import (
 )
 
 
-class TestZATCAState3Integration(FrappeTestCase):
+class TestZATCAState3Integration(IntegrationTestCase):
     """State 3 Integration Tests: ZATCA Configured and Enabled"""
 
     def test_zatca_sync_is_live(self):

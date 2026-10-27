@@ -14,6 +14,10 @@ from ksa_compliance.test.test_constants import (
     TEST_STANDARD_CUSTOMER_NAME,
 )
 
+# Sales invoices are created by the tests. Generating ERPNext test records for them on v16 loads
+# ERPNext's test bootstrap, which conflicts with the SAR test company.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Sales Invoice"]
+
 
 class TestZATCAPrecomputedInvoice(KSAComplianceTestBase):
     """Test class for ZATCA Precomputed Invoice DocType - inherits from shared test infrastructure"""

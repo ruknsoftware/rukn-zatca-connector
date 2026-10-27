@@ -557,6 +557,8 @@ def create_advance_payment_entry(
     payment_entry.payment_type = payment_type
     payment_entry.company = company
     payment_entry.posting_date = frappe.utils.nowdate()
+    # KSA custom field, used as the e-invoice IssueTime of advance payment entries
+    payment_entry.posting_time = frappe.utils.nowtime()
     payment_entry.mode_of_payment = mode_of_payment
 
     # Mark as advance payment entry

@@ -8,6 +8,10 @@ from frappe import _
 
 from ksa_compliance.ksa_compliance.test.ksa_compliance_test_base import KSAComplianceTestBase
 
+# Branch links to Company through KSA custom fields. Generating ERPNext test records for it on v16
+# loads ERPNext's test bootstrap, which conflicts with the SAR test company.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Branch"]
+
 
 class TestSalesInvoiceAdditionalFields(KSAComplianceTestBase):
     """Test class for Sales Invoice Additional Fields DocType - inherits from shared test infrastructure"""
