@@ -7,7 +7,6 @@ ZATCA Tax Category and Invoice Integration Tests
 import traceback
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
 from frappe.utils import flt
 
 from ksa_compliance.ksa_compliance.test.test_invoice_helpers import (
@@ -18,6 +17,7 @@ from ksa_compliance.ksa_compliance.test.test_invoice_helpers import (
     create_tax_category_with_zatca,
     ensure_test_item_exists,
 )
+from ksa_compliance.test.compat import IntegrationTestCase
 from ksa_compliance.test.test_constants import (
     SAUDI_CURRENCY,
     TEST_COMPANY_NAME,
@@ -73,7 +73,7 @@ TAX_TEMPLATES = [
 ]
 
 
-class TestZATCATaxCategoryIntegration(FrappeTestCase):
+class TestZATCATaxCategoryIntegration(IntegrationTestCase):
     def setUp(self):
         self.company = TEST_COMPANY_NAME
         self.currency = SAUDI_CURRENCY

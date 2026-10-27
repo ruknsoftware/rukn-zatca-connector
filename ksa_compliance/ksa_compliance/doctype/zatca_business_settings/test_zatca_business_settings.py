@@ -3,7 +3,6 @@
 
 import frappe
 from frappe import _
-from frappe.tests.utils import FrappeTestCase
 
 from ksa_compliance.compliance_checks import _perform_compliance_checks
 from ksa_compliance.ksa_compliance.doctype.zatca_business_settings.zatca_business_settings import (
@@ -18,6 +17,7 @@ from ksa_compliance.ksa_compliance.test.test_invoice_helpers import (
     create_normal_sales_invoice,
     ensure_test_item_exists,
 )
+from ksa_compliance.test.compat import IntegrationTestCase
 from ksa_compliance.test.test_constants import (
     SAUDI_COUNTRY,
     SAUDI_CURRENCY,
@@ -28,6 +28,10 @@ from ksa_compliance.test.test_constants import (
 from ksa_compliance.zatca_cli import setup as zatca_cli_setup
 
 ZATCA_DOCTYPE = "ZATCA Business Settings"
+
+# Company, accounts, addresses and items come from the before_tests setup. Generating ERPNext test
+# records for them on v16 loads ERPNext's test bootstrap, which conflicts with the SAR test company.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Account", "Address", "Company", "Item"]
 
 
 def withdraw_settings(settings_id, company):
@@ -125,7 +129,7 @@ def ensure_active_zatca_settings():
         return active[0]["name"]
 
 
-class TestZATCABusinessSettings(FrappeTestCase):
+class TestZATCABusinessSettings(IntegrationTestCase):
     @classmethod
     def setUpClass(cls):
         """Set up test class"""
