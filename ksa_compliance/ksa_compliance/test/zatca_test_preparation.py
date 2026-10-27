@@ -148,28 +148,10 @@ def verify_round_tax_row_wise():
 
 
 def activate_round_tax_row_wise_v15():
-    """Activate round tax amount row-wise in Frappe v15+ Account Settings"""
+    """Activate round tax amount row-wise in Frappe v15+ Accounts Settings"""
     try:
-        # Check if Account Settings doctype exists
-        if frappe.db.exists("DocType", "Account Settings"):
-            # Get or create Account Settings
-            if frappe.db.exists("Account Settings", "Account Settings"):
-                account_settings = frappe.get_doc("Account Settings", "Account Settings")
-            else:
-                account_settings = frappe.new_doc("Account Settings")
-                account_settings.name = "Account Settings"
-
-            # Check if the field exists and activate it
-            if hasattr(account_settings, "round_tax_amount_row_wise"):
-                account_settings.round_tax_amount_row_wise = 1
-                account_settings.save()
-                logging.info("✅ Activated round tax amount row-wise in Account Settings (v15+)")
-            else:
-                logging.warning("⚠️  Round tax amount row-wise field not found in Account Settings")
-                logging.warning("   This may indicate a different field name or missing feature")
-        else:
-            logging.warning("⚠️  Account Settings doctype not found")
-            logging.warning("   This may indicate an older version or missing ERPNext module")
+        frappe.db.set_single_value("Accounts Settings", "round_row_wise_tax", 1)
+        logging.info("✅ Activated round tax amount row-wise in Accounts Settings (v15+)")
     except Exception as e:
         logging.error(f"❌ Error activating round tax row-wise in v15: {str(e)}")
 
@@ -202,20 +184,11 @@ def display_current_settings():
         major_version = int(frappe_version.split(".")[0])
 
         if major_version >= 15:
-            # Check Account Settings in v15+
-            if frappe.db.exists("DocType", "Account Settings"):
-                if frappe.db.exists("Account Settings", "Account Settings"):
-                    account_settings = frappe.get_doc("Account Settings", "Account Settings")
-                    if hasattr(account_settings, "round_tax_amount_row_wise"):
-                        logging.info(
-                            f"Round Tax Row-wise (v15+): {account_settings.round_tax_amount_row_wise}"
-                        )
-                    else:
-                        logging.warning("Round Tax Row-wise (v15+): Field not found")
-                else:
-                    logging.warning("Round Tax Row-wise (v15+): Account Settings not configured")
-            else:
-                logging.warning("Round Tax Row-wise (v15+): Account Settings doctype not found")
+            # Check Accounts Settings in v15+
+            round_row_wise_tax = frappe.db.get_single_value(
+                "Accounts Settings", "round_row_wise_tax"
+            )
+            logging.info(f"Round Tax Row-wise (v15+): {round_row_wise_tax}")
         # Check app installation in v14
         installed_apps = frappe.get_installed_apps()
         logging.info(

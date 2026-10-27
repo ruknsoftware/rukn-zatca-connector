@@ -2,6 +2,7 @@
 # See license.txt
 
 import frappe
+
 from ksa_compliance.test.compat import IntegrationTestCase
 
 
@@ -42,13 +43,10 @@ class TestZATCATestSetup(IntegrationTestCase):
         major_version = int(frappe_version.split(".")[0])
 
         if major_version >= 15:
-            # Check Account Settings in v15+
-            if frappe.db.exists("DocType", "Account Settings"):
-                if frappe.db.exists("Account Settings", "Account Settings"):
-                    account_settings = frappe.get_doc("Account Settings", "Account Settings")
-                    if hasattr(account_settings, "round_tax_amount_row_wise"):
-                        self.assertEqual(
-                            account_settings.round_tax_amount_row_wise,
-                            1,
-                            "Round tax amount row-wise should be enabled in v15+",
-                        )
+            # Check Accounts Settings in v15+
+            round_row_wise_tax = frappe.db.get_single_value(
+                "Accounts Settings", "round_row_wise_tax"
+            )
+            self.assertEqual(
+                round_row_wise_tax, 1, "Round tax amount row-wise should be enabled in v15+"
+            )
