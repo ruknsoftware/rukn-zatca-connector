@@ -2,9 +2,13 @@
 # See license.txt
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
 
 from ksa_compliance import hooks
+
+try:
+    from frappe.tests import IntegrationTestCase
+except ImportError:  # Frappe v15 and older
+    from frappe.tests.utils import FrappeTestCase as IntegrationTestCase
 
 EXPECTED_DOCTYPE_CLASSES = {
     "Payment Reconciliation": "ksa_compliance.standard_doctypes.payment_reconciliation.CustomPaymentReconciliation",
@@ -13,7 +17,7 @@ EXPECTED_DOCTYPE_CLASSES = {
 }
 
 
-class TestDocTypeClassHooks(FrappeTestCase):
+class TestDocTypeClassHooks(IntegrationTestCase):
     def test_doctype_classes_registered_in_one_hook_for_frappe_version(self):
         if int(frappe.__version__.split(".")[0]) >= 16:
             active_hook, inactive_hook = "extend_doctype_class", "override_doctype_class"
