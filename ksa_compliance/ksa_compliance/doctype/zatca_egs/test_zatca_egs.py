@@ -34,13 +34,8 @@ class TestZATCAEGS(KSAComplianceTestBase):
             TEST_COMPANY_NAME, SAUDI_COUNTRY, SAUDI_CURRENCY, full_onboarding=False
         )
 
-    def _delete_egs_for_device(self, device_id):
-        """Remove EGS left over from earlier runs, so device lookups find the one this test creates"""
-        frappe.db.delete("ZATCA EGS", {"unit_common_name": device_id})
-
     def _create_test_erpnext_egs(self, device_id="ERPNext"):
         """Create test ERPNext EGS configuration"""
-        self._delete_egs_for_device(device_id)
         egs = frappe.new_doc("ZATCA EGS")
         egs.business_settings = self.business_settings_name
         egs.egs_type = "ERPNext"
@@ -54,7 +49,6 @@ class TestZATCAEGS(KSAComplianceTestBase):
 
     def _create_test_pos_egs(self, device_id="POS-DEVICE-001"):
         """Create test POS device EGS configuration"""
-        self._delete_egs_for_device(device_id)
         egs = frappe.new_doc("ZATCA EGS")
         egs.business_settings = self.business_settings_name
         egs.egs_type = "POS Device"

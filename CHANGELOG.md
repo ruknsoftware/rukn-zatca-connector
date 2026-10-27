@@ -21,7 +21,7 @@ to a section with the version name.
   * Set POS Settings `invoice_type` To `POS Invoice` On v16
   * Set Default Language In Test Setup To Avoid Locale Error On v16
   * Set `posting_time` On Advance Payment Entries
-  * Delete Old EGS With The Same Device Name Before Creating Test EGS
+  * Call `super()` In `KSAComplianceTestBase` So Test Data Is Rolled Back After Each Class
   * Set `round_row_wise_tax` Directly In Accounts Settings
 
 ## 0.69.5
