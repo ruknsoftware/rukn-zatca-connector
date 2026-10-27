@@ -25,6 +25,7 @@ class KSAComplianceTestBase(IntegrationTestCase):
     @classmethod
     def setUpClass(cls):
         """Set up test class - create shared test data"""
+        super().setUpClass()
         frappe.logger().info("\n🚀 Starting KSA Compliance test suite...")
         # Setup for the entire test class
         cls._create_test_customers()
@@ -95,6 +96,7 @@ class KSAComplianceTestBase(IntegrationTestCase):
 
     def setUp(self):
         """Set up each test - create test-specific data"""
+        super().setUp()
         frappe.logger().info("🧪 Setting up test...")
         frappe.set_user("Administrator")  # Set Administrator as current user
         self._create_test_pos_profile()
@@ -103,6 +105,7 @@ class KSAComplianceTestBase(IntegrationTestCase):
 
     def tearDown(self):
         """Clean up after each test"""
+        super().tearDown()
         frappe.logger().info("✅ Test cleanup completed")
 
     def _create_test_pos_profile(self):
