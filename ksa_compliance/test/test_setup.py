@@ -66,6 +66,10 @@ def custom_erpnext_setup():
             if "tax_id" in field_names:
                 frappe.db.set_value("Company", TEST_COMPANY_NAME, "tax_id", "399999999900003")
 
+    # ERPNext v16 blocks POS Invoices unless POS Settings creates them (v15 has no such setting)
+    if frappe.get_meta("POS Settings").has_field("invoice_type"):
+        frappe.db.set_single_value("POS Settings", "invoice_type", "POS Invoice")
+
     frappe.db.sql("delete from `tabItem Price`")
 
     # Create Gender records for test data
