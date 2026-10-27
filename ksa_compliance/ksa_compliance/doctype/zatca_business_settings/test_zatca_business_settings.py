@@ -29,6 +29,10 @@ from ksa_compliance.zatca_cli import setup as zatca_cli_setup
 
 ZATCA_DOCTYPE = "ZATCA Business Settings"
 
+# Company, accounts, addresses and items come from the before_tests setup. Generating ERPNext test
+# records for them on v16 loads ERPNext's test bootstrap, which conflicts with the SAR test company.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Account", "Address", "Company", "Item"]
+
 
 def withdraw_settings(settings_id, company):
     _withdraw(settings_id, company)

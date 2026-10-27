@@ -9,6 +9,10 @@ from ksa_compliance.ksa_compliance.test.ksa_compliance_test_base import KSACompl
 from ksa_compliance.test.compat import IntegrationTestCase
 from ksa_compliance.test.test_constants import SAUDI_COUNTRY, SAUDI_CURRENCY
 
+# The company and addresses come from the before_tests setup. Generating ERPNext test records for
+# them on v16 loads ERPNext's test bootstrap, which conflicts with the SAR test company.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Address", "Company"]
+
 
 class TestZATCAPhase1BusinessSettings(IntegrationTestCase):
     """Test class for ZATCA Phase 1 Business Settings DocType - standalone test infrastructure"""
