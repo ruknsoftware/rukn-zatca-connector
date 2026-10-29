@@ -13,6 +13,10 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.69.8
+* Use `extend_doctype_class` On Frappe v16+ And `override_doctype_class` On Older Versions
+  * Allow other apps to extend `Sales Invoice`, `Payment Reconciliation` and `Unreconcile Payment` on v16+
+
 ## 0.69.7
 * Hide Advance Payment Entries In Payment Reconciliation On Frappe v16+
 * Make ZATCA Tests Run On Frappe v15 And v16

@@ -1,3 +1,5 @@
+import frappe
+
 app_name = "ksa_compliance"
 app_title = "KSA Compliance"
 app_publisher = "LavaLoon"
@@ -127,13 +129,21 @@ after_install = "ksa_compliance.install.after_install"
 
 # DocType Class
 # ---------------
-# Override standard doctype classes
+# v16+ extends standard doctype classes so other apps can extend them too;
+# older versions don't support extend_doctype_class, so they override instead.
+# Never register a class in both hooks: on v16 that makes it a duplicate base class.
 
-override_doctype_class = {
+_doctype_classes = {
     "Payment Reconciliation": "ksa_compliance.standard_doctypes.payment_reconciliation.CustomPaymentReconciliation",
     "Unreconcile Payment": "ksa_compliance.standard_doctypes.unreconcile_payment.CustomUnreconcilePayment",
     "Sales Invoice": "ksa_compliance.standard_doctypes.sales_invoice.AdvanceSalesInvoice",
 }
+
+if int(frappe.__version__.split(".")[0]) >= 16:
+    extend_doctype_class = _doctype_classes
+else:
+    # Frappe v15 and older do not implement extend_doctype_class.
+    override_doctype_class = _doctype_classes  # nosemgrep
 
 # Document Events
 # ---------------
