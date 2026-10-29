@@ -13,6 +13,10 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.69.8
+* Use `extend_doctype_class` On Frappe v16+ And `override_doctype_class` On Older Versions
+  * Allow other apps to extend `Sales Invoice`, `Payment Reconciliation` and `Unreconcile Payment` on v16+
+
 ## 0.69.7
 * Hide Advance Payment Entries In Payment Reconciliation On Frappe v16+
 * Make ZATCA Tests Run On Frappe v15 And v16
@@ -23,10 +27,6 @@ to a section with the version name.
   * Set `posting_time` On Advance Payment Entries
   * Call `super()` In `KSAComplianceTestBase` So Test Data Is Rolled Back After Each Class
   * Set `round_row_wise_tax` Directly In Accounts Settings
- 
-## 0.69.6
-* Use `extend_doctype_class` On Frappe v16+ And `override_doctype_class` On Older Versions
-  * Allow other apps to extend `Sales Invoice`, `Payment Reconciliation` and `Unreconcile Payment` on v16+
 
 ## 0.69.5
 * Copy Row-Wise Tax Rounding Overrides From `round_tax_amount_row_wise` Into KSA App
