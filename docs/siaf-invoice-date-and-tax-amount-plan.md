@@ -201,8 +201,8 @@ bench --site zatca.localhost migrate   # confirm the patch backfills existing SI
 | Credit notes: positive or negative tax? | Positive, because the XML stores it that way. |
 | Backfill old Journal Entry records? | Yes. The patch reads each record's stored XML, which works for every doctype. |
 | Invoice type text: where does it come from? | A `label` property on `InvoiceTypeCode` in `invoice.py`, filled from the code in `einvoice.result`. Shown in a read-only Select field next to `invoice_type_code`. |
-| Invoice type text: include Standard/Simplified (e.g. "Simplified Tax Invoice Credit Note", as the ZATCA PDF print does)? | **To confirm.** Planned as the code's meaning only. Standard/Simplified comes from `invoice_type_transaction`, a separate field. |
-| Precomputed invoices (no local build step)? | **To confirm.** Recommended: parse the precomputed XML, as the patch does, since that XML is the only source of the values. |
+| Invoice type text: include Standard/Simplified (e.g. "Simplified Tax Invoice Credit Note", as the ZATCA PDF print does)? | No. The field shows only the code's meaning (e.g. "Credit Note"). Standard/Simplified is not part of it; it stays in the separate `invoice_type_transaction` field. |
+| Precomputed invoices (no local build step)? | Parse the precomputed XML with the same function the backfill patch uses, inside `use_precomputed_invoice()`. That XML is the only source of the values. It also fills the missing `invoice_type_code`. |
 
 ## Out of scope
 
