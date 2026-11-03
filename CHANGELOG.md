@@ -13,6 +13,13 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.70.0
+* Add Issue Date, Issue Time, Tax Amounts And Invoice Type To `Sales Invoice Additional Fields`
+  * Fill the fields while the ZATCA XML is built; tax amounts use 2 decimals like the XML
+  * Read them from the device's XML for precomputed invoices
+  * Add `InvoiceTypeCode.label` for the invoice type text
+  * Add patch to backfill existing records from their stored XML
+
 ## 0.69.8
 * Use `extend_doctype_class` On Frappe v16+ And `override_doctype_class` On Older Versions
   * Allow other apps to extend `Sales Invoice`, `Payment Reconciliation` and `Unreconcile Payment` on v16+
