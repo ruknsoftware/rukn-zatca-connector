@@ -15,11 +15,17 @@
   "last_attempt",
   "invoice_doctype",
   "sales_invoice",
+  "issue_date",
+  "issue_time",
   "is_latest",
   "uuid",
   "invoice_type_code",
+  "invoice_type_code_label",
   "invoice_type_transaction",
   "tax_currency",
+  "currency_code",
+  "total_taxes_and_charges",
+  "base_total_taxes_and_charges",
   "invoice_counter",
   "invoice_hash",
   "previous_invoice_hash",
@@ -127,6 +133,14 @@
    "read_only": 1
   },
   {
+   "fieldname": "invoice_type_code_label",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Invoice Type",
+   "options": "\nTax Invoice\nCredit Note\nDebit Note\nPrepayment Invoice",
+   "read_only": 1
+  },
+  {
    "fieldname": "invoice_type_transaction",
    "fieldtype": "Data",
    "label": "Invoice Type Transaction",
@@ -136,6 +150,28 @@
    "fieldname": "tax_currency",
    "fieldtype": "Data",
    "label": "Tax Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "currency_code",
+   "fieldtype": "Data",
+   "label": "Document Currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_taxes_and_charges",
+   "fieldtype": "Currency",
+   "label": "Total Tax Amount",
+   "options": "currency_code",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "base_total_taxes_and_charges",
+   "fieldtype": "Currency",
+   "label": "Total Tax Amount (SAR)",
+   "options": "tax_currency",
+   "precision": "2",
    "read_only": 1
   },
   {
@@ -223,6 +259,20 @@
    "read_only": 1,
    "reqd": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "issue_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Issue Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "issue_time",
+   "fieldtype": "Time",
+   "label": "Issue Time",
+   "read_only": 1
   },
   {
    "fieldname": "invoice_tab",
@@ -646,7 +696,7 @@
    "link_fieldname": "invoice_additional_fields_reference"
   }
  ],
- "modified": "2025-10-21 13:16:51.714661",
+ "modified": "2026-11-02 14:00:00.000000",
  "modified_by": "Administrator",
  "module": "KSA Compliance",
  "name": "Sales Invoice Additional Fields",
