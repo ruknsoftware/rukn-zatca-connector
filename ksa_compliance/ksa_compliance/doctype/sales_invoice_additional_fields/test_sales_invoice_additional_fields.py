@@ -174,6 +174,21 @@ class TestSalesInvoiceAdditionalFields(KSAComplianceTestBase):
         for field in SUMMARY_FIELDS:
             self.assertEqual(siaf.get(field), expected[field], field)
 
+    def test_backfill_skips_unreadable_xml_attachment(self):
+        """A missing XML attachment file skips the record instead of failing the migration"""
+        sales_invoice = self._create_test_sales_invoice()
+        siaf = self._get_latest_siaf(sales_invoice.name)
+        row = frappe._dict(
+            name=siaf.name, invoice_xml=None, tax_currency=None, invoice_type_code=None
+        )
+
+        with patch(
+            "ksa_compliance.ksa_compliance.doctype.sales_invoice_additional_fields."
+            "sales_invoice_additional_fields.SalesInvoiceAdditionalFields.get_signed_xml",
+            side_effect=FileNotFoundError("missing on disk"),
+        ):
+            self.assertFalse(backfill_patch._backfill(row))
+
     def test_invoice_type_label_options_match_enum(self):
         """Every InvoiceTypeCode label must be an option of the invoice type Select field"""
         options = frappe.get_meta("Sales Invoice Additional Fields").get_options(

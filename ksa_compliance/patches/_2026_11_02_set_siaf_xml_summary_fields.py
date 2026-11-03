@@ -46,7 +46,12 @@ def _backfill(row: frappe._dict) -> bool:
     xml = row.invoice_xml
     if not xml:
         # SIAFs created before the XML field existed keep their XML as an attachment
-        xml = frappe.get_doc(DOCTYPE, row.name).get_signed_xml()
+        try:
+            xml = frappe.get_doc(DOCTYPE, row.name).get_signed_xml()
+        except Exception:
+            # e.g. the attachment's file is missing on disk; don't let one record fail the migration
+            logger.exception(f"Skipping {row.name}: could not read XML attachment")
+            return False
     if not xml:
         logger.warning(f"Skipping {row.name}: no XML")
         return False
