@@ -8,6 +8,17 @@ app_email = "info@lavaloon.com"
 app_license = "Copyright (c) 2023 LavaLoon"
 # required_apps = []
 
+# The apps screen exists from v15; v14 ignores this hook. Desk moved from /app to /desk in v16
+add_to_apps_screen = [
+    {
+        "name": app_name,
+        "logo": "/assets/ksa_compliance/images/zatca-emblem.svg",
+        "title": "ZATCA",
+        "route": "/desk/zatca" if int(frappe.__version__.split(".")[0]) >= 16 else "/app/zatca",
+        "has_permission": "ksa_compliance.permissions.has_app_permission",
+    }
+]
+
 # Includes in <head>
 # ------------------
 
