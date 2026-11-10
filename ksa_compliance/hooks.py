@@ -29,6 +29,9 @@ app_include_js = [
     "/assets/ksa_compliance/js/taxes_and_totals_override.js",
 ]
 
+# Adds "zatca" to the desk's Icon field picker (e.g. the ZATCA workspace icon)
+app_include_icons = ["ksa_compliance/icons/zatca.svg"]
+
 # include js, css files in header of web template
 # web_include_css = "/assets/ksa_compliance/css/ksa_compliance.css"
 # web_include_js = "/assets/ksa_compliance/js/ksa_compliance.js"
