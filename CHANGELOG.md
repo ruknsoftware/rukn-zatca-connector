@@ -19,7 +19,9 @@ to a section with the version name.
   * Open `/app/zatca` on v15 and `/desk/zatca` on v16+
 * Show The ZATCA Emblem As The ZATCA Workspace Icon
   * Ship the emblem's shield in the icon colour as a `zatca` sprite through `app_include_icons`
+  * Load the sprite from its full `/assets/` URL on v16+, which doesn't add the prefix itself
   * Set the ZATCA workspace icon to `zatca`
+  * Drop the emblem's off-canvas wordmark paths, cutting the file from 37 KB to 13 KB with no visible change
 
 ## 0.70.0
 * Add Issue Date, Issue Time, Tax Amounts And Invoice Type To `Sales Invoice Additional Fields`
