@@ -13,6 +13,14 @@ to a section with the version name.
 
 ## Unreleased Changes
 
+## 0.69.9
+* Add ZATCA To The Apps Screen (`/apps`)
+  * Show the tile only to users who can open the ZATCA workspace
+  * Open `/app/zatca` on v15 and `/desk/zatca` on v16+
+* Show The ZATCA Emblem As The ZATCA Workspace Icon
+  * Ship the emblem's shield in the icon colour as a `zatca` sprite through `app_include_icons`
+  * Set the ZATCA workspace icon to `zatca`
+
 ## 0.69.8
 * Use `extend_doctype_class` On Frappe v16+ And `override_doctype_class` On Older Versions
   * Allow other apps to extend `Sales Invoice`, `Payment Reconciliation` and `Unreconcile Payment` on v16+
