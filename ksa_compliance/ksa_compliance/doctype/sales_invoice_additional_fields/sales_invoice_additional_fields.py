@@ -21,7 +21,7 @@ from frappe.contacts.doctype.address.address import Address
 from frappe.core.doctype.file.file import File
 from frappe.model.document import Document
 from frappe.translate import print_language
-from frappe.utils import get_link_to_form, now_datetime, strip
+from frappe.utils import flt, get_link_to_form, getdate, now_datetime, strip
 from frappe.utils.pdf import get_file_data_from_writer
 from pypdf import PdfWriter
 from result import Err, Ok, Result, is_err, is_ok
@@ -47,6 +47,7 @@ from ksa_compliance.output_models.e_invoice_output_model import (
 )
 from ksa_compliance.translation import ft
 from ksa_compliance.utils.advance_payment_invoice import invoice_has_advance_item
+from ksa_compliance.utils.xml_parser import parse_xml_to_dict
 from ksa_compliance.zatca_api import (
     ReportOrClearInvoiceError,
     ReportOrClearInvoiceResult,
@@ -77,6 +78,7 @@ class SalesInvoiceAdditionalFields(Document):
         allowance_indicator: DF.Check
         allowance_vat_category_code: DF.Data | None
         amended_from: DF.Link | None
+        base_total_taxes_and_charges: DF.Currency
         branch: DF.Link | None
         branch_commercial_registration_number: DF.Data | None
         buyer_additional_number: DF.Data | None
@@ -92,6 +94,7 @@ class SalesInvoiceAdditionalFields(Document):
         charge_indicator: DF.Check
         charge_vat_category_code: DF.Data | None
         code_for_allowance_reason: DF.Data | None
+        currency_code: DF.Data | None
         fatoora_invoice_discount_amount: DF.Float
         integration_status: DF.Literal[
             "",
@@ -117,9 +120,14 @@ class SalesInvoiceAdditionalFields(Document):
         invoice_line_charge_indicator: DF.Data | None
         invoice_line_charge_percentage: DF.Percent
         invoice_type_code: DF.Data | None
+        invoice_type_code_label: DF.Literal[
+            "", "Tax Invoice", "Credit Note", "Debit Note", "Prepayment Invoice"
+        ]
         invoice_type_transaction: DF.Data | None
         invoice_xml: DF.LongText | None
         is_latest: DF.Check
+        issue_date: DF.Date | None
+        issue_time: DF.Time | None
         last_attempt: DF.Datetime | None
         other_buyer_ids: DF.Table[AdditionalSellerIDs]
         payment_means_type_code: DF.Data | None
@@ -142,6 +150,7 @@ class SalesInvoiceAdditionalFields(Document):
         sum_of_charges: DF.Float
         supply_end_date: DF.Data | None
         tax_currency: DF.Data | None
+        total_taxes_and_charges: DF.Currency
         uuid: DF.Data | None
         validation_errors: DF.SmallText | None
         validation_messages: DF.SmallText | None
@@ -175,6 +184,18 @@ class SalesInvoiceAdditionalFields(Document):
         self.invoice_hash = precomputed_invoice.invoice_hash
         self.qr_code = precomputed_invoice.invoice_qr
         self.invoice_xml = precomputed_invoice.invoice_xml
+        # The XML was built and signed by the POS device, so it's the only source of the summary fields
+        if self.invoice_xml:
+            try:
+                self._set_xml_summary_fields(parse_xml_to_dict(self.invoice_xml)["invoice"])
+            except Exception:
+                # Summary fields are informational; never block the invoice because of them
+                logger.exception(
+                    f"Could not read summary fields from precomputed invoice {precomputed_invoice.name}"
+                )
+
+    def _set_xml_summary_fields(self, invoice: dict) -> None:
+        self.update({k: v for k, v in get_xml_summary_values(invoice).items() if v is not None})
 
     def _get_invoice_type(self, settings: ZATCABusinessSettings) -> InvoiceType:
         if settings.invoice_mode == InvoiceMode.Standard:
@@ -256,6 +277,7 @@ class SalesInvoiceAdditionalFields(Document):
             settings.compliance_cert_path if self.is_compliance_mode else settings.cert_path
         )
         invoice_xml = generate_xml_file(einvoice.result)
+        self._set_xml_summary_fields(einvoice.result["invoice"])
         result = cli.sign_invoice(
             settings.zatca_cli_path,
             settings.java_home,
@@ -599,6 +621,37 @@ class SalesInvoiceAdditionalFields(Document):
             msg=_("You cannot cancel sales invoice according to ZATCA Regulations."),
             title=_("This Action Is Not Allowed"),
         )
+
+
+def get_xml_summary_values(invoice: dict) -> frappe._dict:
+    """
+    Returns the summary fields (issue date/time, currency, tax totals and invoice type) for the 'invoice' part of either
+    the e-invoice data an XML is built from (SalesEinvoice/AdvancePaymentEntry result) or [parse_xml_to_dict] of an
+    already signed XML. Both use the same keys, so live, precomputed and backfilled records get the same values.
+    """
+    doctype = "Sales Invoice Additional Fields"
+    code = invoice.get("invoice_type_code")
+    try:
+        label = InvoiceTypeCode(code).label
+    except ValueError:
+        label = None
+
+    return frappe._dict(
+        issue_date=getdate(invoice["issue_date"]) if invoice.get("issue_date") else None,
+        issue_time=invoice.get("issue_time"),
+        currency_code=invoice.get("currency_code"),
+        tax_currency=invoice.get("tax_currency"),
+        invoice_type_code=code,
+        invoice_type_code_label=label,
+        total_taxes_and_charges=flt(
+            invoice.get("total_taxes_and_charges"),
+            frappe.get_precision(doctype, "total_taxes_and_charges"),
+        ),
+        base_total_taxes_and_charges=flt(
+            invoice.get("base_total_taxes_and_charges"),
+            frappe.get_precision(doctype, "base_total_taxes_and_charges"),
+        ),
+    )
 
 
 @frappe.whitelist()

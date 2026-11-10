@@ -13,13 +13,20 @@ to a section with the version name.
 
 ## Unreleased Changes
 
-## 0.69.9
+## 0.70.1
 * Add ZATCA To The Apps Screen (`/apps`)
   * Show the tile only to users who can open the ZATCA workspace
   * Open `/app/zatca` on v15 and `/desk/zatca` on v16+
 * Show The ZATCA Emblem As The ZATCA Workspace Icon
   * Ship the emblem's shield in the icon colour as a `zatca` sprite through `app_include_icons`
   * Set the ZATCA workspace icon to `zatca`
+
+## 0.70.0
+* Add Issue Date, Issue Time, Tax Amounts And Invoice Type To `Sales Invoice Additional Fields`
+  * Fill the fields while the ZATCA XML is built; tax amounts use 2 decimals like the XML
+  * Read them from the device's XML for precomputed invoices
+  * Add `InvoiceTypeCode.label` for the invoice type text
+  * Add patch to backfill existing records from their stored XML
 
 ## 0.69.8
 * Use `extend_doctype_class` On Frappe v16+ And `override_doctype_class` On Older Versions

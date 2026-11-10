@@ -315,3 +315,13 @@ Cant UNRreconcile From Advance Payment Entry,لا يمكن إلغاء التوف
 Cannot create return for consolidated invoice {0}.,لا يمكن إنشاء إرجاع للفاتورة الموحدة {0}.
 Cannot Create Return,لا يمكن إنشاء الإرجاع
 {0} does not exist or is not a file,{0} غير موجود أو ليس ملفًا
+Issue Date,تاريخ الإصدار
+Issue Time,وقت الإصدار
+Document Currency,عملة المستند
+Total Tax Amount,إجمالي مبلغ الضريبة
+Total Tax Amount (SAR),إجمالي مبلغ الضريبة (ريال سعودي)
+Invoice Type,نوع الفاتورة
+Tax Invoice,فاتورة ضريبية
+Credit Note,إشعار دائن
+Debit Note,إشعار مدين
+Prepayment Invoice,فاتورة دفعة مقدمة
